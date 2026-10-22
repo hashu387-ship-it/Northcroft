@@ -195,8 +195,12 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
   const options = useMemo(() => {
     if (query === null) return [];
     const q = query.toLowerCase();
+    // First names that start with what was typed come first, then other name matches.
+    const rank = (p: Profile) =>
+      p.short_name.toLowerCase().startsWith(q) ? 0 : p.full_name.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)) ? 1 : 2;
     const list: { id: string; label: string; person?: Profile }[] = people.active
-      .filter((p) => p.id !== me.id && (p.short_name.toLowerCase().startsWith(q) || p.full_name.toLowerCase().includes(q)))
+      .filter((p) => p.id !== me.id && rank(p) < 2)
+      .sort((a, b) => rank(a) - rank(b) || a.short_name.localeCompare(b.short_name))
       .map((p) => ({ id: p.id, label: p.short_name, person: p }));
     if ("all".startsWith(q)) list.push({ id: "all", label: "all" });
     return list.slice(0, 7);

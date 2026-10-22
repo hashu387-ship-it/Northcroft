@@ -84,7 +84,8 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL((event.notification.data && event.notification.data.url) || "/inbox", self.location.origin).href;
+  const raw = new URL((event.notification.data && event.notification.data.url) || "/inbox", self.location.origin);
+  const target = self.location.origin + raw.pathname + raw.search;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       for (const client of list) {

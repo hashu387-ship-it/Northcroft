@@ -60,7 +60,8 @@ export const DOW_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday",
 
 export function fmtDate(iso: string | null | undefined, opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }): string {
   if (!iso) return "";
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...opts }).format(parse(iso));
+  // en-GB writes September as "Sept"; keep every month to three letters.
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...opts }).format(parse(iso)).replace(/\bSept\b/, "Sep");
 }
 
 export function fmtLongDate(iso: string): string {
@@ -100,7 +101,7 @@ export function fmtTime(ts: string | null | undefined): string {
 
 export function fmtTime12(ts: string | null | undefined): string {
   if (!ts) return "";
-  return time12Fmt.format(new Date(ts));
+  return time12Fmt.format(new Date(ts)).replace(/\s?(AM|PM)$/i, (m) => " " + m.trim().toLowerCase());
 }
 
 /** "08:30:00" -> "8:30 am" */

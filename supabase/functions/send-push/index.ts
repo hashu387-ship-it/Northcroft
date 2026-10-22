@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
   if (error || !n) return json({ error: "Notification not found" }, 404);
 
   const [{ data: subs }, { count }] = await Promise.all([
-    supabase.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", n.user_id),
+    supabase.from("push_subscriptions").select("id, endpoint, p256dh, auth, origin").eq("user_id", n.user_id),
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
@@ -75,24 +75,28 @@ Deno.serve(async (req) => {
       .is("archived_at", null),
   ]);
 
-  const base = (cfg.app_url || "").replace(/\/$/, "");
-  const url = base + (n.link || "/inbox");
   const tag = n.task_id ? `task-${n.task_id}` : n.announcement_id ? `ann-${n.announcement_id}` : `n-${n.id}`;
+  const path = n.link || "/inbox";
 
   // Declarative Web Push shape (Safari 18.4+), also read by our service worker everywhere else.
-  const payload = JSON.stringify({
-    web_push: 8030,
-    notification: {
-      title: n.title,
-      body: n.body ?? "",
-      navigate: url,
-      app_badge: String(count ?? 0),
-      tag,
-      lang: "en-GB",
-      dir: "ltr",
-    },
-    data: { id: n.id, type: n.type, url },
-  });
+  // Links open on the same site the device installed the app from.
+  const payloadFor = (origin: string | null) => {
+    const base = (origin || cfg.app_url || "").replace(/\/$/, "");
+    const url = base + path;
+    return JSON.stringify({
+      web_push: 8030,
+      notification: {
+        title: n.title,
+        body: n.body ?? "",
+        navigate: url,
+        app_badge: String(count ?? 0),
+        tag,
+        lang: "en-GB",
+        dir: "ltr",
+      },
+      data: { id: n.id, type: n.type, url },
+    });
+  };
 
   let sent = 0;
   let removed = 0;
@@ -103,7 +107,7 @@ Deno.serve(async (req) => {
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          payload,
+          payloadFor(s.origin),
           { TTL: 60 * 60 * 24, urgency: "high" },
         );
         sent++;

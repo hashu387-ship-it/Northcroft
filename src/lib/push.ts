@@ -39,11 +39,12 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
 async function saveSubscription(sub: PushSubscription) {
   const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
-  const { error } = await supabase.rpc("save_push_subscription", {
+  const { error } = await supabase.rpc("register_push_device", {
     p_endpoint: json.endpoint,
     p_p256dh: json.keys.p256dh,
     p_auth: json.keys.auth,
     p_user_agent: navigator.userAgent,
+    p_origin: window.location.origin,
   });
   if (error) throw error;
 }

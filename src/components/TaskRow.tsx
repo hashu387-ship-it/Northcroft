@@ -26,7 +26,7 @@ export function TaskRow({
         <div className="t">{task.title}</div>
         <div className="m">
           {showProject && <ProjectTag project={projects.get(task.project_id)} />}
-          <DueLabel date={task.due_date} done={task.status === "done"} />
+          <DueLabel date={task.due_date} done={task.status === "done" || task.status === "in_review"} />
           <PriorityFlag priority={task.priority} />
           {checklist && checklist[1] > 0 && (
             <span className="row" style={{ gap: 3 }}>

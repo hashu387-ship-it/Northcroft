@@ -18,7 +18,7 @@ export function getPosition(timeoutMs = 15000): Promise<Fix> {
         else if (err.code === err.TIMEOUT) reject(new Error("Couldn't get your location in time. Try again outdoors or near a window."));
         else reject(new Error("Couldn't get your location."));
       },
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 },
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 },
     );
   });
 }
