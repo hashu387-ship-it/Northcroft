@@ -7,11 +7,15 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 - **Projects**: an overview, a task list and board, the variation (VO) register, BOQ package stages, project chat, files and a full history.
 - **Tasks**: you assign work with due dates, priorities and checklists. The person moves it to *In progress*, then *Submitted for review*. Hassan or a senior approves it or sends it back with a note. Tasks can also repeat daily, weekly or monthly.
 - **Announcements**: everyone taps *Acknowledge*. Managers see who hasn't, and can nudge them. Anyone who hasn't acknowledged gets an automatic reminder the next morning.
-- **Inbox and push notifications** for:
-  - new tasks, review requests, approvals and requested changes
-  - @mentions, and comments on tasks you follow
-  - announcements and calendar invites
-  - 8:00 am reminders, Sunday to Thursday, for work that's due or overdue
+- **Inbox and push notifications**, WhatsApp style:
+  - The sender's name is the title. On Android and computers their photo shows beside the message, or their initials if they have no photo. iPhone always shows the app icon for Home Screen apps.
+  - One notification per chat or task. It updates with the latest message and a count, and clears when you open that chat or task.
+  - Sent for:
+    - new tasks, review requests, approvals and requested changes
+    - every team chat and project chat message
+    - @mentions, and comments on tasks you follow
+    - announcements and calendar invites
+    - 8:00 am reminders, Sunday to Thursday, for work that's due or overdue
 - **Calendar**: task due dates, VO action dates, BOQ deadlines, site visits and meetings.
 - **Check in and check out** with location:
   - Each check-in is labelled Office, a project site or Elsewhere.

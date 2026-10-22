@@ -18,7 +18,7 @@ export default function TeamChat() {
         <div className="chat-tip">
           <AtSign />
           <span>
-            Type @ and a name to notify someone on their phone, or @all to notify everyone.
+            Everyone gets a notification for new messages. Type @ and a name to make sure someone sees it.
           </span>
         </div>
         <CommentThread scope={{ kind: "team" }} height="max(320px, calc(100dvh - 330px))" placeholder="Message the team" />

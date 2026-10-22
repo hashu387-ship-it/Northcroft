@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useInvalidate, usePeople, useProjectMap, useTask } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
+import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDateTime, timeAgo } from "@/lib/time";
 import type { Task, TaskStatus } from "@/lib/types";
@@ -54,6 +55,8 @@ export default function TaskDetail() {
   const { data: task, isLoading } = useTask(id);
   const activity = useActivity({ taskId: id, limit: 60 });
   const watchers = useWatchers(id);
+  // Opening the task reads its notifications, here and on the phone.
+  useMarkSeen(id ? { taskId: id } : null);
 
   const [editOpen, setEditOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);

@@ -5,6 +5,7 @@ import { FileText, MessageCircle, Paperclip, SendHorizontal, Trash2, X } from "l
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { isImage, signedUrl, signedUrls, uploadFile } from "@/lib/files";
+import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
 import { fileSize } from "@/lib/format";
@@ -51,6 +52,9 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
   const invalidate = useInvalidate();
   const listRef = useRef<HTMLDivElement>(null);
   const isChat = scope.kind !== "task";
+
+  // Reading a chat clears its notifications (task pages do this for the whole task).
+  useMarkSeen(scope.kind === "team" ? { link: "/chat" } : scope.kind === "project" ? { link: `/projects/${scope.projectId}/chat` } : null);
 
   const comments = useQuery({
     queryKey: ["comments", ...scopeKey(scope)],
@@ -113,7 +117,9 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
         {comments.isLoading && <Loading />}
         {!comments.isLoading && list.length === 0 && (
           <Empty icon={<MessageCircle />} title={isChat ? "No messages yet" : "No comments yet"}>
-            Type @ to mention someone. They get a notification on their phone.
+            {isChat
+              ? "Everyone on the team gets a notification when you post here."
+              : "Type @ to mention someone. They get a notification on their phone."}
           </Empty>
         )}
         {list.map((c) => {
@@ -281,7 +287,8 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
       setBody("");
       setFiles([]);
       if (ref.current) ref.current.style.height = "auto";
-      if (mentions.length) {
+      // In chats everyone is notified anyway, so only confirm mentions on task comments.
+      if (mentions.length && scope.kind === "task") {
         const names = mentions.map((id) => people.get(id)?.short_name).filter(Boolean);
         toast(names.length > 3 ? `Notified ${names.length} people` : `Notified ${names.join(", ")}`, "info");
       }
