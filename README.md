@@ -23,6 +23,11 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Managers get a team board with a map and a monthly CSV export.
 - **Workload**: open tasks per person per week, shown in red when someone has too much.
 - **Team chat** with @mentions and file sharing.
+- **Profiles and WhatsApp**:
+  - Everyone adds a photo and a +966 mobile number the first time they sign in.
+  - Tap anyone's photo to see their card, with WhatsApp, call and email buttons.
+  - WhatsApp buttons also sit on the Team list, the attendance board and task pages. On a task, the WhatsApp message starts with the task name and a link to it.
+  - People's check-ins show on the attendance map as their photo.
 - **Liquid glass design** in light and dark mode, with a *Solid surfaces* option for easier reading.
 
 ## Who can do what

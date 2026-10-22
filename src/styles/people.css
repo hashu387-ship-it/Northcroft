@@ -1,0 +1,232 @@
+/* WhatsApp buttons, the +966 number box, profile cards and photo map pins. */
+:root {
+  --wa: #25d366;
+  --wa-ink: #128c4b;
+  --wa-soft: rgba(37, 211, 102, 0.14);
+}
+
+/* ---- WhatsApp ---- */
+.wa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-shrink: 0;
+  color: var(--wa-ink);
+  background: var(--wa-soft);
+  border: 1px solid rgba(37, 211, 102, 0.28);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.wa.small { width: 28px; height: 28px; }
+.wa:hover { background: var(--wa); color: #fff; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35); }
+.wa:active { transform: scale(0.94); }
+.wa.button {
+  width: auto;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: var(--wa);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+.wa.button:hover { background: #1fbe5b; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wa:not(.button) { color: var(--wa); }
+}
+:root[data-theme="dark"] .wa:not(.button) { color: var(--wa); }
+
+/* ---- +966 mobile number ---- */
+.phone-input {
+  display: flex;
+  align-items: stretch;
+  border-radius: 8px;
+  min-width: 0;
+}
+.phone-input .cc {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  background: var(--fill);
+  border: 1px solid var(--separator);
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  white-space: nowrap;
+}
+.phone-input .input {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  min-width: 0;
+}
+.phone-input.invalid .input,
+.phone-input.invalid .cc { border-color: var(--red); }
+
+/* ---- tappable photos and names ---- */
+.avatar-btn {
+  border: 0;
+  padding: 0;
+  background: none;
+  border-radius: 50%;
+  display: inline-grid;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.avatar-btn:hover { transform: scale(1.06); }
+.avatar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.person-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: 0;
+  padding: 2px 8px 2px 2px;
+  margin: -2px 0 -2px -2px;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.person-link:hover { background: var(--fill); }
+
+/* A list row with its main part as one button and extra actions beside it. */
+.list-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.list-item:has(.list-main):hover { background: var(--fill); border-radius: 8px; }
+
+/* ---- profile card ---- */
+.person-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 4px 0 6px;
+  animation: pc-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.person-card > .avatar {
+  box-shadow: 0 0 0 4px var(--solid), 0 10px 28px rgba(1, 32, 97, 0.22);
+  margin-bottom: 6px;
+}
+.pc-name { font-size: 19px; font-weight: 650; letter-spacing: -0.01em; }
+.pc-title { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 14px; }
+.pc-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px 0 6px; }
+.pc-actions .btn { height: 38px; }
+.pc-details {
+  width: 100%;
+  border-radius: 10px;
+  padding: 4px 14px;
+  margin-top: 8px;
+  text-align: left;
+}
+.pc-details > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--separator);
+  min-width: 0;
+}
+.pc-details > div:last-child { border-bottom: 0; }
+.pc-details span { color: var(--text-2); font-size: 13px; flex-shrink: 0; }
+.pc-details b { font-weight: 600; min-width: 0; }
+@keyframes pc-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- photo pins on the attendance map ---- */
+.map-pin {
+  width: 40px !important;
+  height: 40px !important;
+  margin-left: -20px !important;
+  margin-top: -20px !important;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  background: #1b3570;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font: 600 14px/1 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.map-pin .pin-face { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
+.map-pin img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ---- first sign-in: finish your profile ---- */
+.setup-photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  margin: 2px auto 6px;
+  border-radius: 50%;
+  border: 2px dashed var(--separator);
+  background: var(--fill);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.setup-photo:hover { border-color: var(--accent); }
+.setup-photo:active { transform: scale(0.97); }
+.setup-photo.has-photo { border: 0; background: none; }
+.setup-photo .photo-badge {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--brand, #012061);
+  color: #fff;
+  border: 3px solid var(--solid);
+}
+.setup-photo .empty-face { display: grid; place-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+.setup-photo .empty-face svg { width: 30px; height: 30px; }
+.setup-steps { display: flex; justify-content: center; gap: 14px; margin: -8px 0 18px; font-size: 12.5px; color: var(--text-2); }
+.setup-steps span { display: inline-flex; align-items: center; gap: 5px; }
+.setup-steps .done { color: var(--green); font-weight: 600; }
+.setup-steps svg { width: 15px; height: 15px; }
+
+/* Chat sender name: tappable, opens the profile card. */
+.bubble .who-btn {
+  display: block;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--brand-ink, inherit);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.bubble .who-btn:hover { text-decoration: underline; }

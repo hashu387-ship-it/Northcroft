@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Trash2 } from "lucide-react";
-import { removeProfilePhoto, setProfilePhoto } from "@/lib/avatar";
+import { Camera } from "lucide-react";
+import { setProfilePhoto } from "@/lib/avatar";
 import { useAuth, useMe } from "@/lib/auth";
 import { useInvalidate } from "@/lib/api";
+import { localDigits, normalizeSaudiMobile } from "@/lib/phone";
 import { errorMessage, supabase } from "@/lib/supabase";
-import { Avatar, Field, Pill, Spinner, useConfirm, useToast } from "@/components/ui";
+import { PhoneInput } from "@/components/People";
+import { Avatar, Field, Pill, Spinner, useToast } from "@/components/ui";
 import { Section } from "./common";
 
 export function ProfileSection() {
@@ -15,11 +17,10 @@ export function ProfileSection() {
   const [fullName, setFullName] = useState(me.full_name);
   const [shortName, setShortName] = useState(me.short_name);
   const [title, setTitle] = useState(me.title);
-  const [phone, setPhone] = useState(me.phone ?? "");
+  const [phone, setPhone] = useState(me.phone ? localDigits(me.phone) : "");
   const [saving, setSaving] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const confirm = useConfirm();
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
@@ -37,38 +38,28 @@ export function ProfileSection() {
     }
   }
 
-  async function onRemovePhoto() {
-    if (!(await confirm({ title: "Remove your photo?", message: "Your initials will show instead.", confirmLabel: "Remove", danger: true }))) return;
-    setPhotoBusy(true);
-    try {
-      await removeProfilePhoto(me.id, me.avatar_url);
-      await refreshProfile();
-      await invalidate("profiles");
-      toast("Photo removed");
-    } catch (e) {
-      toast(errorMessage(e), "error");
-    } finally {
-      setPhotoBusy(false);
-    }
-  }
-
   useEffect(() => {
     setFullName(me.full_name);
     setShortName(me.short_name);
     setTitle(me.title);
-    setPhone(me.phone ?? "");
+    setPhone(me.phone ? localDigits(me.phone) : "");
   }, [me.full_name, me.short_name, me.title, me.phone]);
 
-  const dirty = fullName !== me.full_name || shortName !== me.short_name || phone !== (me.phone ?? "") || (isManager && title !== me.title);
+  const normalized = normalizeSaudiMobile(phone);
+  const dirty = fullName !== me.full_name || shortName !== me.short_name || normalized !== me.phone || (isManager && title !== me.title);
 
   async function save() {
     if (!fullName.trim() || !shortName.trim()) {
       toast("Name can't be empty", "error");
       return;
     }
+    if (!normalized) {
+      toast("Enter your Saudi mobile number: 9 digits starting with 5", "error");
+      return;
+    }
     setSaving(true);
     try {
-      const patch: Record<string, unknown> = { full_name: fullName.trim(), short_name: shortName.trim(), phone: phone.trim() || null };
+      const patch: Record<string, unknown> = { full_name: fullName.trim(), short_name: shortName.trim(), phone: normalized };
       if (isManager) patch.title = title.trim() || me.title;
       const { error } = await supabase.from("profiles").update(patch).eq("id", me.id);
       if (error) throw error;
@@ -108,11 +99,6 @@ export function ProfileSection() {
             <button className="btn small" type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy}>
               <Camera /> {me.avatar_url ? "Change photo" : "Add a photo"}
             </button>
-            {me.avatar_url && (
-              <button className="btn small ghost" type="button" onClick={onRemovePhoto} disabled={photoBusy}>
-                <Trash2 /> Remove
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -126,8 +112,8 @@ export function ProfileSection() {
         <Field label="Job title" hint={isManager ? undefined : "Only Hassan can change job titles"}>
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} disabled={!isManager} />
         </Field>
-        <Field label="Mobile number">
-          <input className="input" type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+966 5x xxx xxxx" autoComplete="tel" />
+        <Field label="Mobile number" hint="The team uses this to reach you on WhatsApp">
+          <PhoneInput value={phone} onChange={setPhone} invalid={phone.length > 0 && !normalized} />
         </Field>
         <Field label="Work email" className="full" hint={isManager ? "This is the email you sign in with" : "Ask Hassan if this needs to change"}>
           <input className="input" value={me.email} disabled />

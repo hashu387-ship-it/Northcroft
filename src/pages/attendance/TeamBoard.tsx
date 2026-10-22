@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { usePeople, useSettings } from "@/lib/api";
 import { addDays, fmtDuration, fmtLongDate, fmtTime12, isWorkday, todayISO } from "@/lib/time";
-import type { Attendance } from "@/lib/types";
-import { Avatar, Empty, Loading, Pill } from "@/components/ui";
+import { initials } from "@/lib/format";
+import type { Attendance, Profile } from "@/lib/types";
+import { PersonAvatar, WhatsAppButton } from "@/components/People";
+import { Empty, Loading, Pill } from "@/components/ui";
 import { MapBox, PlacePill, isOffsite, useAttendanceRange } from "./shared";
 
 export function TeamBoard() {
@@ -34,6 +36,9 @@ export function TeamBoard() {
             lng: r.in_lng!,
             label: `${p?.short_name ?? "Someone"} ${fmtTime12(r.check_in_at)}`,
             color: p?.color,
+            // Show their photo on the map (or initials if the photo can't load).
+            photo: p?.avatar_url ?? null,
+            initials: p ? initials(p.full_name) : "?",
           };
         }),
     [rows, people],
@@ -78,7 +83,7 @@ export function TeamBoard() {
         <div className="list">
           {list.map((p) => {
             const r = byUser.get(p.id);
-            return <TeamRow key={p.id} title={p.title} person={p} r={r} working={working} isToday={isToday} />;
+            return <TeamRow key={p.id} person={p} r={r} working={working} isToday={isToday} />;
           })}
         </div>
       )}
@@ -107,24 +112,22 @@ function Stat({ label, value, tone }: { label: string; value: number | string; t
 
 function TeamRow({
   person,
-  title,
   r,
   working,
   isToday,
 }: {
-  title: string;
-  person: Parameters<typeof Avatar>[0]["person"];
+  person: Profile;
   r: Attendance | undefined;
   working: boolean;
   isToday: boolean;
 }) {
   return (
     <div className="list-item" style={{ alignItems: "flex-start" }}>
-      <Avatar person={person} size={36} />
+      <PersonAvatar person={person} size={36} />
       <div className="grow stack" style={{ gap: 6 }}>
         <div>
-          <div className="title">{person?.short_name}</div>
-          <div className="faint tiny">{title}</div>
+          <div className="title">{person.short_name}</div>
+          <div className="faint tiny">{person.title}</div>
         </div>
         {r ? (
           <div className="stack" style={{ gap: 6 }}>
@@ -145,7 +148,7 @@ function TeamRow({
           </div>
         ) : null}
       </div>
-      <div style={{ textAlign: "right", flexShrink: 0 }}>
+      <div className="stack" style={{ alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
         {r ? (
           r.check_out_at ? (
             <Pill tone="blue">{fmtDuration(r.check_in_at, r.check_out_at)}</Pill>
@@ -157,6 +160,7 @@ function TeamRow({
         ) : (
           <Pill tone={working ? "red" : "gray"}>{isToday ? "Not in yet" : "No record"}</Pill>
         )}
+        <WhatsAppButton person={person} variant="small" />
       </div>
     </div>
   );

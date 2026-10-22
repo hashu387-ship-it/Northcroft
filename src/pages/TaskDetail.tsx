@@ -21,13 +21,15 @@ import {
 import { useInvalidate, usePeople, useProjectMap, useTask } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useMarkSeen } from "@/lib/seen";
+import { taskMessage } from "@/lib/phone";
+import { PersonLink, WhatsAppButton } from "@/components/People";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDateTime, timeAgo } from "@/lib/time";
 import type { Task, TaskStatus } from "@/lib/types";
 import { Attachments } from "@/components/Attachments";
 import { CommentThread } from "@/components/CommentThread";
 import { TaskForm } from "@/components/TaskForm";
-import { DueLabel, Empty, Loading, PersonChip, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast } from "@/components/ui";
+import { DueLabel, Empty, Loading, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast } from "@/components/ui";
 import { ActivityFeed } from "./project/ActivityFeed";
 import { Checklist } from "./project/Checklist";
 import { useActivity, useWatchers } from "./project/api";
@@ -380,6 +382,11 @@ export default function TaskDetail() {
   );
 
   function details(task: Task) {
+    const assignee = people.get(task.assignee_id);
+    const reviewer = people.get(task.reviewer_id) ?? people.get(task.created_by);
+    const creator = people.get(task.created_by);
+    // WhatsApp opens with the task already written in, so the other person knows what it's about.
+    const msg = (name: string) => taskMessage(name, task.title, task.id);
     return (
       <div className="glass card">
         <div className="card-head">
@@ -389,10 +396,16 @@ export default function TaskDetail() {
         </div>
         <div className="kv">
           <Row label="Assigned to">
-            <PersonChip person={people.get(task.assignee_id)} />
+            <span className="row" style={{ gap: 8, minWidth: 0 }}>
+              <PersonLink person={assignee} />
+              {assignee && <WhatsAppButton person={assignee} variant="small" text={msg(assignee.short_name)} />}
+            </span>
           </Row>
           <Row label="Reviewer">
-            <PersonChip person={people.get(task.reviewer_id) ?? people.get(task.created_by)} />
+            <span className="row" style={{ gap: 8, minWidth: 0 }}>
+              <PersonLink person={reviewer} />
+              {reviewer && <WhatsAppButton person={reviewer} variant="small" text={msg(reviewer.short_name)} />}
+            </span>
           </Row>
           <Row label="Due">
             {task.due_date ? (
@@ -409,8 +422,11 @@ export default function TaskDetail() {
           </Row>
           {task.estimate_hours != null && <Row label="Estimate">{task.estimate_hours} h</Row>}
           <Row label="Created">
-            <span className="small">
-              {people.get(task.created_by)?.short_name ?? "Someone"}, {fmtDateTime(task.created_at)}
+            <span className="row" style={{ gap: 8, minWidth: 0 }}>
+              <span className="small">
+                {creator?.short_name ?? "Someone"}, {fmtDateTime(task.created_at)}
+              </span>
+              {creator && creator.id !== reviewer?.id && <WhatsAppButton person={creator} variant="small" text={msg(creator.short_name)} />}
             </span>
           </Row>
           {task.submitted_at && task.status !== "todo" && (

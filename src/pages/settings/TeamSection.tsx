@@ -4,7 +4,9 @@ import { useInvalidate, usePeople } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { randomPassword } from "@/lib/format";
+import { formatPhone, localDigits, normalizeSaudiMobile } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
+import { PhoneInput, WhatsAppButton, openPersonCard } from "@/components/People";
 import { Avatar, Field, Pill, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
 import { Section, adminCall, copyText } from "./common";
 
@@ -70,9 +72,10 @@ export function TeamSection() {
       }
     >
       <div className="list">
-        {list.map((p) => {
-          const content = (
-            <>
+        {list.map((p) => (
+          <div key={p.id} className="list-item">
+            {/* Managers open the manage panel; everyone else sees the person's profile card. */}
+            <button className="list-main" onClick={() => (isManager ? setManage(p) : openPersonCard(p.id))} type="button">
               <Avatar person={p} size={40} />
               <div className="grow" style={{ minWidth: 0 }}>
                 <div className="title" style={{ opacity: p.active ? 1 : 0.55 }}>
@@ -81,23 +84,16 @@ export function TeamSection() {
                 </div>
                 <div className="meta">
                   <span>{p.title}</span>
-                  <span className="faint ellipsis">{p.email}</span>
+                  {p.phone ? <span className="num">{formatPhone(p.phone)}</span> : <span className="faint">No mobile yet</span>}
+                  <span className="faint ellipsis hide-mobile">{p.email}</span>
                 </div>
               </div>
               <RoleBadge p={p} />
-              {isManager && <ChevronRight size={18} className="faint hide-mobile" />}
-            </>
-          );
-          return isManager ? (
-            <button key={p.id} className="list-item" onClick={() => setManage(p)} type="button">
-              {content}
             </button>
-          ) : (
-            <div key={p.id} className="list-item">
-              {content}
-            </div>
-          );
-        })}
+            <WhatsAppButton person={p} />
+            {isManager && <ChevronRight size={18} className="faint hide-mobile" />}
+          </div>
+        ))}
       </div>
       {isManager && current && <ManagePerson person={current} onClose={() => setManage(null)} />}
       {isManager && <AddPerson open={adding} onClose={() => setAdding(false)} />}
@@ -111,6 +107,7 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
   const confirm = useConfirm();
   const invalidate = useInvalidate();
   const [title, setTitle] = useState(person.title);
+  const [phone, setPhone] = useState(person.phone ? localDigits(person.phone) : "");
   const [resetOpen, setResetOpen] = useState(false);
   const [password, setPassword] = useState(randomPassword());
   const [newCreds, setNewCreds] = useState<string | null>(null);
@@ -119,6 +116,8 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
   const isManagerRow = person.role === "manager";
 
   useEffect(() => setTitle(person.title), [person.title]);
+  useEffect(() => setPhone(person.phone ? localDigits(person.phone) : ""), [person.phone]);
+  const normalizedPhone = normalizeSaudiMobile(phone);
 
   async function update(patch: Partial<Profile>, msg: string) {
     setBusy(true);
@@ -223,7 +222,30 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
               Save title
             </button>
           </div>
+          <div className="setting-row" style={{ flexWrap: "wrap" }}>
+            <Field label="Mobile number" className="grow">
+              <PhoneInput value={phone} onChange={setPhone} invalid={phone.length > 0 && !normalizedPhone} />
+            </Field>
+            <button
+              className="btn small"
+              disabled={busy || !normalizedPhone || normalizedPhone === person.phone}
+              onClick={() => update({ phone: normalizedPhone }, "Mobile number updated")}
+              type="button"
+              style={{ alignSelf: "flex-end", marginBottom: 4 }}
+            >
+              Save number
+            </button>
+          </div>
         </div>
+
+        {!isSelf && person.phone && (
+          <div className="row wrap" style={{ gap: 8 }}>
+            <WhatsAppButton person={person} variant="button" />
+            <a className="btn" href={`tel:${person.phone}`}>
+              Call {person.short_name}
+            </a>
+          </div>
+        )}
 
         {!isSelf && (
           <div className="stack" style={{ gap: 10 }}>

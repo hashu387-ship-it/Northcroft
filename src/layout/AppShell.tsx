@@ -22,7 +22,9 @@ import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/pus
 import { supabase } from "@/lib/supabase";
 import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
+import ProfileSetup from "@/pages/ProfileSetup";
 import { LogoMark, Wordmark } from "@/components/Brand";
+import { PersonCardHost } from "@/components/People";
 
 function useUnackedCount(userId: string) {
   return useQuery({
@@ -107,6 +109,8 @@ export default function AppShell() {
   }, [location.pathname]);
 
   if (me.must_change_password) return <ChangePassword forced />;
+  // Everyone needs a photo and a mobile number before using the app.
+  if (!me.avatar_url || !me.phone) return <ProfileSetup />;
 
   const isRoot = TAB_ROOTS.includes(location.pathname);
   const nav = [
@@ -218,6 +222,7 @@ export default function AppShell() {
           {!!unacked && <span className="dot">{unacked}</span>}
         </NavLink>
       </nav>
+      <PersonCardHost />
     </div>
   );
 }

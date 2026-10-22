@@ -11,6 +11,7 @@ import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
 import { fileSize } from "@/lib/format";
 import type { Attachment, Comment, Profile } from "@/lib/types";
 import { Avatar, Empty, Loading, useConfirm, useToast } from "./ui";
+import { PersonAvatar, openPersonCard } from "./People";
 
 type Scope = { kind: "task"; taskId: string; projectId: string | null } | { kind: "project"; projectId: string } | { kind: "team" };
 
@@ -137,9 +138,14 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
                 </div>
               )}
               <div className={clsx("msg", mine && "mine")}>
-                {!mine && <Avatar person={author} size={28} />}
+                {/* Tap a photo to see that person's card, with WhatsApp and call buttons. */}
+                {!mine && <PersonAvatar person={author} size={28} />}
                 <div className="bubble">
-                  {!mine && <div className="who">{author?.short_name ?? "Someone"}</div>}
+                  {!mine && (
+                    <button type="button" className="who who-btn" onClick={() => author && openPersonCard(author.id)}>
+                      {author?.short_name ?? "Someone"}
+                    </button>
+                  )}
                   <div>{renderBody(c.body, people.active)}</div>
                   {atts.length > 0 && (
                     <div className="stack" style={{ gap: 6, marginTop: 8 }}>
