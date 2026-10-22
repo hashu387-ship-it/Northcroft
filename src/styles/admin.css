@@ -22,11 +22,11 @@
 }
 .checkin-status { display: flex; justify-content: flex-end; }
 .clock { display: flex; align-items: baseline; gap: 2px; }
-.clock .clock-sec { font-size: 22px; color: var(--text-3); font-weight: 600; }
-.clock .clock-ampm { font-size: 18px; color: var(--text-2); font-weight: 600; margin-left: 8px; }
-.checkin-btn { height: 60px; font-size: 18px; border-radius: 22px; }
+.clock .clock-sec { font-size: 18px; color: var(--text-3); font-weight: 600; }
+.clock .clock-ampm { font-size: 15px; color: var(--text-2); font-weight: 600; margin-left: 8px; }
+.checkin-btn { height: 48px; font-size: 15px; border-radius: 10px; }
 .checkin-btn svg { width: 22px; height: 22px; }
-.record-side { padding: 14px; border-radius: 18px; min-height: 96px; }
+.record-side { padding: 14px; border-radius: 10px; min-height: 96px; }
 
 .history-row { align-items: flex-start; }
 .history-date {
@@ -36,11 +36,11 @@
   flex-direction: column;
   align-items: center;
   padding: 6px 0;
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--fill);
   line-height: 1.15;
 }
-.history-date b { font-size: 20px; }
+.history-date b { font-size: 17px; }
 .history-date span { font-size: 11px; color: var(--text-2); font-weight: 600; text-transform: uppercase; }
 
 .team-stats .stat .label { font-size: 12px; }
@@ -65,12 +65,12 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 9px;
   color: var(--text);
   font-weight: 500;
 }
 .settings-nav a:hover { background: var(--fill); }
-.settings-nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.settings-nav a.active { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
 .settings-icon {
   width: 30px;
   height: 30px;
@@ -127,7 +127,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 9px;
   background: var(--solid-2);
   border: 1px solid var(--solid-border);
   font-variant-numeric: tabular-nums;
@@ -146,7 +146,7 @@
 }
 .theme-choice button {
   border: 2px solid transparent;
-  border-radius: 18px;
+  border-radius: 10px;
   padding: 10px;
   background: var(--solid);
   display: flex;
@@ -160,7 +160,7 @@
 .theme-swatch {
   width: 100%;
   height: 64px;
-  border-radius: 12px;
+  border-radius: 8px;
   position: relative;
   overflow: hidden;
 }
@@ -182,9 +182,9 @@
 
 .day-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .day-chips button {
-  min-width: 52px;
-  height: 36px;
-  border-radius: 999px;
+  min-width: 48px;
+  height: 32px;
+  border-radius: 7px;
   border: 1px solid var(--separator);
   background: var(--solid);
   font-weight: 600;

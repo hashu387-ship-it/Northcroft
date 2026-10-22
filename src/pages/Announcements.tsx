@@ -336,7 +336,7 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
         <Field label="Project (optional)">
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} emptyLabel="Whole team" />
         </Field>
-        <div className="solid stack" style={{ padding: 6, borderRadius: 18, gap: 0 }}>
+        <div className="solid stack" style={{ padding: 6, borderRadius: 10, gap: 0 }}>
           <ToggleRow label="Needs acknowledgement" hint="Everyone gets an Acknowledge button and you can see who hasn't." checked={requiresAck} onChange={setRequiresAck} />
           <hr className="divider" />
           <ToggleRow label="Mark as important" hint="Shown in red and the notification says Important." checked={important} onChange={setImportant} />

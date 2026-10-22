@@ -161,7 +161,7 @@ function CheckInCard() {
   const row = q.data?.[0];
   const workday = isWorkday(today, settings?.work_days);
 
-  let tone = "#FF9F0A";
+  let tone = "#1B3570";
   let icon = <LogIn />;
   let headline = "You haven't checked in yet";
   let sub: ReactNode = settings ? `Work starts at ${fmtClock(settings.work_start)}` : "";
@@ -208,7 +208,7 @@ function CheckInCard() {
   if (q.isLoading) {
     return (
       <div className="glass checkin-card">
-        <div className="skeleton" style={{ width: 46, height: 46, borderRadius: 14 }} />
+        <div className="skeleton" style={{ width: 46, height: 46, borderRadius: 9 }} />
         <div className="grow stack" style={{ gap: 8 }}>
           <div className="skeleton" style={{ height: 16, width: "60%" }} />
           <div className="skeleton" style={{ height: 12, width: "40%" }} />

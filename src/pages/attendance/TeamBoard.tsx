@@ -96,9 +96,9 @@ export function TeamBoard() {
 
 function Stat({ label, value, tone }: { label: string; value: number | string; tone: string }) {
   return (
-    <div className="solid stat" style={{ borderRadius: 16, padding: 12 }}>
+    <div className="solid stat" style={{ borderRadius: 10, padding: 12 }}>
       <span className="label">{label}</span>
-      <span className="value" style={{ fontSize: 24, color: tone === "gray" ? undefined : `var(--${tone === "blue" ? "accent" : tone})` }}>
+      <span className="value" style={{ fontSize: 20, color: tone === "gray" ? undefined : `var(--${tone === "blue" ? "accent" : tone})` }}>
         {value}
       </span>
     </div>

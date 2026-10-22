@@ -215,7 +215,7 @@ export function TaskForm({
         )}
 
         {!editing && (
-          <div className="full stack solid" style={{ padding: 14, gap: 12, borderRadius: 18 }}>
+          <div className="full stack solid" style={{ padding: 14, gap: 12, borderRadius: 10 }}>
             <div className="row">
               <Repeat size={18} className="muted" />
               <b>Repeat</b>

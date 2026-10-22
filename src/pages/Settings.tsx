@@ -25,14 +25,14 @@ interface SectionDef {
 }
 
 const SECTIONS: SectionDef[] = [
-  { id: "profile", label: "Profile", hint: "Name, short name and phone", icon: User, color: "#0A84FF" },
-  { id: "password", label: "Password", hint: "Change your password", icon: KeyRound, color: "#8E8E93" },
-  { id: "notifications", label: "Notifications", hint: "Phone and desktop alerts", icon: BellRing, color: "#FF375F" },
-  { id: "appearance", label: "Appearance", hint: "Light, dark and solid surfaces", icon: SunMoon, color: "#5E5CE6" },
-  { id: "team", label: "Team", hint: "People, access and passwords", icon: Users, color: "#30D158" },
-  { id: "hours", label: "Working hours", hint: "Start, finish and working days", icon: Clock, color: "#FF9F0A" },
-  { id: "places", label: "Office and sites", hint: "Where check-ins are matched", icon: MapPin, color: "#30B0C7" },
-  { id: "about", label: "Install and about", hint: "Phone install guide, sign out", icon: Info, color: "#636366" },
+  { id: "profile", label: "Profile", hint: "Name, short name and phone", icon: User, color: "#1B3570" },
+  { id: "password", label: "Password", hint: "Change your password", icon: KeyRound, color: "#1B3570" },
+  { id: "notifications", label: "Notifications", hint: "Phone and desktop alerts", icon: BellRing, color: "#1B3570" },
+  { id: "appearance", label: "Appearance", hint: "Light, dark and solid surfaces", icon: SunMoon, color: "#1B3570" },
+  { id: "team", label: "Team", hint: "People, access and passwords", icon: Users, color: "#1B3570" },
+  { id: "hours", label: "Working hours", hint: "Start, finish and working days", icon: Clock, color: "#1B3570" },
+  { id: "places", label: "Office and sites", hint: "Where check-ins are matched", icon: MapPin, color: "#1B3570" },
+  { id: "about", label: "Install and about", hint: "Phone install guide, sign out", icon: Info, color: "#1B3570" },
 ];
 
 function useIsDesktop() {
@@ -109,7 +109,7 @@ export default function Settings() {
               <Link to="/settings/profile" className="glass card row" style={{ color: "inherit", gap: 14 }}>
                 <Avatar person={me} size={56} />
                 <div className="grow" style={{ minWidth: 0 }}>
-                  <div className="bold" style={{ fontSize: 18 }}>
+                  <div className="bold" style={{ fontSize: 16 }}>
                     {me.full_name}
                   </div>
                   <div className="muted small">

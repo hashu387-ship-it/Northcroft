@@ -97,7 +97,7 @@ export function ProfileSection() {
         </button>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => onPhoto(e.target.files?.[0])} />
         <div style={{ minWidth: 0 }}>
-          <div className="bold" style={{ fontSize: 18 }}>
+          <div className="bold" style={{ fontSize: 16 }}>
             {fullName || me.full_name}
           </div>
           <div className="muted small">{me.title}</div>

@@ -99,7 +99,7 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
               <span className="clock-sec">:{clock.s}</span>
               <span className="clock-ampm">{clock.ampm}</span>
             </div>
-            <div className="bold" style={{ marginTop: 8, fontSize: 17 }}>
+            <div className="bold" style={{ marginTop: 8, fontSize: 15 }}>
               {fmtLongDate(date)}
             </div>
             {settings && (
@@ -164,7 +164,7 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
               </button>
             )}
             {locError && (
-              <div className="solid stack" style={{ padding: 14, gap: 10, borderRadius: 16 }} role="alert">
+              <div className="solid stack" style={{ padding: 14, gap: 10, borderRadius: 10 }} role="alert">
                 <div className="row" style={{ alignItems: "flex-start" }}>
                   <MapPinOff size={20} className="danger-text" style={{ flexShrink: 0, marginTop: 2 }} />
                   <div className="small">
@@ -267,7 +267,7 @@ function RecordSide({
       <div className="row">
         <span className="muted small bold">{label}</span>
         <span className="spacer" />
-        <span className="bold num" style={{ fontSize: 18 }}>
+        <span className="bold num" style={{ fontSize: 16 }}>
           {fmtTime12(time)}
         </span>
       </div>

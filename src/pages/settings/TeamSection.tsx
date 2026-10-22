@@ -192,7 +192,7 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
           </div>
         </div>
 
-        <div className="solid stack" style={{ padding: "4px 16px", gap: 0, borderRadius: 18 }}>
+        <div className="solid stack" style={{ padding: "4px 16px", gap: 0, borderRadius: 10 }}>
           <div className="setting-row">
             <div className="grow">
               <b>Can assign tasks</b>

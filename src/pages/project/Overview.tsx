@@ -93,7 +93,7 @@ export function Overview({ project }: { project: Project }) {
           <span className="label">BOQ packages issued</span>
           <span className="value">
             {issued}
-            <span className="faint" style={{ fontSize: 18 }}> / {boq.length}</span>
+            <span className="faint" style={{ fontSize: 15 }}> / {boq.length}</span>
           </span>
           <span className="hint">{boq.length - issued} still in progress</span>
         </Link>
