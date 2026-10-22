@@ -22,6 +22,7 @@ import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/pus
 import { supabase } from "@/lib/supabase";
 import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
+import { LogoMark, Wordmark } from "@/components/Brand";
 
 function useUnackedCount(userId: string) {
   return useQuery({
@@ -53,6 +54,19 @@ export function Background({ children }: { children: ReactNode }) {
   return (
     <>
       <Wallpaper />
+      {children}
+    </>
+  );
+}
+
+/** Sign-in backdrop: the Northcroft tower, softly blurred behind the glass card. */
+export function PhotoBackground({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <div className="auth-photo" aria-hidden>
+        <div className="img" />
+        <div className="shade" />
+      </div>
       {children}
     </>
   );
@@ -115,10 +129,12 @@ export default function AppShell() {
       <Wallpaper />
 
       <aside className="sidebar glass">
-        <Link to="/" className="brand" style={{ color: "inherit" }}>
-          <img src="/icons/icon-192.png" alt="" />
+        <Link to="/" className="brand" style={{ color: "inherit" }} aria-label="Northcroft home">
+          <LogoMark variant="tile" size={38} className="brand-tile" />
           <span>
-            Northcroft
+            <span className="brand-word">
+              <Wordmark height={16} />
+            </span>
             <small>QS workspace</small>
           </span>
         </Link>
@@ -150,14 +166,18 @@ export default function AppShell() {
       <header className="topbar glass">
         <div className="side">
           {isRoot ? (
-            <img src="/icons/icon-192.png" alt="Northcroft" style={{ width: 32, height: 32, borderRadius: 8 }} />
+            <Link to="/" aria-label="Northcroft home" style={{ lineHeight: 0 }}>
+              <LogoMark variant="tile" size={32} />
+            </Link>
           ) : (
             <button className="icon-btn plain" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))} aria-label="Back">
               <ChevronLeft />
             </button>
           )}
         </div>
-        <div className="title">Northcroft</div>
+        <div className="title brand-word">
+          <Wordmark height={15} />
+        </div>
         <div className="side right">
           <Link to="/attendance" className="icon-btn plain" aria-label="Check in">
             <MapPin />

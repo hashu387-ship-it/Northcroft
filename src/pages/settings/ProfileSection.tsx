@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, Trash2 } from "lucide-react";
+import { removeProfilePhoto, setProfilePhoto } from "@/lib/avatar";
 import { useAuth, useMe } from "@/lib/auth";
 import { useInvalidate } from "@/lib/api";
 import { errorMessage, supabase } from "@/lib/supabase";
-import { Avatar, Field, Pill, useToast } from "@/components/ui";
+import { Avatar, Field, Pill, Spinner, useConfirm, useToast } from "@/components/ui";
 import { Section } from "./common";
 
 export function ProfileSection() {
@@ -15,6 +17,40 @@ export function ProfileSection() {
   const [title, setTitle] = useState(me.title);
   const [phone, setPhone] = useState(me.phone ?? "");
   const [saving, setSaving] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const confirm = useConfirm();
+
+  async function onPhoto(file: File | undefined) {
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      await setProfilePhoto(me.id, file, me.avatar_url);
+      await refreshProfile();
+      await invalidate("profiles");
+      toast("Photo updated");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setPhotoBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function onRemovePhoto() {
+    if (!(await confirm({ title: "Remove your photo?", message: "Your initials will show instead.", confirmLabel: "Remove", danger: true }))) return;
+    setPhotoBusy(true);
+    try {
+      await removeProfilePhoto(me.id, me.avatar_url);
+      await refreshProfile();
+      await invalidate("profiles");
+      toast("Photo removed");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   useEffect(() => {
     setFullName(me.full_name);
@@ -48,8 +84,18 @@ export function ProfileSection() {
 
   return (
     <Section title="Profile" sub="How you appear to the team in tasks, chat and @mentions.">
-      <div className="row" style={{ gap: 14 }}>
-        <Avatar person={{ ...me, full_name: fullName || me.full_name, short_name: shortName || me.short_name }} size={64} />
+      <div className="row" style={{ gap: 16, alignItems: "center" }}>
+        <button
+          type="button"
+          className="photo-picker"
+          onClick={() => fileRef.current?.click()}
+          disabled={photoBusy}
+          aria-label={me.avatar_url ? "Change your photo" : "Add a photo"}
+        >
+          <Avatar person={{ ...me, full_name: fullName || me.full_name, short_name: shortName || me.short_name }} size={84} />
+          <span className="photo-badge">{photoBusy ? <Spinner size={16} /> : <Camera size={16} />}</span>
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => onPhoto(e.target.files?.[0])} />
         <div style={{ minWidth: 0 }}>
           <div className="bold" style={{ fontSize: 18 }}>
             {fullName || me.full_name}
@@ -57,6 +103,16 @@ export function ProfileSection() {
           <div className="muted small">{me.title}</div>
           <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
             {isManager ? <Pill tone="blue">Manager</Pill> : canAssign ? <Pill tone="purple">Can assign tasks</Pill> : <Pill>Team member</Pill>}
+          </div>
+          <div className="row wrap" style={{ gap: 8, marginTop: 10 }}>
+            <button className="btn small" type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy}>
+              <Camera /> {me.avatar_url ? "Change photo" : "Add a photo"}
+            </button>
+            {me.avatar_url && (
+              <button className="btn small ghost" type="button" onClick={onRemovePhoto} disabled={photoBusy}>
+                <Trash2 /> Remove
+              </button>
+            )}
           </div>
         </div>
       </div>

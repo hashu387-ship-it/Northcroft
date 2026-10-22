@@ -1,8 +1,8 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { Loading } from "@/components/ui";
-import AppShell, { Background } from "@/layout/AppShell";
+import { Splash } from "@/components/Splash";
+import AppShell from "@/layout/AppShell";
 import Login from "@/pages/Login";
 
 const Home = lazy(() => import("@/pages/Home"));
@@ -22,15 +22,7 @@ const More = lazy(() => import("@/pages/More"));
 function Gate() {
   const { session, profile, loading } = useAuth();
   const location = useLocation();
-  if (loading || (session && !profile)) {
-    return (
-      <Background>
-        <div className="center-screen">
-          <Loading label="Opening Northcroft" />
-        </div>
-      </Background>
-    );
-  }
+  if (loading || (session && !profile)) return <Splash />;
   if (!session) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   return <AppShell />;
 }

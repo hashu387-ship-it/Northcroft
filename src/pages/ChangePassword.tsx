@@ -2,7 +2,8 @@ import { useState, type FormEvent } from "react";
 import { KeyRound } from "lucide-react";
 import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
-import { Background } from "@/layout/AppShell";
+import { PhotoBackground } from "@/layout/AppShell";
+import { LogoMark } from "@/components/Brand";
 import { useToast } from "@/components/ui";
 
 /** Change your own password. Shown full screen on first sign-in, and inside Settings later. */
@@ -63,10 +64,12 @@ export default function ChangePassword({ forced = false, onDone }: { forced?: bo
   if (!forced) return form;
 
   return (
-    <Background>
+    <PhotoBackground>
       <div className="auth-wrap">
         <div className="auth-card glass-strong">
-          <img className="logo" src="/icons/icon-192.png" alt="" />
+          <div className="auth-brand">
+            <LogoMark variant="tile" size={68} className="logo-tile" />
+          </div>
           <h1>Welcome, {me.short_name}</h1>
           <p className="lead">You signed in with a temporary password. Choose your own to continue.</p>
           {form}
@@ -75,6 +78,6 @@ export default function ChangePassword({ forced = false, onDone }: { forced?: bo
           </button>
         </div>
       </div>
-    </Background>
+    </PhotoBackground>
   );
 }

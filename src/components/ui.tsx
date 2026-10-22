@@ -17,7 +17,33 @@ import { PRIORITY, TASK_STATUS } from "@/lib/constants";
 import type { Priority, Profile, Project, TaskStatus } from "@/lib/types";
 
 /* ---------------------------------------------------------------- avatar */
-export function Avatar({ person, size = 32, title }: { person?: Pick<Profile, "short_name" | "full_name" | "color"> | null; size?: number; title?: string }) {
+export function Avatar({
+  person,
+  size = 32,
+  title,
+}: {
+  person?: (Pick<Profile, "short_name" | "full_name" | "color"> & { avatar_url?: string | null }) | null;
+  size?: number;
+  title?: string;
+}) {
+  const [broken, setBroken] = useState(false);
+  const photo = person?.avatar_url && !broken ? person.avatar_url : null;
+  if (photo) {
+    return (
+      <img
+        className="avatar photo"
+        src={photo}
+        alt={person!.full_name}
+        title={title ?? person!.full_name}
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        onError={() => setBroken(true)}
+        style={{ ["--size" as string]: `${size}px` }}
+      />
+    );
+  }
   if (!person) {
     return (
       <span className="avatar" style={{ ["--size" as string]: `${size}px`, background: "var(--fill-2)", color: "var(--text-2)" }} title={title ?? "Unassigned"}>

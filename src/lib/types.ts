@@ -20,6 +20,7 @@ export interface Profile {
   active: boolean;
   must_change_password: boolean;
   phone: string | null;
+  avatar_url: string | null;
   created_at: string;
 }
 

@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { errorMessage } from "@/lib/supabase";
-import { Background } from "@/layout/AppShell";
+import { PhotoBackground } from "@/layout/AppShell";
+import { LogoMark, Wordmark } from "@/components/Brand";
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -31,12 +32,16 @@ export default function Login() {
   }
 
   return (
-    <Background>
+    <PhotoBackground>
       <div className="auth-wrap">
         <form className="auth-card glass-strong" onSubmit={submit}>
-          <img className="logo" src="/icons/icon-192.png" alt="" />
-          <h1>Northcroft</h1>
-          <p className="lead">QS team workspace</p>
+          <div className="auth-brand">
+            <LogoMark variant="tile" size={68} className="logo-tile" />
+            <h1 className="brand-word">
+              <Wordmark height={30} />
+            </h1>
+            <p className="lead">QS team workspace</p>
+          </div>
           <div className="stack" style={{ gap: 14 }}>
             <label className="field">
               <span>Work email</span>
@@ -88,6 +93,6 @@ export default function Login() {
           </div>
         </form>
       </div>
-    </Background>
+    </PhotoBackground>
   );
 }

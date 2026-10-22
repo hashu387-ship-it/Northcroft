@@ -1,5 +1,5 @@
 /* Northcroft service worker: push notifications, badge and a small offline shell. */
-const SHELL_CACHE = "northcroft-shell-v1";
+const SHELL_CACHE = "northcroft-shell-v2";
 const ASSET_CACHE = "northcroft-assets-v1";
 
 self.addEventListener("install", (event) => {
