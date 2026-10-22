@@ -18,11 +18,10 @@ import {
   TriangleAlert,
   Users,
 } from "lucide-react";
-import { PageHead } from "@/components/PageHead";
 import { InstallBanner } from "@/components/InstallBanner";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
-import { Avatar, Empty, Loading, Pill, useToast } from "@/components/ui";
+import { Avatar, CountUp, Empty, Loading, Pill, useToast } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { BOQ_STATUS, EVENT_KIND, VO_STATUS } from "@/lib/constants";
@@ -70,60 +69,88 @@ export default function Home() {
   const toReview = (allOpen.data ?? []).filter((t) => t.status === "in_review" && (t.reviewer_id === me.id || (!t.reviewer_id && t.created_by === me.id)));
   const myInReview = myOpen.filter((t) => t.status === "in_review");
 
+  const dueToday = myOpen.filter((t) => t.due_date === today).length;
+  // One plain-English line under the greeting.
+  const summary = mine.isLoading
+    ? "Loading your day..."
+    : overdue.length
+      ? `${overdue.length} overdue ${overdue.length === 1 ? "task needs" : "tasks need"} your attention${dueToday ? `, and ${dueToday} ${dueToday === 1 ? "is" : "are"} due today` : ""}.`
+      : dueToday
+        ? `${dueToday} ${dueToday === 1 ? "task is" : "tasks are"} due today, out of ${myOpen.length} open.`
+        : myOpen.length
+          ? `You have ${myOpen.length} open ${myOpen.length === 1 ? "task" : "tasks"} and nothing late.`
+          : canAssign && toReview.length
+            ? `${toReview.length} ${toReview.length === 1 ? "task is" : "tasks are"} waiting for your review.`
+            : "You're all caught up. Nothing open right now.";
+
   return (
     <div className="page">
-      <PageHead
-        title={`${greeting()}, ${firstName}`}
-        sub={fmtLongDate(today)}
-        actions={
-          canAssign && (
-            <button className="btn primary hide-mobile" onClick={() => setNewTask(true)}>
-              <Plus /> New task
-            </button>
-          )
-        }
-      />
+      <section className="home-banner" aria-label="Today">
+        <div className="hb-photo" aria-hidden />
+        <div className="hb-shade" aria-hidden />
+        <div className="hb-body">
+          <span className="hb-eyebrow">
+            <i className="hb-bar" /> {fmtLongDate(today)}
+          </span>
+          <h1>
+            {greeting()}, {firstName}
+          </h1>
+          <p>{summary}</p>
+          <div className="hb-actions">
+            {canAssign && (
+              <button className="btn brand" onClick={() => setNewTask(true)}>
+                <Plus /> New task
+              </button>
+            )}
+            <Link to="/my-tasks" className="btn on-dark">
+              <SquareCheckBig /> My tasks
+            </Link>
+          </div>
+        </div>
+      </section>
       <InstallBanner />
 
       <div className="grid-4 stat-row">
-        <Link to="/my-tasks" className="glass stat stat-link">
+        <Link to="/my-tasks" className="glass stat stat-link tone-blue">
           <span className="label">
             <SquareCheckBig /> My open tasks
           </span>
-          <span className="value">{mine.isLoading ? "–" : myOpen.length}</span>
-          <span className="hint">{myOpen.filter((t) => t.due_date === today).length} due today</span>
+          <span className="value">{mine.isLoading ? "–" : <CountUp value={myOpen.length} />}</span>
+          <span className="hint">{dueToday} due today</span>
         </Link>
-        <Link to="/my-tasks" className="glass stat stat-link">
+        <Link to="/my-tasks" className={`glass stat stat-link ${overdue.length ? "tone-red" : "tone-green"}`}>
           <span className="label" style={{ color: overdue.length ? "var(--red)" : undefined }}>
             <TriangleAlert /> Overdue
           </span>
           <span className="value" style={{ color: overdue.length ? "var(--red)" : undefined }}>
-            {mine.isLoading ? "–" : overdue.length}
+            {mine.isLoading ? "–" : <CountUp value={overdue.length} />}
           </span>
           <span className="hint">{overdue.length ? "Needs your attention" : "Nothing late"}</span>
         </Link>
         {canAssign ? (
-          <Link to="/my-tasks?view=review" className="glass stat stat-link">
+          <Link to="/my-tasks?view=review" className="glass stat stat-link tone-purple">
             <span className="label" style={{ color: toReview.length ? "var(--purple)" : undefined }}>
               <ClipboardList /> To review
             </span>
-            <span className="value">{allOpen.isLoading ? "–" : toReview.length}</span>
+            <span className="value">{allOpen.isLoading ? "–" : <CountUp value={toReview.length} />}</span>
             <span className="hint">Submitted by the team</span>
           </Link>
         ) : (
-          <Link to="/my-tasks" className="glass stat stat-link">
+          <Link to="/my-tasks" className="glass stat stat-link tone-purple">
             <span className="label">
               <ClipboardList /> With reviewer
             </span>
-            <span className="value">{mine.isLoading ? "–" : myInReview.length}</span>
+            <span className="value">{mine.isLoading ? "–" : <CountUp value={myInReview.length} />}</span>
             <span className="hint">Waiting for sign-off</span>
           </Link>
         )}
-        <Link to="/inbox" className="glass stat stat-link">
+        <Link to="/inbox" className="glass stat stat-link tone-teal">
           <span className="label" style={{ color: unread ? "var(--accent)" : undefined }}>
             <Inbox /> Unread
           </span>
-          <span className="value">{unread}</span>
+          <span className="value">
+            <CountUp value={unread} />
+          </span>
           <span className="hint">In your inbox</span>
         </Link>
       </div>
@@ -263,7 +290,7 @@ function FocusCard({ tasks, loading }: { tasks: Task[]; loading: boolean }) {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2>
+        <h2 className="tone-red">
           <AlarmClock /> Needs your attention
         </h2>
         <Link to="/my-tasks">All my tasks</Link>
@@ -290,7 +317,7 @@ function ReviewCard({ tasks, loading }: { tasks: Task[]; loading: boolean }) {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2>
+        <h2 className="tone-purple">
           <ClipboardList /> Waiting for your review
         </h2>
         {tasks.length > 0 && <Pill tone="purple">{tasks.length}</Pill>}
@@ -328,7 +355,7 @@ function TeamSnapshot() {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2>
+        <h2 className="tone-green">
           <Users /> Team today
         </h2>
         <Link to="/attendance">Attendance</Link>
@@ -402,7 +429,7 @@ function AnnouncementCard() {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2>
+        <h2 className="tone-orange">
           <Megaphone /> Announcements
         </h2>
         <Link to="/announcements">{waiting > 1 ? `${waiting} to acknowledge` : "See all"}</Link>
@@ -469,7 +496,7 @@ function QsAlertsCard() {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2>
+        <h2 className="tone-red">
           <TriangleAlert /> QS alerts
         </h2>
         <div className="row" style={{ gap: 6 }}>
@@ -543,7 +570,7 @@ function EventsCard() {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2>
+        <h2 className="tone-blue">
           <CalendarDays /> Coming up
         </h2>
         <Link to="/calendar">Calendar</Link>

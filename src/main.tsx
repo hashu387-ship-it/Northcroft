@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth";
 import { ConfirmProvider, ToastProvider } from "@/components/ui";
 import App from "./App";
 import "./styles/index.css";
+import "./styles/polish.css";
 
 // Appearance preferences are per device.
 try {

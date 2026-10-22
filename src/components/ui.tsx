@@ -15,6 +15,7 @@ import { initials } from "@/lib/format";
 import { dueState, fmtDue } from "@/lib/time";
 import { PRIORITY, TASK_STATUS } from "@/lib/constants";
 import type { Priority, Profile, Project, TaskStatus } from "@/lib/types";
+import { artForIcon, Illustration, type ArtName } from "./Illustrations";
 
 /* ---------------------------------------------------------------- avatar */
 export function Avatar({
@@ -100,12 +101,51 @@ export function StatusPill({ status }: { status: TaskStatus }) {
 }
 
 export function StatusRing({ status }: { status: TaskStatus }) {
+  // Play a short tick animation only when a task changes to done while you're looking at it.
+  const prev = useRef(status);
+  const [justDone, setJustDone] = useState(false);
+  useEffect(() => {
+    if (status === "done" && prev.current !== "done") {
+      setJustDone(true);
+      const t = window.setTimeout(() => setJustDone(false), 900);
+      prev.current = status;
+      return () => window.clearTimeout(t);
+    }
+    prev.current = status;
+  }, [status]);
   return (
-    <span className={clsx("status-ring", status)} aria-label={TASK_STATUS[status].label}>
+    <span className={clsx("status-ring", status, justDone && "just-done")} aria-label={TASK_STATUS[status].label}>
       {status === "done" && <Check strokeWidth={3} />}
       {status === "in_review" && <Clock strokeWidth={2.6} />}
     </span>
   );
+}
+
+/** A number that counts up from zero when it first appears (or jumps straight there with reduced motion). */
+export function CountUp({ value, duration = 650 }: { value: number; duration?: number }) {
+  const [shown, setShown] = useState(value);
+  const from = useRef(0);
+  useEffect(() => {
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || value === from.current) {
+      setShown(value);
+      from.current = value;
+      return;
+    }
+    const start = performance.now();
+    const a = from.current;
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setShown(Math.round(a + (value - a) * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else from.current = value;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return <span className="count-up">{shown}</span>;
 }
 
 export function PriorityFlag({ priority, showNormal = false }: { priority: Priority; showNormal?: boolean }) {
@@ -144,19 +184,41 @@ export function Spinner({ size = 22 }: { size?: number }) {
   return <span className="spinner" style={{ width: size, height: size }} role="status" aria-label="Loading" />;
 }
 
-export function Loading({ label = "Loading" }: { label?: string }) {
+/** Shimmering placeholder rows while something loads. */
+export function Loading({ label = "Loading", rows = 3 }: { label?: string; rows?: number }) {
   return (
-    <div className="empty">
-      <Spinner />
-      <span className="small">{label}</span>
+    <div className="skeleton-list" role="status" aria-label={label}>
+      {Array.from({ length: rows }, (_, i) => (
+        <div className="sk-row" key={i}>
+          <span className="skeleton sk-dot" />
+          <span className="sk-lines">
+            <span className="skeleton" style={{ width: `${78 - i * 14}%` }} />
+            <span className="skeleton" style={{ width: `${48 - i * 9}%` }} />
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
 
-export function Empty({ icon, title, children, action }: { icon?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
+/** Empty screens show a small navy and red drawing picked from the icon (or `art`). */
+export function Empty({
+  icon,
+  art,
+  title,
+  children,
+  action,
+}: {
+  icon?: ReactNode;
+  art?: ArtName;
+  title: string;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
+  const picture = art ?? artForIcon(icon);
   return (
     <div className="empty">
-      {icon}
+      {picture ? <Illustration name={picture} /> : icon}
       <b>{title}</b>
       {children && <div className="small">{children}</div>}
       {action}

@@ -29,6 +29,11 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - WhatsApp buttons also sit on the Team list, the attendance board and task pages. On a task, the WhatsApp message starts with the task name and a link to it.
   - People's check-ins show on the attendance map as their photo.
 - **Liquid glass design** in light and dark mode, with a *Solid surfaces* option for easier reading.
+  - Navy is the main colour; Northcroft red marks counts, urgent items, the active tab and New task.
+  - Home opens with a banner of the Northcroft tower, a greeting and a one-line summary of your day.
+  - Projects can have a cover photo (Hassan and seniors add it on the project page).
+  - Empty screens show small navy and red drawings, and sections have coloured icon tiles.
+  - Gentle motion: sections rise in, numbers count up, a tick draws when a task is finished. It switches off if the phone's reduce-motion setting is on.
 
 ## Who can do what
 

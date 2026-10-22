@@ -42,8 +42,12 @@
   --green-soft: rgba(52, 199, 89, 0.16);
   --orange: #e67e00;
   --orange-soft: rgba(255, 149, 0, 0.16);
-  --red: #e5372b;
-  --red-soft: rgba(255, 59, 48, 0.13);
+  --red: #d92f39;
+  --red-soft: rgba(241, 62, 68, 0.12);
+  /* Northcroft logo red, for accents: counts, urgent items, the active marker, New task. */
+  --brand-red: #e8343e;
+  --brand-red-2: #c4202b;
+  --brand-red-soft: rgba(241, 62, 68, 0.1);
   --purple: #a24fd4;
   --purple-soft: rgba(175, 82, 222, 0.14);
   --teal: #1f9fb8;
@@ -99,8 +103,11 @@
     --green-soft: rgba(48, 209, 88, 0.18);
     --orange: #ff9f0a;
     --orange-soft: rgba(255, 159, 10, 0.18);
-    --red: #ff453a;
-    --red-soft: rgba(255, 69, 58, 0.18);
+    --red: #ff5a60;
+    --red-soft: rgba(255, 90, 96, 0.18);
+    --brand-red: #ff5a60;
+    --brand-red-2: #e8343e;
+    --brand-red-soft: rgba(255, 90, 96, 0.16);
     --purple: #bf5af2;
     --purple-soft: rgba(191, 90, 242, 0.2);
     --teal: #64d2ff;
@@ -143,8 +150,11 @@
   --green-soft: rgba(48, 209, 88, 0.18);
   --orange: #ff9f0a;
   --orange-soft: rgba(255, 159, 10, 0.18);
-  --red: #ff453a;
-  --red-soft: rgba(255, 69, 58, 0.18);
+  --red: #ff5a60;
+  --red-soft: rgba(255, 90, 96, 0.18);
+  --brand-red: #ff5a60;
+  --brand-red-2: #e8343e;
+  --brand-red-soft: rgba(255, 90, 96, 0.16);
   --purple: #bf5af2;
   --purple-soft: rgba(191, 90, 242, 0.2);
   --teal: #64d2ff;

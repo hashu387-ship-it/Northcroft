@@ -1,0 +1,261 @@
+/* Polish layer, loaded after index.css:
+   Northcroft red accents, coloured icon tiles, the Home banner, empty-screen drawings
+   and subtle motion. Navy stays the main colour; red only marks what matters.
+   Everything respects the phone's reduce-motion setting (see index.css). */
+
+/* ------------------------------------------------------------------ red accents */
+.nav a { position: relative; }
+.nav a.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-red);
+}
+.nav .count,
+.tabbar .dot,
+.icon-btn .dot {
+  background: var(--brand-red);
+  box-shadow: 0 2px 6px rgba(232, 52, 62, 0.35);
+}
+.tabbar a.active::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  width: 18px;
+  height: 3px;
+  margin-left: -9px;
+  border-radius: 2px;
+  background: var(--brand-red);
+  animation: grow-x 0.3s var(--ease);
+}
+@keyframes grow-x { from { transform: scaleX(0); } }
+
+/* Red call-to-action, used for "New task". */
+.btn.brand {
+  background: linear-gradient(180deg, var(--brand-red), var(--brand-red-2));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.14), 0 4px 14px rgba(232, 52, 62, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.btn.brand:hover { background: linear-gradient(180deg, color-mix(in srgb, var(--brand-red) 90%, #fff), var(--brand-red-2)); }
+.fab {
+  background: linear-gradient(160deg, var(--brand-red), var(--brand-red-2));
+  box-shadow: 0 10px 24px rgba(232, 52, 62, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.18s var(--ease);
+}
+.fab:active { transform: scale(0.92); }
+
+/* Buttons on dark photo backgrounds. */
+.btn.on-dark {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.24);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.btn.on-dark:hover { background: rgba(255, 255, 255, 0.24); }
+
+/* ------------------------------------------------------------------ coloured icon tiles */
+.card-head h2 > svg:first-child,
+.card-head h3 > svg:first-child {
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: var(--tile-bg, var(--brand-soft));
+  color: var(--tile-fg, var(--brand));
+  stroke-width: 2;
+}
+.stat .label svg {
+  width: 22px;
+  height: 22px;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: var(--tile-bg, var(--brand-soft));
+  color: var(--tile-fg, var(--brand));
+}
+.tone-red { --tile-bg: var(--brand-red-soft); --tile-fg: var(--brand-red); }
+.tone-green { --tile-bg: var(--green-soft); --tile-fg: var(--green); }
+.tone-purple { --tile-bg: var(--purple-soft); --tile-fg: var(--purple); }
+.tone-orange { --tile-bg: var(--orange-soft); --tile-fg: var(--orange); }
+.tone-blue { --tile-bg: var(--accent-soft); --tile-fg: var(--accent); }
+.tone-teal { --tile-bg: var(--teal-soft); --tile-fg: var(--teal); }
+
+/* ------------------------------------------------------------------ Home banner */
+.home-banner {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--r-lg);
+  min-height: 176px;
+  margin: 4px 0 14px;
+  color: #fff;
+  background: #0b1d46;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(1, 32, 97, 0.22);
+}
+.home-banner .hb-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  /* Mirrored so the tower sits on the right, away from the greeting. */
+  background: url("/brand/tower.jpg") left center / cover no-repeat;
+  transform: scaleX(-1);
+  animation: hb-zoom 16s ease-out both;
+}
+.home-banner .hb-shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(1, 20, 60, 0.96) 0%, rgba(1, 32, 97, 0.86) 34%, rgba(1, 32, 97, 0.3) 66%, rgba(1, 32, 97, 0.05) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%);
+}
+.home-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.hb-body { position: relative; padding: 22px 26px 22px; max-width: 600px; }
+.hb-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+.hb-bar { width: 18px; height: 3px; border-radius: 2px; background: var(--brand-red); display: inline-block; }
+.home-banner h1 { font-size: 27px; line-height: 1.15; font-weight: 650; letter-spacing: -0.02em; margin-top: 8px; color: #fff; }
+.home-banner p { color: rgba(255, 255, 255, 0.82); margin-top: 6px; font-size: 14px; }
+.hb-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+@keyframes hb-zoom { from { transform: scaleX(-1) scale(1.08); } to { transform: scaleX(-1) scale(1); } }
+@media (max-width: 899px) {
+  .home-banner { min-height: 156px; margin-top: 2px; }
+  .hb-body { padding: 18px 18px 18px; }
+  .home-banner h1 { font-size: 22px; }
+  .home-banner .hb-shade {
+    background: linear-gradient(90deg, rgba(1, 20, 60, 0.95) 0%, rgba(1, 32, 97, 0.78) 58%, rgba(1, 32, 97, 0.4) 100%);
+  }
+}
+
+/* ------------------------------------------------------------------ empty-screen drawings */
+:root { --illo-line: #1b3570; --illo-soft: #c3cde0; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --illo-line: #a9c1f2; --illo-soft: rgba(169, 193, 242, 0.32); }
+}
+:root[data-theme="dark"] { --illo-line: #a9c1f2; --illo-soft: rgba(169, 193, 242, 0.32); }
+.empty svg.illo {
+  width: 118px;
+  height: auto;
+  color: inherit;
+  margin-bottom: 2px;
+  animation: illo-float 6s ease-in-out infinite;
+}
+.illo .bg { fill: var(--brand-soft); }
+.illo .pp { fill: var(--solid); stroke: var(--illo-line); stroke-width: 2; stroke-linejoin: round; }
+.illo .ln { fill: none; stroke: var(--illo-line); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.illo .ln2 { fill: none; stroke: var(--illo-soft); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.illo .nv { fill: var(--illo-line); }
+.illo .dt { fill: var(--illo-soft); }
+.illo .rd { fill: var(--brand-red); }
+.illo .rdl { fill: none; stroke: var(--brand-red); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.illo .wt { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.illo .wf { fill: #fff; }
+@keyframes illo-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* ------------------------------------------------------------------ motion */
+/* Page sections rise in one after another. */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.page > :not(.fab) { animation: rise 0.5s var(--ease) backwards; }
+.page > :nth-child(2) { animation-delay: 0.04s; }
+.page > :nth-child(3) { animation-delay: 0.08s; }
+.page > :nth-child(4) { animation-delay: 0.12s; }
+.page > :nth-child(5) { animation-delay: 0.16s; }
+.page > :nth-child(n + 6) { animation-delay: 0.2s; }
+.home-grid > .stack > *,
+.stat-row > * { animation: rise 0.5s var(--ease) backwards; }
+.stat-row > :nth-child(2) { animation-delay: 0.05s; }
+.stat-row > :nth-child(3) { animation-delay: 0.1s; }
+.stat-row > :nth-child(4) { animation-delay: 0.15s; }
+.home-grid > .stack > :nth-child(1) { animation-delay: 0.14s; }
+.home-grid > .stack > :nth-child(2) { animation-delay: 0.2s; }
+.home-grid > .stack > :nth-child(3) { animation-delay: 0.26s; }
+.home-grid > .stack > :nth-child(n + 4) { animation-delay: 0.32s; }
+
+/* Stat tiles lift slightly under the pointer. */
+.stat-link { transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease); }
+.stat-link:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glass-edge), 0 10px 26px rgba(15, 23, 42, 0.1); }
+
+/* Rows respond to touch. */
+.list-item, .alert-row, .event-row { transition: background 0.18s var(--ease), transform 0.12s var(--ease); }
+.alert-row:active, .event-row:active, a.list-item:active, button.list-item:active { transform: scale(0.99); }
+
+/* Finishing a task: the ring pops and the tick draws itself. */
+.status-ring { position: relative; }
+.status-ring.just-done { animation: ring-pop 0.5s var(--ease); }
+.status-ring.just-done svg { stroke-dasharray: 26; stroke-dashoffset: 26; animation: tick-draw 0.35s 0.12s ease-out forwards; }
+.status-ring.just-done::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--green);
+  animation: ring-ripple 0.7s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes ring-pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes tick-draw { to { stroke-dashoffset: 0; } }
+@keyframes ring-ripple { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
+
+/* Loading placeholders that shimmer instead of a spinner. */
+.skeleton-list { display: flex; flex-direction: column; gap: 14px; padding: 8px 2px; }
+.sk-row { display: flex; align-items: center; gap: 12px; }
+.sk-dot { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; }
+.sk-lines { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
+.sk-lines .skeleton { height: 10px; border-radius: 5px; }
+.sk-lines .skeleton:first-child { height: 12px; }
+
+/* Numbers that count up keep their width steady. */
+.count-up { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ project covers */
+.project-cover {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  flex-shrink: 0;
+  background:
+    radial-gradient(120% 150% at 88% 0%, color-mix(in srgb, var(--pc, #0a84ff) 55%, transparent), transparent 62%),
+    linear-gradient(135deg, #0b1d46 0%, #012061 60%, #0a2a6e 100%);
+}
+.project-cover.card { height: 104px; margin: -18px -18px 2px; }
+.project-cover.hero { height: 156px; margin: -20px -20px 2px; }
+@media (max-width: 899px) { .project-cover.hero { height: 128px; } }
+.project-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  transition: transform 0.6s var(--ease);
+}
+.project-card:hover .project-cover img { transform: scale(1.04); }
+.project-cover .cover-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(1, 20, 60, 0) 45%, rgba(1, 20, 60, 0.5)); }
+.project-cover.plain .cover-shade { display: none; }
+.project-cover .cover-strip { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--pc, var(--brand)); }
+.cover-skyline { position: absolute; right: 8px; bottom: 3px; height: 80%; width: auto; max-width: 72%; fill: rgba(255, 255, 255, 0.1); }
+.cover-skyline .crane { fill: none; stroke: rgba(255, 255, 255, 0.16); stroke-width: 2; stroke-linecap: round; }
+.cover-actions { position: absolute; right: 10px; bottom: 12px; display: flex; gap: 6px; }

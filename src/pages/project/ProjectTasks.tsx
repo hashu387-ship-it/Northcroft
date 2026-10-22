@@ -73,7 +73,7 @@ export function ProjectTasks({ project }: { project: Project }) {
         </div>
         <span className="spacer" />
         {canAssign && (
-          <button className="btn primary small hide-mobile" onClick={() => setFormOpen(true)}>
+          <button className="btn brand small hide-mobile" onClick={() => setFormOpen(true)}>
             <Plus /> New task
           </button>
         )}

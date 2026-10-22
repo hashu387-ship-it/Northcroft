@@ -8,6 +8,7 @@ import { fmtDate } from "@/lib/time";
 import { Attachments } from "@/components/Attachments";
 import { CommentThread } from "@/components/CommentThread";
 import { Empty, Loading, Pill } from "@/components/ui";
+import { ProjectCover } from "@/components/ProjectCover";
 import { ActivityFeed } from "./project/ActivityFeed";
 import { Boq } from "./project/Boq";
 import { Overview } from "./project/Overview";
@@ -71,7 +72,7 @@ export default function ProjectDetail() {
       </Link>
 
       <div className="project-hero glass">
-        <span className="accent" style={{ background: project.color }} />
+        <ProjectCover project={project} size="hero" editable={canAssign} />
         <div className="row" style={{ alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="row wrap" style={{ gap: 8, marginBottom: 6 }}>

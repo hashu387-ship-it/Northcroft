@@ -8,6 +8,7 @@ import { todayISO } from "@/lib/time";
 import type { Project } from "@/lib/types";
 import { PageHead } from "@/components/PageHead";
 import { Empty, Loading, Pill, Progress, Segmented } from "@/components/ui";
+import { ProjectCover } from "@/components/ProjectCover";
 import { ProjectForm } from "./project/ProjectForm";
 import { useVariations, voTotals } from "./project/api";
 import "@/styles/tasks.css";
@@ -89,7 +90,7 @@ export default function Projects() {
             const pct = s.total ? (s.done / s.total) * 100 : 0;
             return (
               <Link key={p.id} to={`/projects/${p.id}`} className="project-card glass">
-                <span className="accent" style={{ background: p.color }} />
+                <ProjectCover project={p} />
                 <div className="row" style={{ alignItems: "flex-start" }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     {p.code && <div className="code">{p.code}</div>}

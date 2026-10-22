@@ -49,6 +49,7 @@ export interface Project {
   start_date: string | null;
   end_date: string | null;
   description: string | null;
+  cover_url: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

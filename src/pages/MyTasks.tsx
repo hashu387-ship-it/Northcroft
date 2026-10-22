@@ -106,7 +106,7 @@ export default function MyTasks() {
         }
         actions={
           canAssign && (
-            <button className="btn primary hide-mobile" onClick={() => setFormOpen(true)}>
+            <button className="btn brand hide-mobile" onClick={() => setFormOpen(true)}>
               <Plus /> New task
             </button>
           )

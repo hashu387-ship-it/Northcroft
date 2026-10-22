@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 const SIZE = 512;
 const BUCKET = "avatars";
 
-async function loadImage(file: File): Promise<CanvasImageSource & { width: number; height: number }> {
+export async function loadImage(file: File): Promise<CanvasImageSource & { width: number; height: number }> {
   if ("createImageBitmap" in window) {
     try {
       // Respect the phone's rotation flag so selfies aren't sideways.
