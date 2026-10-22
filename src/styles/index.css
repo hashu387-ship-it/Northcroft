@@ -5,12 +5,12 @@
   color-scheme: light;
   --font: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
 
-  --bg: #eef2fb;
-  --blob-1: #ffb8d2;
-  --blob-2: #9cc4ff;
-  --blob-3: #b4f1da;
-  --blob-4: #ffe2a6;
-  --blob-5: #d6c4ff;
+  --bg: #e9eefa;
+  --blob-1: #ff8fbd;
+  --blob-2: #6fa8ff;
+  --blob-3: #7fe3be;
+  --blob-4: #ffc96b;
+  --blob-5: #b79bff;
 
   --text: #111114;
   --text-2: rgba(60, 60, 67, 0.72);
@@ -157,7 +157,8 @@ body {
   font-size: 15px;
   line-height: 1.45;
   color: var(--text);
-  background: var(--bg);
+  /* Transparent so the fixed wallpaper (z-index -1) shows through; the colour lives on <html>. */
+  background: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -210,8 +211,8 @@ p {
   width: 62vmax;
   height: 62vmax;
   border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.75;
+  filter: blur(64px);
+  opacity: 0.62;
   will-change: transform;
 }
 .wallpaper .b1 { background: var(--blob-1); top: -22vmax; left: -16vmax; animation: drift1 38s var(--ease) infinite alternate; }
@@ -223,7 +224,8 @@ p {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 120%, rgba(255, 255, 255, 0.25), transparent 60%);
+  background: radial-gradient(ellipse at 50% 120%, rgba(255, 255, 255, 0.25), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 40%);
 }
 @keyframes drift1 { to { transform: translate(8vmax, 6vmax) scale(1.08); } }
 @keyframes drift2 { to { transform: translate(-7vmax, 9vmax) scale(0.94); } }
