@@ -17,7 +17,8 @@ export function Checklist({ task }: { task: Task }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const canManage = canAssign || task.assignee_id === me.id;
+  // Managers, seniors and everyone on the task can add, change and take off steps.
+  const canManage = canAssign || (task.assignees ?? []).includes(me.id);
   const doneCount = items.filter((i) => i.done).length;
 
   async function run(p: PromiseLike<{ error: unknown }>) {
@@ -39,7 +40,8 @@ export function Checklist({ task }: { task: Task }) {
 
   const toggle = (i: ChecklistItem) => run(supabase.from("task_checklist").update({ done: !i.done }).eq("id", i.id));
   const assign = (i: ChecklistItem, id: string | null) => run(supabase.from("task_checklist").update({ assignee_id: id }).eq("id", i.id));
-  const remove = (i: ChecklistItem) => run(supabase.from("task_checklist").delete().eq("id", i.id));
+  // Taken off the list (kept in the history), so anyone on the task can do it.
+  const remove = (i: ChecklistItem) => run(supabase.from("task_checklist").update({ removed_at: new Date().toISOString() }).eq("id", i.id));
 
   if (isLoading) return null;
   if (!items.length && !canManage) return null;
@@ -99,7 +101,7 @@ export function Checklist({ task }: { task: Task }) {
               </span>
             </span>
             {canManage && (
-              <button type="button" className="icon-btn small plain" onClick={() => remove(i)} aria-label={`Delete "${i.text}"`}>
+              <button type="button" className="icon-btn small plain" onClick={() => remove(i)} aria-label={`Take "${i.text}" off the list`} title="Take off the list">
                 <Trash2 />
               </button>
             )}

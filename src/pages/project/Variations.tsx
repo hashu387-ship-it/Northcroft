@@ -9,8 +9,9 @@ import { num, parseMoney, pct, plural, sar } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { dateOf, dueState, fmtDate, fmtDue, todayISO } from "@/lib/time";
 import type { Project, Variation, VoStatus } from "@/lib/types";
-import { Avatar, Empty, Field, Loading, PersonSelect, Pill, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
 import { VO_APPROVED, VO_PENDING, dueInline, nextVoNumber, useVariations, voTotals } from "./api";
+import { ownersOf } from "@/lib/people";
 
 type Filter = "all" | "pending" | "approved" | "closed_out";
 const INITIATORS = ["Client", "Engineer", "Contractor", "Consultant", "Other"];
@@ -165,7 +166,11 @@ export function Variations({ project }: { project: Project }) {
                           {v.response_due && VO_PENDING.includes(v.status) ? fmtDue(v.response_due) : "–"}
                         </td>
                         <td>
-                          <Avatar person={people.get(v.owner_id)} size={26} />
+                          {ownersOf(v).length > 1 ? (
+                            <AvatarStack people={ownersOf(v).map((id) => people.get(id))} size={24} max={3} />
+                          ) : (
+                            <Avatar person={people.get(v.owner_id)} size={26} />
+                          )}
                         </td>
                       </tr>
                     );
@@ -198,7 +203,11 @@ export function Variations({ project }: { project: Project }) {
                     <b>{v.vo_number}</b>
                     <Pill tone={VO_STATUS[v.status].tone}>{VO_STATUS[v.status].label}</Pill>
                     <span className="spacer" />
-                    <Avatar person={people.get(v.owner_id)} size={24} />
+                    {ownersOf(v).length > 1 ? (
+                      <AvatarStack people={ownersOf(v).map((id) => people.get(id))} size={22} max={3} />
+                    ) : (
+                      <Avatar person={people.get(v.owner_id)} size={24} />
+                    )}
                   </div>
                   <div style={{ fontWeight: 550 }}>{v.title}</div>
                   <div className="vals">
@@ -260,7 +269,7 @@ function VoSheet({
     submitted_date: "",
     approved_date: "",
     response_due: "",
-    owner_id: null as string | null,
+    owners: [] as string[],
     notes: "",
   });
   const [saving, setSaving] = useState(false);
@@ -279,7 +288,7 @@ function VoSheet({
       submitted_date: vo?.submitted_date ?? "",
       approved_date: vo?.approved_date ?? "",
       response_due: vo?.response_due ?? "",
-      owner_id: vo?.owner_id ?? me.id,
+      owners: vo ? ownersOf(vo) : [me.id],
       notes: vo?.notes ?? "",
     });
   }, [open, vo?.id]);
@@ -304,7 +313,7 @@ function VoSheet({
       submitted_date: f.submitted_date || null,
       approved_date: f.approved_date || (VO_APPROVED.includes(f.status) ? todayISO() : null),
       response_due: f.response_due || null,
-      owner_id: f.owner_id,
+      owners: f.owners,
       notes: f.notes.trim() || null,
     };
     try {
@@ -381,8 +390,8 @@ function VoSheet({
             ))}
           </select>
         </Field>
-        <Field label="Owner on our team">
-          <PersonSelect value={f.owner_id} onChange={(v) => set("owner_id", v)} people={people.active} placeholder="Nobody yet" />
+        <Field label="Owners on our team" className="full" hint="Everyone here gets this VO's updates and reminders">
+          <PeopleSelect value={f.owners} onChange={(v) => set("owners", v)} people={people.active} empty="Nobody yet" />
         </Field>
         <Field label="Submitted value (SAR)" hint="Contractor's quotation">
           <input className="input" inputMode="decimal" value={f.submitted_value} onChange={(e) => set("submitted_value", e.target.value)} placeholder="0" />
@@ -393,7 +402,7 @@ function VoSheet({
         <Field label="Approved value (SAR)" hint="Use a minus for omissions">
           <input className="input" inputMode="decimal" value={f.approved_value} onChange={(e) => set("approved_value", e.target.value)} placeholder="0" />
         </Field>
-        <Field label="Next action due" hint="Quotation, evaluation or determination deadline. Reminders go to the owner.">
+        <Field label="Next action due" hint="Quotation, evaluation or determination deadline. Reminders go to the owners.">
           <input className="input" type="date" value={f.response_due} onChange={(e) => set("response_due", e.target.value)} />
         </Field>
         <Field label="Date submitted">

@@ -44,6 +44,7 @@ import {
   todayISO,
 } from "@/lib/time";
 import type { Attendance, Profile, Task } from "@/lib/types";
+import { nameList, ownersOf } from "@/lib/people";
 import {
   acknowledge,
   needsMyAck,
@@ -538,7 +539,7 @@ function QsAlertsCard() {
                   </span>
                   <span className="meta" style={{ display: "block" }}>
                     {projects.get(v.project_id)?.name ?? "Project"} · {VO_STATUS[v.status].label}
-                    {v.owner_id ? ` · ${people.get(v.owner_id)?.short_name ?? ""}` : ""}
+                    {ownersOf(v).length ? ` · ${nameList(ownersOf(v).map((id) => people.get(id)?.short_name ?? "someone"))}` : ""}
                   </span>
                 </span>
                 <Pill tone={late ? "red" : "orange"}>{dueText(v.response_due)}</Pill>
@@ -558,7 +559,7 @@ function QsAlertsCard() {
                   </span>
                   <span className="meta" style={{ display: "block" }}>
                     {projects.get(b.project_id)?.name ?? "Project"} · {BOQ_STATUS[b.status].label}
-                    {b.owner_id ? ` · ${people.get(b.owner_id)?.short_name ?? ""}` : ""}
+                    {ownersOf(b).length ? ` · ${nameList(ownersOf(b).map((id) => people.get(id)?.short_name ?? "someone"))}` : ""}
                   </span>
                 </span>
                 <Pill tone={late ? "red" : "orange"}>{dueText(b.due_date)}</Pill>

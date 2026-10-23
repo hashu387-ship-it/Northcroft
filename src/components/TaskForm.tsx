@@ -2,17 +2,19 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Repeat, Trash2 } from "lucide-react";
 import { useInvalidate, usePeople, useProjects } from "@/lib/api";
-import { useMe } from "@/lib/auth";
+import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { DOW_LONG, addDays, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Task } from "@/lib/types";
-import { Field, PersonSelect, ProjectSelect, Segmented, Sheet, useToast } from "./ui";
+import { Field, PeopleSelect, PersonSelect, ProjectSelect, Segmented, Sheet, useToast } from "./ui";
 
 type Repeat = "none" | "daily" | "weekly" | "monthly";
 
 export interface TaskDefaults {
   projectId?: string | null;
   assigneeId?: string | null;
+  /** Several people at once (takes precedence over assigneeId). */
+  assigneeIds?: string[];
   dueDate?: string | null;
   /** Optional starting values for a new task. */
   title?: string;
@@ -33,17 +35,20 @@ export function TaskForm({
   defaults?: TaskDefaults;
 }) {
   const me = useMe();
+  const { canAssign } = useAuth();
   const people = usePeople();
   const { data: projects = [] } = useProjects();
   const toast = useToast();
   const invalidate = useInvalidate();
   const navigate = useNavigate();
   const editing = !!task;
+  // People on a task can edit its details; only managers and seniors change who's on it.
+  const lockPeople = editing && !canAssign;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [assigneeId, setAssigneeId] = useState<string | null>(null);
+  const [assignees, setAssignees] = useState<string[]>([]);
   const [reviewerId, setReviewerId] = useState<string | null>(me.id);
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
@@ -60,7 +65,15 @@ export function TaskForm({
     setTitle(task?.title ?? defaults?.title ?? "");
     setDescription(task?.description ?? defaults?.description ?? "");
     setProjectId(task ? task.project_id : defaults?.projectId ?? null);
-    setAssigneeId(task ? task.assignee_id : defaults?.assigneeId ?? null);
+    setAssignees(
+      task
+        ? task.assignees?.length
+          ? task.assignees
+          : task.assignee_id
+            ? [task.assignee_id]
+            : []
+        : defaults?.assigneeIds ?? (defaults?.assigneeId ? [defaults.assigneeId] : []),
+    );
     setReviewerId(task ? task.reviewer_id : me.id);
     setDueDate(task?.due_date ?? defaults?.dueDate ?? addDays(todayISO(), 2));
     setPriority(task?.priority ?? defaults?.priority ?? "normal");
@@ -71,7 +84,7 @@ export function TaskForm({
     setMonthDay(Math.min(28, Number(todayISO().slice(8, 10))));
     setOffset(2);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, task, defaults?.projectId, defaults?.assigneeId, defaults?.dueDate, defaults?.title, defaults?.description, defaults?.priority, defaults?.steps?.join("\n"), me.id]);
+  }, [open, task, defaults?.projectId, defaults?.assigneeId, defaults?.assigneeIds?.join(","), defaults?.dueDate, defaults?.title, defaults?.description, defaults?.priority, defaults?.steps?.join("\n"), me.id]);
 
   const cleanSteps = steps.map((s) => s.trim()).filter(Boolean);
 
@@ -86,8 +99,8 @@ export function TaskForm({
         title: title.trim(),
         description: description.trim() || null,
         project_id: projectId,
-        assignee_id: assigneeId,
-        reviewer_id: reviewerId,
+        // Only managers and seniors send who's on it and who reviews it.
+        ...(lockPeople ? {} : { assignees, reviewer_id: reviewerId }),
         priority,
         estimate_hours: estimate ? Number(estimate) : null,
       };
@@ -132,8 +145,8 @@ export function TaskForm({
             .insert(cleanSteps.map((text, i) => ({ task_id: data.id, text, position: i + 1 })));
           if (e2) throw e2;
         }
-        const who = people.get(assigneeId);
-        toast(who && who.id !== me.id ? `Task sent to ${who.short_name}` : "Task created");
+        const others = assignees.filter((id) => id !== me.id).map((id) => people.get(id)?.short_name).filter(Boolean);
+        toast(others.length ? `Task sent to ${others.length > 3 ? `${others.length} people` : others.join(", ")}` : "Task created");
         onClose();
         await invalidate("tasks", "task_checklist");
         navigate(`/tasks/${data.id}`);
@@ -172,11 +185,21 @@ export function TaskForm({
         <Field label="Project">
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} />
         </Field>
-        <Field label="Assign to">
-          <PersonSelect value={assigneeId} onChange={setAssigneeId} people={people.assignableBy(me.id, task?.assignee_id)} />
+        <Field
+          label="Assign to"
+          className="full"
+          hint={lockPeople ? "Only a manager or a senior can change who's on a task" : assignees.length > 1 ? "They all see it, get its notifications, and any of them can submit it" : "Add one person or several"}
+        >
+          <PeopleSelect
+            value={assignees}
+            onChange={setAssignees}
+            people={people.assignableBy(me.id).concat(people.active.filter((p) => assignees.includes(p.id) && p.assignable === false && p.id !== me.id))}
+            empty="Nobody yet"
+            disabled={lockPeople}
+          />
         </Field>
         <Field label="Reviewer" hint="Checks the work before it's marked done">
-          <PersonSelect value={reviewerId} onChange={setReviewerId} people={people.assigners} placeholder="Whoever created it" />
+          <PersonSelect value={reviewerId} onChange={setReviewerId} people={people.assigners} placeholder="Whoever created it" disabled={lockPeople} />
         </Field>
         {repeat === "none" && (
           <Field label="Due date">

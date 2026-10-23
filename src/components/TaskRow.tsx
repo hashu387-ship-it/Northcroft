@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import clsx from "clsx";
-import { ListChecks, RotateCcw } from "lucide-react";
+import { ListChecks, RotateCcw, Users } from "lucide-react";
 import { usePeople, useProjectMap } from "@/lib/api";
+import { peopleOn } from "@/lib/people";
 import type { Task } from "@/lib/types";
-import { Avatar, DueLabel, Pill, PriorityFlag, ProjectTag, StatusRing } from "./ui";
+import { Avatar, AvatarStack, DueLabel, Pill, PriorityFlag, ProjectTag, StatusRing } from "./ui";
 
 export function TaskRow({
   task,
@@ -19,6 +20,7 @@ export function TaskRow({
   const people = usePeople();
   const projects = useProjectMap();
   const changesRequested = !!task.changes_note && (task.status === "in_progress" || task.status === "todo");
+  const team = peopleOn(task);
   return (
     <Link to={`/tasks/${task.id}`} className={clsx("task-row", task.status === "done" && "done")}>
       <StatusRing status={task.status} />
@@ -34,6 +36,12 @@ export function TaskRow({
               {checklist[0]}/{checklist[1]}
             </span>
           )}
+          {!showAssignee && team.length > 1 && (
+            <span className="row" style={{ gap: 3 }} title="People on this task">
+              <Users size={13} />
+              {team.length} people
+            </span>
+          )}
           {task.status === "in_review" && <Pill tone="purple">In review</Pill>}
           {changesRequested && (
             <Pill tone="orange">
@@ -43,7 +51,12 @@ export function TaskRow({
           )}
         </div>
       </div>
-      {showAssignee && <Avatar person={people.get(task.assignee_id)} size={30} />}
+      {showAssignee &&
+        (team.length > 1 ? (
+          <AvatarStack people={team.map((id) => people.get(id))} size={26} max={3} />
+        ) : (
+          <Avatar person={people.get(team[0])} size={30} />
+        ))}
     </Link>
   );
 }

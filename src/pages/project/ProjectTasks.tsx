@@ -7,8 +7,9 @@ import { TASK_STATUS, TASK_STATUS_ORDER } from "@/lib/constants";
 import type { Project, Task, TaskStatus } from "@/lib/types";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
-import { Avatar, DueLabel, Empty, Loading, PriorityFlag, Segmented } from "@/components/ui";
+import { Avatar, AvatarStack, DueLabel, Empty, Loading, PriorityFlag, Segmented } from "@/components/ui";
 import { RecurringList } from "./Recurring";
+import { peopleOn } from "@/lib/people";
 
 const COL_COLOR: Record<TaskStatus, string> = {
   todo: "var(--gray)",
@@ -32,7 +33,7 @@ export function ProjectTasks({ project }: { project: Project }) {
   const [showDone, setShowDone] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
-  const filtered = useMemo(() => (person ? tasks.filter((t) => t.assignee_id === person) : tasks), [tasks, person]);
+  const filtered = useMemo(() => (person ? tasks.filter((t) => peopleOn(t).includes(person)) : tasks), [tasks, person]);
   const counts = useChecklistCounts(filtered.map((t) => t.id)).data;
   const byStatus = useMemo(() => {
     const m: Record<TaskStatus, Task[]> = { todo: [], in_progress: [], in_review: [], done: [] };
@@ -55,7 +56,7 @@ export function ProjectTasks({ project }: { project: Project }) {
       <div className="view-head">
         <select className="select inline-select" value={person} onChange={(e) => setPerson(e.target.value)} aria-label="Filter by person">
           <option value="">Everyone</option>
-          {people.active.filter((p) => p.assignable !== false || tasks.some((t) => t.assignee_id === p.id)).map((p) => (
+          {people.active.filter((p) => p.assignable !== false || tasks.some((t) => peopleOn(t).includes(p.id))).map((p) => (
             <option key={p.id} value={p.id}>
               {p.short_name}
             </option>
@@ -106,7 +107,11 @@ export function ProjectTasks({ project }: { project: Project }) {
                         </span>
                       )}
                       <span className="spacer" />
-                      <Avatar person={people.get(t.assignee_id)} size={24} />
+                      {peopleOn(t).length > 1 ? (
+                        <AvatarStack people={peopleOn(t).map((id) => people.get(id))} size={22} max={3} />
+                      ) : (
+                        <Avatar person={people.get(t.assignee_id)} size={24} />
+                      )}
                     </div>
                   </Link>
                 ))}

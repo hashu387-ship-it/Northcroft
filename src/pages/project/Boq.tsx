@@ -8,8 +8,9 @@ import { parseMoney, sar } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { dueState } from "@/lib/time";
 import type { BoqPackage, BoqStatus, Project } from "@/lib/types";
-import { Avatar, Empty, Field, Loading, PersonSelect, Pill, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, Sheet, useConfirm, useToast } from "@/components/ui";
 import { dueInline, useBoq } from "./api";
+import { nameList, ownersOf } from "@/lib/people";
 
 const TRADES = ["Civil", "Structure", "Envelope", "Finishes", "MEP", "External works", "Preliminaries", "Other"];
 
@@ -74,7 +75,8 @@ export function Boq({ project }: { project: Project }) {
           {rows.map((b) => {
             const next = nextStatus(b.status);
             const late = b.status !== "issued" && dueState(b.due_date) === "overdue";
-            const owner = people.get(b.owner_id);
+            const team = ownersOf(b).map((id) => people.get(id));
+            const owner = team[0];
             return (
               <div key={b.id} className="boq-card">
                 <div className="row" style={{ alignItems: "flex-start" }}>
@@ -90,8 +92,8 @@ export function Boq({ project }: { project: Project }) {
                 <Stages status={b.status} />
                 <div className="row wrap" style={{ gap: 8 }}>
                   <span className="row" style={{ gap: 6 }}>
-                    <Avatar person={owner} size={24} />
-                    <span className="small">{owner?.short_name ?? "No owner"}</span>
+                    {team.length > 1 ? <AvatarStack people={team} size={22} max={3} /> : <Avatar person={owner} size={24} />}
+                    <span className="small">{nameList(team.map((p) => p?.short_name ?? "someone")) || "No owner"}</span>
                   </span>
                   {b.due_date && b.status !== "issued" && (
                     <span className={clsx("small", late ? "danger-text bold" : "muted")}>
@@ -128,7 +130,7 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
   const [name, setName] = useState("");
   const [trade, setTrade] = useState("Civil");
   const [status, setStatus] = useState<BoqStatus>("not_started");
-  const [owner, setOwner] = useState<string | null>(null);
+  const [owners, setOwners] = useState<string[]>([]);
   const [due, setDue] = useState("");
   const [value, setValue] = useState("");
   const [notes, setNotes] = useState("");
@@ -139,7 +141,7 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
     setName(pkg?.name ?? "");
     setTrade(pkg?.trade ?? "Civil");
     setStatus(pkg?.status ?? "not_started");
-    setOwner(pkg?.owner_id ?? null);
+    setOwners(pkg ? ownersOf(pkg) : []);
     setDue(pkg?.due_date ?? "");
     setValue(pkg?.value != null ? String(pkg.value) : "");
     setNotes(pkg?.notes ?? "");
@@ -151,7 +153,7 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
       return;
     }
     setSaving(true);
-    const row = { name: name.trim(), trade: trade || null, status, owner_id: owner, due_date: due || null, value: parseMoney(value), notes: notes.trim() || null };
+    const row = { name: name.trim(), trade: trade || null, status, owners, due_date: due || null, value: parseMoney(value), notes: notes.trim() || null };
     try {
       const { error } = pkg
         ? await supabase.from("boq_packages").update(row).eq("id", pkg.id)
@@ -221,8 +223,8 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
             ))}
           </select>
         </Field>
-        <Field label="Owner">
-          <PersonSelect value={owner} onChange={setOwner} people={people.active} placeholder="Nobody yet" />
+        <Field label="Owners" className="full" hint="Everyone here gets this package's updates and reminders">
+          <PeopleSelect value={owners} onChange={setOwners} people={people.active} empty="Nobody yet" />
         </Field>
         <Field label="Due date">
           <input className="input" type="date" value={due} onChange={(e) => setDue(e.target.value)} />

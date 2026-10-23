@@ -11,6 +11,7 @@ import { todayISO } from "@/lib/time";
 import type { Task } from "@/lib/types";
 import { DUE_GROUP_LABEL, dueGroup, type DueGroup } from "./project/api";
 import "@/styles/tasks.css";
+import { peopleOn } from "@/lib/people";
 
 type View = "mine" | "review" | "byme" | "done";
 
@@ -54,7 +55,8 @@ export default function MyTasks() {
   const toReview = (reviewQ.data ?? [])
     .filter((t) => t.status === "in_review")
     .sort((a, b) => (a.submitted_at ?? "").localeCompare(b.submitted_at ?? ""));
-  const byMe = (byMeQ.data ?? []).filter((t) => t.assignee_id !== me.id);
+  // Handed out by me to others (tasks I'm also on show under Mine).
+  const byMe = (byMeQ.data ?? []).filter((t) => !peopleOn(t).includes(me.id));
 
   const grouped = useMemo(() => {
     const g: Record<DueGroup, Task[]> = { overdue: [], today: [], week: [], later: [], none: [] };
@@ -70,9 +72,10 @@ export default function MyTasks() {
 
   const byPerson = useMemo(() => {
     const m = new Map<string, Task[]>();
+    // A shared task shows under each person on it.
     for (const t of byMe) {
-      const k = t.assignee_id ?? "none";
-      m.set(k, [...(m.get(k) ?? []), t]);
+      const ids = peopleOn(t);
+      for (const k of ids.length ? ids : ["none"]) m.set(k, [...(m.get(k) ?? []), t]);
     }
     return [...m.entries()].sort((a, b) => (people.get(a[0])?.short_name ?? "~").localeCompare(people.get(b[0])?.short_name ?? "~"));
   }, [byMe, people]);

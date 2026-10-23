@@ -301,6 +301,68 @@ export function PersonSelect({
   );
 }
 
+/**
+ * Pick one or more people: the chosen ones show as chips (tap the cross to take someone off),
+ * and a list underneath adds more.
+ */
+export function PeopleSelect({
+  value,
+  onChange,
+  people,
+  empty = "Nobody yet",
+  disabled,
+  label = "Add a person",
+}: {
+  value: string[];
+  onChange: (ids: string[]) => void;
+  people: Profile[];
+  empty?: string;
+  disabled?: boolean;
+  label?: string;
+}) {
+  const byId = new Map(people.map((p) => [p.id, p]));
+  const rest = people.filter((p) => !value.includes(p.id));
+  return (
+    <div className="people-select">
+      <div className="people-chips">
+        {value.length === 0 && <span className="faint small">{empty}</span>}
+        {value.map((id) => {
+          const p = byId.get(id);
+          return (
+            <span className="person-chip" key={id}>
+              <Avatar person={p} size={22} />
+              <span className="ellipsis">{p?.short_name ?? "Former team member"}</span>
+              {!disabled && (
+                <button type="button" onClick={() => onChange(value.filter((x) => x !== id))} aria-label={`Take ${p?.short_name ?? "them"} off`}>
+                  <X size={13} />
+                </button>
+              )}
+            </span>
+          );
+        })}
+      </div>
+      {!disabled && rest.length > 0 && (
+        <select
+          className="select"
+          value=""
+          aria-label={label}
+          onChange={(e) => {
+            if (e.target.value) onChange([...value, e.target.value]);
+          }}
+        >
+          <option value="">{value.length ? "Add another person" : label}</option>
+          {rest.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.short_name}
+              {p.title ? ` · ${p.title}` : ""}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
+
 export function ProjectSelect({
   value,
   onChange,

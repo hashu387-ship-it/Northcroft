@@ -3,8 +3,9 @@ import { useInvalidate, usePeople, useProjectMap } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import type { RecurringTask } from "@/lib/types";
-import { Avatar, Empty, Loading, PriorityFlag, ProjectTag, Switch, useConfirm, useToast } from "@/components/ui";
+import { Avatar, AvatarStack, Empty, Loading, PriorityFlag, ProjectTag, Switch, useConfirm, useToast } from "@/components/ui";
 import { dueInline, frequencyLabel, useRecurring } from "./api";
+import { nameList, peopleOn } from "@/lib/people";
 
 /** Repeating task rules, for one project or (without projectId) for everyone. */
 export function RecurringList({ projectId, showProject = false, hideWhenEmpty = false }: { projectId?: string; showProject?: boolean; hideWhenEmpty?: boolean }) {
@@ -50,7 +51,9 @@ export function RecurringList({ projectId, showProject = false, hideWhenEmpty = 
   return (
     <div className="list">
       {rules.map((r) => {
-        const who = people.get(r.assignee_id);
+        const team = peopleOn(r).map((id) => people.get(id));
+        const who = team[0];
+        const forNames = nameList(team.map((p) => p?.short_name ?? "someone"));
         return (
           <div key={r.id} className="list-item rec-item" style={{ opacity: r.active ? 1 : 0.6 }}>
             <span className="icon-btn small hide-mobile" style={{ background: "var(--accent-soft)", color: "var(--accent)" }} aria-hidden>
@@ -62,12 +65,12 @@ export function RecurringList({ projectId, showProject = false, hideWhenEmpty = 
                 <span>{frequencyLabel(r)}</span>
                 <span>{r.active ? `Next ${dueInline(r.next_run)}` : "Paused"}</span>
                 {showProject && <ProjectTag project={projects.get(r.project_id)} />}
-                <span className="hide-desktop">{who ? `For ${who.short_name}` : "Unassigned"}</span>
+                <span className="hide-desktop">{forNames ? `For ${forNames}` : "Unassigned"}</span>
                 <PriorityFlag priority={r.priority} />
               </div>
             </div>
             <span className="hide-mobile">
-              <Avatar person={who} size={28} />
+              {team.length > 1 ? <AvatarStack people={team} size={24} max={3} /> : <Avatar person={who} size={28} />}
             </span>
             {canAssign && (
               <>

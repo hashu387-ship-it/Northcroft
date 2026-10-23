@@ -1290,3 +1290,31 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
   font-size: 12.5px;
 }
 .chip-toggle.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+/* Picking several people (tasks, variations, BOQ packages) */
+.people-select { display: flex; flex-direction: column; gap: 8px; }
+.people-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; align-items: center; }
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 6px 3px 3px;
+  border-radius: 16px;
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 14%, transparent);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.person-chip button {
+  border: 0;
+  background: none;
+  padding: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.person-chip button:hover { background: var(--fill-2); color: var(--text); }
+:root[data-theme="dark"] .person-chip { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.12); }

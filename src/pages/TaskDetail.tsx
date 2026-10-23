@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useInvalidate, usePeople, useProjectMap, useTask } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
+import { nameList, peopleOn } from "@/lib/people";
 import { useMarkSeen } from "@/lib/seen";
 import { taskMessage } from "@/lib/phone";
 import { PersonLink, WhatsAppButton } from "@/components/People";
@@ -81,9 +82,15 @@ export default function TaskDetail() {
 
   const t: Task = task;
   const project = projects.get(t.project_id);
-  const assignee = people.get(t.assignee_id);
+  // Everyone on the task (one person or several).
+  const onIt = peopleOn(t);
+  const onItNames = nameList(onIt.map((x) => people.get(x)?.short_name ?? "someone"));
   const reviewer = people.get(t.reviewer_id) ?? people.get(t.created_by);
-  const isAssignee = t.assignee_id === me.id;
+  const isAssignee = onIt.includes(me.id);
+  // Who actually sent it for review (any of the people on it can).
+  const submittedBy = people.get(
+    (activity.data ?? []).find((a) => a.action === "status" && (a.details as { to?: string }).to === "in_review")?.actor_id ?? t.assignee_id,
+  );
   const following = (watchers.data ?? []).some((w) => w.user_id === me.id);
   const changesRequested = !!t.changes_note && (t.status === "todo" || t.status === "in_progress");
 
@@ -130,7 +137,7 @@ export default function TaskDetail() {
       toast("Say what needs changing", "error");
       return;
     }
-    await update({ status: "in_progress", changes_note: note.trim() }, `Sent back to ${assignee?.short_name ?? "the assignee"}`);
+    await update({ status: "in_progress", changes_note: note.trim() }, `Sent back to ${onItNames || "the people on it"}`);
     setChangesOpen(false);
     setNote("");
   }
@@ -257,7 +264,7 @@ export default function TaskDetail() {
                 <div className="small">
                   <b>Waiting for review</b>
                   <div className="muted">
-                    Submitted by {assignee?.short_name ?? "someone"} {timeAgo(t.submitted_at) === "now" ? "just now" : `· ${fmtDateTime(t.submitted_at)}`}.
+                    Submitted by {submittedBy?.short_name ?? "someone"} {timeAgo(t.submitted_at) === "now" ? "just now" : `· ${fmtDateTime(t.submitted_at)}`}.
                     {reviewer ? ` ${reviewer.id === me.id ? "You are" : `${reviewer.short_name} is`} reviewing it.` : ""}
                   </div>
                 </div>
@@ -303,14 +310,16 @@ export default function TaskDetail() {
             {details(t)}
           </div>
 
-          {canAssign && (
+          {(canAssign || isAssignee) && (
             <div className="glass card row wrap" style={{ gap: 8 }}>
               <button className="btn small" onClick={() => setEditOpen(true)}>
                 <Pencil /> Edit task
               </button>
-              <button className="btn small danger" onClick={remove}>
-                <Trash2 /> Delete
-              </button>
+              {canAssign && (
+                <button className="btn small danger" onClick={remove}>
+                  <Trash2 /> Delete
+                </button>
+              )}
             </div>
           )}
 
@@ -370,7 +379,7 @@ export default function TaskDetail() {
       >
         <div className="stack">
           <p className="muted">
-            The task goes back to {assignee?.short_name ?? "the assignee"} with your note. It stays on their list until they submit it again.
+            The task goes back to {onItNames || "the people on it"} with your note. It stays on their list until they submit it again.
           </p>
           <label className="field">
             <span>What needs changing</span>
@@ -382,7 +391,7 @@ export default function TaskDetail() {
   );
 
   function details(task: Task) {
-    const assignee = people.get(task.assignee_id);
+    const team = peopleOn(task).map((x) => people.get(x));
     const reviewer = people.get(task.reviewer_id) ?? people.get(task.created_by);
     const creator = people.get(task.created_by);
     // WhatsApp opens with the task already written in, so the other person knows what it's about.
@@ -396,9 +405,14 @@ export default function TaskDetail() {
         </div>
         <div className="kv">
           <Row label="Assigned to">
-            <span className="row" style={{ gap: 8, minWidth: 0 }}>
-              <PersonLink person={assignee} />
-              {assignee && <WhatsAppButton person={assignee} variant="small" text={msg(assignee.short_name)} />}
+            <span className="stack" style={{ gap: 6, minWidth: 0 }}>
+              {team.length === 0 && <PersonLink person={null} />}
+              {team.map((p, i) => (
+                <span className="row" style={{ gap: 8, minWidth: 0 }} key={p?.id ?? i}>
+                  <PersonLink person={p} />
+                  {p && <WhatsAppButton person={p} variant="small" text={msg(p.short_name)} />}
+                </span>
+              ))}
             </span>
           </Row>
           <Row label="Reviewer">

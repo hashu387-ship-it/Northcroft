@@ -5,7 +5,8 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 ## What it does
 
 - **Projects**: an overview, a task list and board, the variation (VO) register, BOQ package stages, project chat, files and a full history.
-- **Tasks**: you assign work with due dates, priorities and checklists. The person moves it to *In progress*, then *Submitted for review*. Hassan or a senior approves it or sends it back with a note. Tasks can also repeat daily, weekly or monthly.
+- **Tasks**: you assign work with due dates, priorities and checklists, to one person or several. Everyone on a task sees it in My tasks and gets its notifications; any of them can start it, edit its details, steps and files, and submit it for review. Hassan or a senior approves it or sends it back with a note, and only managers and seniors change who's on a task. Tasks can also repeat daily, weekly or monthly.
+- **Variations and BOQ packages** can have several owners too; all of them get the updates and reminders.
 - **Announcements**: everyone taps *Acknowledge*. Managers see who hasn't, and can nudge them. Anyone who hasn't acknowledged gets an automatic reminder the next morning.
 - **Inbox and push notifications**, WhatsApp style:
   - The sender's name is the title. On Android and computers their photo shows beside the message, or their initials if they have no photo. iPhone always shows the app icon for Home Screen apps.
@@ -35,7 +36,10 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 - **Voice notes** in team chat, project chat, task comments and announcements:
   - Tap the microphone, speak (up to 3 minutes), then send. Others get a play button with a waveform.
   - Each note is written out in English a few seconds later, even if spoken in Arabic or Tamil. The sender can correct the text.
-- **PDF and Excel inside the app**: tapping a PDF or a spreadsheet (Excel or CSV) opens it full screen in the app, with tools to edit it. Saving never changes the original: the edit is saved as a new version next to it (version 2, 3 and so on), with who edited it and when, and you can switch between versions. A file shared in a chat or on a task comment is shared again there as the new version.
+- **PDF, Excel and photos inside the app**: tapping a PDF, a spreadsheet (Excel or CSV) or a photo opens it full screen in the app, with tools to edit it.
+  - PDF: mark up (pen, highlighter, arrows, boxes, clouds, notes), sign and stamp, rotate, reorder, remove and join pages, measure lengths and areas at the drawing's scale, change existing text (the old words are wiped from the file), add text and pictures, and fill in forms.
+  - Excel: every sheet with its formatting, edit cells and formulas (they recalculate), insert and remove rows and columns, basic formatting, find. Charts, macros and pivot tables can't be edited and aren't in the saved copy; the original keeps them.
+  - Photos: pinch to zoom, swipe between the photos in the same chat or task, turn, and mark up with arrows, boxes, lines, a pen and text. Saving never changes the original: the edit is saved as a new version next to it (version 2, 3 and so on), with who edited it and when, and you can switch between versions. A file shared in a chat or on a task comment is shared again there as the new version.
 - **Files and Google Drive**: attach drawings, BOQs, PDFs and photos to tasks, projects and chats.
   - Every file anyone attaches is saved straight to the team's Google Drive (the one a manager connects), in a **Northcroft** folder with a subfolder per project (plus General). Files of any size; a progress figure shows while they upload.
   - Drive files stay private. Only signed-in team members can open them, through the app (PDFs, photos and videos open in the browser; other files download). Photos show as previews in chats and file lists. Deleting one in the app moves it to the Drive bin for 30 days.
@@ -63,6 +67,8 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 | Post announcements, create projects | Yes | Yes | No |
 | See everyone's attendance | Yes | Yes | Own only |
 | Add people, reset passwords, set hours, office pins | Yes | No | No |
+| Change who's on a task, delete tasks | Yes | Yes | No |
+| Edit a task's details, steps and files, and submit it | Yes | Yes | When they're on the task |
 | Update VOs and BOQ packages, comment, chat, upload files | Yes | Yes | Yes |
 
 Work flows down: Fawaz gives tasks to Hassan, and Hassan gives tasks to the team. Two switches in Settings > Team control this for anyone:

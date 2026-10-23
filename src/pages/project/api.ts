@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { BOQ_STATUS, PRIORITY, TASK_STATUS, VO_STATUS } from "@/lib/constants";
 import { DOW_LONG, addDays, dow, fmtDue, todayISO, weekStart } from "@/lib/time";
 import type { Activity, BoqPackage, Profile, RecurringTask, Task, TaskStatus, Variation, VoStatus, BoqStatus } from "@/lib/types";
+import { nameList } from "@/lib/people";
 
 export function useVariations(projectId?: string) {
   return useQuery({
@@ -154,10 +155,18 @@ export function activitySentence(a: Activity, people: PersonLookup, taskTitle?: 
   if (a.entity === "task") {
     switch (a.action) {
       case "created": {
-        const who = people(d.assignee_id as string)?.short_name;
+        const ids = Array.isArray(d.assignees) ? (d.assignees as string[]) : d.assignee_id ? [d.assignee_id as string] : [];
+        const who = nameList(ids.map((id) => people(id)?.short_name ?? "someone"));
         return `${taskTitle ? `created ${obj}` : "created this task"}${who ? ` for ${who}` : ""}`;
       }
       case "reassigned": {
+        // Newer rows say who was added and who was taken off; older ones only "to".
+        if (Array.isArray(d.added) || Array.isArray(d.removed)) {
+          const added = nameList(((d.added as string[]) ?? []).map((id) => people(id)?.short_name ?? "someone"));
+          const removed = nameList(((d.removed as string[]) ?? []).map((id) => people(id)?.short_name ?? "someone"));
+          const parts = [added && `added ${added} to ${obj}`, removed && `took ${removed} off ${obj}`].filter(Boolean);
+          return parts.join(" and ") || `changed who's on ${obj}`;
+        }
         const to = people(d.to as string)?.short_name;
         return to ? `reassigned ${obj} to ${to}` : `unassigned ${obj}`;
       }

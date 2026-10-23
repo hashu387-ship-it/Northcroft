@@ -10,6 +10,7 @@ import { TaskRow } from "@/components/TaskRow";
 import { Avatar, Empty, Loading, Sheet } from "@/components/ui";
 import { RecurringList } from "./project/Recurring";
 import "@/styles/tasks.css";
+import { peopleOn } from "@/lib/people";
 
 interface Col {
   key: string;
@@ -66,11 +67,12 @@ export default function Workload() {
   }
 
   // People who take tasks, plus anyone else who happens to have one (e.g. a reminder they set themselves).
-  const rows = people.active.filter((p) => p.assignable !== false || active.some((t) => t.assignee_id === p.id)).map((p) => {
-    const mine = active.filter((t) => t.assignee_id === p.id);
+  // A shared task counts for each person on it.
+  const rows = people.active.filter((p) => p.assignable !== false || active.some((t) => peopleOn(t).includes(p.id))).map((p) => {
+    const mine = active.filter((t) => peopleOn(t).includes(p.id));
     return { person: p, total: mine.length, cells: cols.map((c) => mine.filter(c.match)) };
   });
-  const unassigned = active.filter((t) => !t.assignee_id);
+  const unassigned = active.filter((t) => peopleOn(t).length === 0);
 
   return (
     <div className="page">

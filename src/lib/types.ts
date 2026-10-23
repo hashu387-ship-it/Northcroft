@@ -71,7 +71,10 @@ export interface Task {
   description: string | null;
   status: TaskStatus;
   priority: Priority;
+  /** The first person on the task (kept for older screens); `assignees` is the full list. */
   assignee_id: string | null;
+  /** Everyone on the task: they all see it, get its notifications, and can update and submit it. */
+  assignees: string[];
   reviewer_id: string | null;
   created_by: string | null;
   due_date: string | null;
@@ -94,6 +97,8 @@ export interface ChecklistItem {
   position: number;
   done_by: string | null;
   done_at: string | null;
+  /** Set when the step was taken off the list (kept for the history). */
+  removed_at: string | null;
   created_at: string;
 }
 
@@ -105,6 +110,8 @@ export interface RecurringTask {
   priority: Priority;
   assignee_id: string | null;
   reviewer_id: string | null;
+  /** Everyone each new task goes to (assignee_id is the first of them). */
+  assignees: string[];
   frequency: "daily" | "weekly" | "monthly";
   weekday: number | null;
   month_day: number | null;
@@ -303,7 +310,9 @@ export interface Variation {
   submitted_date: string | null;
   approved_date: string | null;
   response_due: string | null;
+  /** The first owner (kept for older screens); `owners` is the full list. */
   owner_id: string | null;
+  owners: string[];
   notes: string | null;
   created_by: string | null;
   created_at: string;
@@ -316,7 +325,9 @@ export interface BoqPackage {
   name: string;
   trade: string | null;
   status: BoqStatus;
+  /** The first owner (kept for older screens); `owners` is the full list. */
   owner_id: string | null;
+  owners: string[];
   due_date: string | null;
   value: number | null;
   notes: string | null;

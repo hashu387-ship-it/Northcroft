@@ -24,6 +24,7 @@ import {
 } from "@/lib/time";
 import type { CalendarEvent, EventKind } from "@/lib/types";
 import { useBoqBetween, useEventsBetween, useVosBetween } from "./home/data";
+import { nameList, ownersOf, peopleOn } from "@/lib/people";
 
 type View = "month" | "agenda";
 type Scope = "all" | "mine";
@@ -109,10 +110,10 @@ export default function Calendar() {
         date: t.due_date,
         kind: "task",
         title: t.title,
-        sub: ["Task due", people.get(t.assignee_id)?.short_name ?? "Unassigned", project?.name].filter(Boolean).join(" · "),
+        sub: ["Task due", nameList(peopleOn(t).map((id) => people.get(id)?.short_name ?? "someone")) || "Unassigned", project?.name].filter(Boolean).join(" · "),
         color: project?.color ?? TASK_COLOR,
         link: `/tasks/${t.id}`,
-        mine: t.assignee_id === me.id || t.created_by === me.id,
+        mine: peopleOn(t).includes(me.id) || t.created_by === me.id,
         sort: `${KIND_RANK.task}${t.title}`,
       });
     }
@@ -126,7 +127,7 @@ export default function Calendar() {
         sub: [v.title, VO_STATUS[v.status].label, projects.get(v.project_id)?.name].filter(Boolean).join(" · "),
         color: VO_COLOR,
         link: `/projects/${v.project_id}/variations?vo=${v.id}`,
-        mine: v.owner_id === me.id,
+        mine: ownersOf(v).includes(me.id),
         sort: `${KIND_RANK.vo}${v.vo_number}`,
       });
     }
@@ -137,10 +138,10 @@ export default function Calendar() {
         date: b.due_date,
         kind: "boq",
         title: `${b.name} BOQ`,
-        sub: [BOQ_STATUS[b.status].label, people.get(b.owner_id)?.short_name, projects.get(b.project_id)?.name].filter(Boolean).join(" · "),
+        sub: [BOQ_STATUS[b.status].label, nameList(ownersOf(b).map((id) => people.get(id)?.short_name ?? "someone")), projects.get(b.project_id)?.name].filter(Boolean).join(" · "),
         color: BOQ_COLOR,
         link: `/projects/${b.project_id}/boq`,
-        mine: b.owner_id === me.id,
+        mine: ownersOf(b).includes(me.id),
         sort: `${KIND_RANK.boq}${b.name}`,
       });
     }

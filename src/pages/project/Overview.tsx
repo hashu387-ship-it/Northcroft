@@ -11,6 +11,7 @@ import { Avatar, Empty, Loading, Pill, StatusRing } from "@/components/ui";
 import { ActivityFeed } from "./ActivityFeed";
 import { VoMeter } from "./Variations";
 import { VO_PENDING, useActivity, useBoq, useVariations, voTotals } from "./api";
+import { nameList, peopleOn } from "@/lib/people";
 
 interface Deadline {
   key: string;
@@ -57,12 +58,14 @@ export function Overview({ project }: { project: Project }) {
 
   const team = useMemo(() => {
     const m = new Map<string, { open: number; overdue: number }>();
+    // A shared task counts for each person on it.
     for (const t of open) {
-      if (!t.assignee_id) continue;
-      const c = m.get(t.assignee_id) ?? { open: 0, overdue: 0 };
-      c.open++;
-      if (t.due_date && t.due_date < today && t.status !== "in_review") c.overdue++;
-      m.set(t.assignee_id, c);
+      for (const who of peopleOn(t)) {
+        const c = m.get(who) ?? { open: 0, overdue: 0 };
+        c.open++;
+        if (t.due_date && t.due_date < today && t.status !== "in_review") c.overdue++;
+        m.set(who, c);
+      }
     }
     return [...m.entries()].sort((a, b) => b[1].open - a[1].open);
   }, [open, today]);
@@ -174,7 +177,7 @@ export function Overview({ project }: { project: Project }) {
                 <StatusRing status={t.status} />
                 <div className="grow">
                   <div className="title">{t.title}</div>
-                  <div className="meta">From {people.get(t.assignee_id)?.short_name ?? "someone"}</div>
+                  <div className="meta">From {nameList(peopleOn(t).map((id) => people.get(id)?.short_name ?? "someone")) || "someone"}</div>
                 </div>
               </Link>
             ))}

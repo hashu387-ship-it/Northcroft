@@ -85,7 +85,8 @@ export function useTasks(filter: TaskFilter = {}) {
     queryFn: async () => {
       let q = supabase.from("tasks").select("*");
       if (filter.projectId) q = q.eq("project_id", filter.projectId);
-      if (filter.assigneeId) q = q.eq("assignee_id", filter.assigneeId);
+      // Tasks this person is on (alone or with others).
+      if (filter.assigneeId) q = q.contains("assignees", [filter.assigneeId]);
       if (filter.reviewerId) q = q.eq("reviewer_id", filter.reviewerId);
       if (filter.createdBy) q = q.eq("created_by", filter.createdBy);
       if (filter.openOnly) q = q.neq("status", "done");
@@ -109,7 +110,7 @@ export function useChecklist(taskId: string | undefined) {
     enabled: !!taskId,
     queryFn: () =>
       unwrap<ChecklistItem[]>(
-        supabase.from("task_checklist").select("*").eq("task_id", taskId!).order("position").order("created_at"),
+        supabase.from("task_checklist").select("*").eq("task_id", taskId!).is("removed_at", null).order("position").order("created_at"),
       ),
   });
 }
@@ -122,7 +123,7 @@ export function useChecklistCounts(taskIds: string[]) {
     enabled: taskIds.length > 0,
     queryFn: async () => {
       const rows = await unwrap<{ task_id: string; done: boolean }[]>(
-        supabase.from("task_checklist").select("task_id, done").in("task_id", taskIds),
+        supabase.from("task_checklist").select("task_id, done").in("task_id", taskIds).is("removed_at", null),
       );
       const out: Record<string, [number, number]> = {};
       for (const r of rows) {
