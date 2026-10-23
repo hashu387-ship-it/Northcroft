@@ -1,0 +1,413 @@
+/* Spreadsheet tool. The grid looks like a real spreadsheet (white cells, grey grid lines) in light
+   mode and a calm dark grid in dark mode; the toolbar and tabs use the app's liquid glass. */
+
+.xs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  --xbg: #ffffff;
+  --xtext: #111827;
+  --xgrid: #e2e5eb;
+  --xhead: #f3f5f9;
+  --xhead-text: #5f6b7c;
+  --xhead-on: #e2ebfc;
+  --xsel: #1a6fe0;
+  --xsel-fill: rgba(26, 111, 224, 0.09);
+  --xfreeze: #b9c3d3;
+}
+
+/* ---------------------------------------------------------------- toolbar */
+.xtools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--separator);
+}
+.xtools-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.xtools-scroll::-webkit-scrollbar { display: none; }
+.xgroup { display: flex; align-items: center; gap: 2px; flex: none; padding-right: 6px; margin-right: 2px; border-right: 1px solid var(--separator); }
+.xgroup:last-child { border-right: 0; }
+.xtools .icon-btn.on { background: var(--accent-soft); color: var(--accent); }
+.xtools .icon-btn:disabled { opacity: 0.35; pointer-events: none; }
+.xtools .btn.small { white-space: nowrap; }
+.xtools .btn.small svg:last-child { width: 13px; height: 13px; opacity: 0.6; }
+.xfmt-btn { min-width: 88px; justify-content: space-between; }
+.xswatch-btn { position: relative; }
+.xswatch-btn i {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.15);
+}
+.xzoom {
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-width: 42px;
+  height: 28px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.xzoom:hover { background: var(--fill); }
+.xsave { flex: none; }
+.xsave-short { display: none; }
+
+/* ---------------------------------------------------------------- menus */
+.xpop {
+  position: fixed;
+  z-index: 70;
+  min-width: 210px;
+  max-width: calc(100vw - 16px);
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--solid);
+  border: 1px solid var(--solid-border);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  animation: fade-in 0.12s var(--ease);
+}
+.xpop > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.xpop > button:hover { background: var(--fill); }
+.xpop > button.on { color: var(--accent); font-weight: 600; }
+.xpop > button.danger { color: var(--red); }
+.xpop hr { border: 0; border-top: 1px solid var(--separator); margin: 4px 2px; }
+.xswatches { display: grid; grid-template-columns: repeat(6, 26px); gap: 6px; padding: 6px 6px 8px; }
+.xsw { width: 26px; height: 26px; border-radius: 6px; border: 1px solid rgba(15, 23, 42, 0.15); cursor: pointer; padding: 0; }
+.xsw:hover { transform: scale(1.08); }
+
+/* ---------------------------------------------------------------- formula bar */
+.xbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--solid);
+  border-bottom: 1px solid var(--separator);
+}
+.xname {
+  flex: none;
+  width: 84px;
+  height: 28px;
+  border: 1px solid var(--solid-border);
+  border-radius: 7px;
+  background: var(--solid-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+input.xname { cursor: text; outline: 2px solid var(--accent); outline-offset: -1px; }
+.xfx { flex: none; color: var(--text-3); font-style: italic; font-weight: 600; font-size: 13px; padding: 0 2px; font-family: Georgia, serif; }
+.xinput {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  padding: 0 8px;
+  outline: none;
+}
+.xinput:focus { border-color: var(--accent); background: var(--solid); box-shadow: 0 0 0 3px var(--accent-soft); }
+.xbar-acts { display: flex; flex: none; }
+
+/* ---------------------------------------------------------------- messages and find */
+.xnotice {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  border-bottom: 1px solid var(--separator);
+}
+.xnotice > svg { flex: none; width: 16px; height: 16px; margin-top: 1px; }
+.xnotice > span { flex: 1; }
+.xnotice .icon-btn { margin: -4px -4px -4px 0; }
+.xnotice.warn { background: var(--orange-soft); color: color-mix(in srgb, var(--orange) 70%, var(--text)); }
+.xnotice.info { background: var(--accent-soft); color: color-mix(in srgb, var(--accent) 60%, var(--text)); }
+.xfind {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--solid);
+  border-bottom: 1px solid var(--separator);
+}
+.xfind > svg { width: 16px; height: 16px; color: var(--text-3); flex: none; }
+.xfind .input { height: 30px; flex: 1; min-width: 0; }
+.xfind-count { min-width: 70px; text-align: right; white-space: nowrap; }
+
+/* ---------------------------------------------------------------- the grid */
+.xgrid-wrap { flex: 1; min-height: 0; position: relative; }
+.xgrid {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: var(--xbg);
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  cursor: cell;
+}
+.xgrid.dark {
+  --xbg: #181b21;
+  --xtext: #e6e8ec;
+  --xgrid: #2c313a;
+  --xhead: #21252d;
+  --xhead-text: #98a2b3;
+  --xhead-on: #233452;
+  --xsel: #5d9cff;
+  --xsel-fill: rgba(93, 156, 255, 0.14);
+  --xfreeze: #4a5363;
+}
+.xcanvas { position: relative; }
+.xlayer { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+.xband { position: sticky; width: 0; height: 0; overflow: visible; }
+.xfcols { z-index: 2; }
+.xfrows { z-index: 3; }
+.xfcorner { z-index: 4; }
+.xfreeze { z-index: 5; pointer-events: none; }
+.xrowh { z-index: 6; }
+.xrowh-f { z-index: 7; }
+.xcolh { z-index: 8; }
+.xcolh-f { z-index: 9; }
+.xcorner { z-index: 10; }
+
+.xc {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1.2;
+  color: var(--xtext);
+  contain: layout style;
+}
+.xpane { position: absolute; background: var(--xbg); }
+.xgl { position: absolute; background: var(--xgrid); pointer-events: none; }
+.xc.wrap { white-space: pre-wrap; }
+.xc.wrap .xt { overflow-wrap: anywhere; width: 100%; }
+.xt { min-width: 0; overflow: hidden; pointer-events: none; padding-bottom: 1px; }
+.xc.hit { outline: 2px solid #f59e0b; outline-offset: -2px; z-index: 2; }
+.xnote {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-top: 6px solid #e8343e;
+}
+.xstale { position: absolute; top: 2px; left: 2px; width: 5px; height: 5px; border-radius: 50%; background: #98a2b3; }
+.xb { position: absolute; pointer-events: none; z-index: 1; }
+.xsel {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--xsel);
+  pointer-events: none;
+  z-index: 3;
+}
+.xsel.multi { background: var(--xsel-fill); }
+.xactive { position: absolute; box-sizing: border-box; pointer-events: none; z-index: 3; box-shadow: inset 0 0 0 1px var(--xsel); }
+.xhandle {
+  position: absolute;
+  z-index: 4;
+  width: 9px;
+  height: 9px;
+  box-sizing: border-box;
+  background: var(--xsel);
+  border: 1.5px solid var(--xbg);
+  touch-action: none;
+  cursor: crosshair;
+}
+.xoverlay { z-index: 11; }
+.xkeys {
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  resize: none;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  caret-color: transparent;
+  color: transparent;
+  background: transparent;
+  outline: none;
+  white-space: pre-wrap;
+}
+.xkeys.on {
+  opacity: 1;
+  pointer-events: auto;
+  caret-color: auto;
+  border: 2px solid var(--xsel);
+  padding: 1px 3px;
+  line-height: 1.2;
+  background: var(--xbg);
+  color: var(--xtext);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.xh {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--xhead-text);
+  background: var(--xhead);
+  box-shadow: inset -1px -1px 0 var(--xgrid);
+  overflow: hidden;
+  cursor: default;
+}
+.xhc { top: 0; cursor: s-resize; }
+.xhr { left: 0; cursor: e-resize; }
+.xh.on { background: var(--xhead-on); color: var(--xsel); font-weight: 650; }
+.xh.on.all { background: var(--xsel); color: #fff; }
+.xcornerbox { left: 0; top: 0; cursor: pointer; }
+.xcornerbox::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  border-left: 8px solid transparent;
+  border-bottom: 8px solid var(--xgrid);
+}
+.xfreeze-h { position: absolute; left: 0; height: 0; border-top: 2px solid var(--xfreeze); }
+.xfreeze-v { position: absolute; top: 0; width: 0; border-left: 2px solid var(--xfreeze); }
+
+/* ---------------------------------------------------------------- sheet tabs */
+.xtabs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: calc(42px + var(--safe-bottom));
+  padding: 0 8px var(--safe-bottom);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-top: 1px solid var(--separator);
+}
+.xtabs-scroll { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.xtabs-scroll::-webkit-scrollbar { display: none; }
+.xtab {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.xtab:hover { background: var(--fill); }
+.xtab.on { background: var(--solid); color: var(--brand); font-weight: 650; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--solid-border); }
+.xtab.on::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 3px; height: 2.5px; border-radius: 2px; background: var(--brand-red); }
+:root[data-theme="dark"] .xtab.on { color: var(--text); }
+.xtab-edit { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; color: var(--text-3); }
+.xtab-edit:hover { background: var(--fill-2); color: var(--text); }
+.xtab-edit svg { width: 12px; height: 12px; }
+.xtab-input {
+  flex: none;
+  width: 150px;
+  height: 30px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--solid);
+  color: var(--text);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.xtab-add { flex: none; }
+.xstats { flex: none; display: flex; gap: 14px; font-size: 12.5px; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.xstats b { color: var(--text); font-weight: 650; }
+
+/* ---------------------------------------------------------------- phones */
+@media (pointer: coarse) {
+  .xtools .icon-btn.small { width: 34px; height: 34px; }
+  .xtools .btn.small { height: 34px; }
+  .xhandle { width: 18px; height: 18px; border-radius: 50%; border-width: 3px; transform: translate(-4px, -4px); }
+  .xinput { font-size: 16px; }
+}
+@media (max-width: 599px) {
+  .xtools-scroll { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); }
+  .xsave-long { display: none; }
+  .xsave-short { display: inline; }
+  .xstats-more { display: none; }
+  .xname { width: 70px; }
+  .xstats { gap: 10px; font-size: 12px; }
+  .xnotice { font-size: 12px; }
+}
