@@ -68,7 +68,9 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
       1. Groq Whisper (`whisper-large-v3`) writes down what was said, in the language it was spoken, and reports the language. This needs a `GROQ_API_KEY` secret. Without it, voice notes still work but show "Voice-to-text isn't switched on yet".
       2. Claude (`claude-opus-5-5`, low effort) finishes it. English is tidied (misheard names, projects and QS terms, punctuation). Arabic, Tamil or any other language is translated into English, keeping names, dates and times exactly; this is much more accurate than Whisper's own translation. This step turns on with an `ANTHROPIC_API_KEY` secret. Without Claude, English is kept as Whisper wrote it and other languages use Whisper's translation.
     - `assist` runs the Claude helpers (status report, catch-up, make a task, announcement writer) for a signed-in team member. It uses `claude-opus-5-5` with Anthropic's automatic fallback, so if Claude declines a request it's retried on Anthropic's recommended fallback model. It needs `ANTHROPIC_API_KEY` (and `GROQ_API_KEY` for voice notes in the announcement writer). Without the key, the buttons say "Claude isn't switched on yet".
-  - Secrets live in Supabase dashboard > Edge Functions > Secrets, never in this repository.
+  - Where the Claude and Groq keys live: Supabase Vault, as `anthropic_api_key` and `groq_api_key` (encrypted at rest; read only by the Edge Functions through `get_ai_keys()`). An Edge Function secret with the same name in capitals (`ANTHROPIC_API_KEY`, `GROQ_API_KEY`) takes priority if you add one. The keys are never stored in this repository.
+  - To replace a key, run this in the Supabase SQL editor (a changed key is picked up within 5 minutes):
+    `select vault.update_secret((select id from vault.secrets where name = 'anthropic_api_key'), '<new key>');`
 - **Database**: the SQL is in `supabase/migrations/`, and the Edge Function source is in `supabase/functions/`.
 
 ## Running locally

@@ -7,8 +7,9 @@
 //   If Claude is unavailable: English is kept as Whisper wrote it, and other languages fall back to
 //   Whisper's own English translation, so every note still reads in English.
 // Called by the database (request_transcript) with the same shared secret as send-push.
-// Secrets: GROQ_API_KEY (required for text; without it the note is marked 'off'),
-//          ANTHROPIC_API_KEY (optional; turns on Claude's tidy-up and translation step).
+// Keys: a Groq key (required for text; without it the note is marked 'off') and a Claude key
+// (optional; turns on the tidy-up and translation step). Each comes from an Edge Function secret
+// (GROQ_API_KEY, ANTHROPIC_API_KEY) when set, otherwise from Supabase Vault through get_ai_keys().
 import Anthropic from "npm:@anthropic-ai/sdk@1.1.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -16,8 +17,33 @@ const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPAB
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-const claude = anthropicKey ? new Anthropic({ apiKey: anthropicKey, timeout: 45_000, maxRetries: 1 }) : null;
+let keyCache: { anthropic: string | null; groq: string | null; at: number } | null = null;
+/** Edge Function secrets win; Vault fills any gap. Cached for 5 minutes. */
+async function keys() {
+  if (keyCache && Date.now() - keyCache.at < 5 * 60_000) return keyCache;
+  const envA = Deno.env.get("ANTHROPIC_API_KEY") || null;
+  const envG = Deno.env.get("GROQ_API_KEY") || null;
+  let vault: Record<string, string> = {};
+  if (!envA || !envG) {
+    const { data, error } = await supabase.rpc("get_ai_keys");
+    if (error) console.error("Could not read keys from Vault:", error.message);
+    else vault = (data ?? {}) as Record<string, string>;
+  }
+  keyCache = { anthropic: envA ?? vault.anthropic_api_key ?? null, groq: envG ?? vault.groq_api_key ?? null, at: Date.now() };
+  return keyCache;
+}
+
+let claude: Anthropic | null = null;
+let claudeKey = "";
+async function getClaude(): Promise<Anthropic | null> {
+  const k = (await keys()).anthropic;
+  if (!k) return null;
+  if (k !== claudeKey) {
+    claude = new Anthropic({ apiKey: k, timeout: 45_000, maxRetries: 1 });
+    claudeKey = k;
+  }
+  return claude;
+}
 
 const GROQ_URL = "https://api.groq.com/openai/v1/audio";
 const MODEL = "whisper-large-v3";
@@ -100,6 +126,7 @@ const isEnglish = (language: string) => !language || language === "english" || l
 /** Step 2: Claude tidies English, or translates any other language into English.
  *  Returns null when Claude isn't available or its answer doesn't look right. */
 async function finish(raw: string, language: string, v: { people: string[]; projects: string[] }): Promise<string | null> {
+  const claude = await getClaude();
   if (!claude || !raw.trim()) return null;
   const english = isEnglish(language);
   const task = english
@@ -167,7 +194,7 @@ Deno.serve(async (req) => {
   // Only touch the row if it still has the same recording.
   const save = (patch: Record<string, unknown>) => supabase.from(table).update(patch).eq("id", id).eq("voice_path", row.voice_path);
 
-  const key = Deno.env.get("GROQ_API_KEY");
+  const key = (await keys()).groq;
   if (!key) {
     await save({ transcript_status: "off" });
     return json({ status: "off" });

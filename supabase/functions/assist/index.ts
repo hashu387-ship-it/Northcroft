@@ -3,7 +3,9 @@
 //   chat_summary        "Catch me up" on team chat, a project chat or a task's comments
 //   task_from_text      turn a chat message or voice note into a prefilled task (Hassan and seniors)
 //   announcement_draft  write up rough notes or a voice note as a clear announcement
-// Needs the ANTHROPIC_API_KEY secret. Voice drafts also need GROQ_API_KEY (speech to text).
+// Needs a Claude API key; voice drafts also need a Groq key (speech to text). Each comes from an
+// Edge Function secret (ANTHROPIC_API_KEY, GROQ_API_KEY) when set, otherwise from Supabase Vault
+// (anthropic_api_key, groq_api_key) through get_ai_keys().
 import Anthropic from "npm:@anthropic-ai/sdk@1.1.0";
 import { betaJSONSchemaOutputFormat } from "npm:@anthropic-ai/sdk@1.1.0/helpers/beta/json-schema";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -11,9 +13,47 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
-const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-const claude = anthropicKey ? new Anthropic({ apiKey: anthropicKey, timeout: 120_000, maxRetries: 1 }) : null;
 const MODEL = "claude-opus-5-5";
+
+/* ---------------------------------------------------------------- keys */
+type Keys = { anthropic: string | null; groq: string | null; from: { claude: string; groq: string } };
+let keyCache: { keys: Keys; at: number } | null = null;
+
+/** Edge Function secrets win; Vault fills any gap. Cached for 5 minutes, so a changed key is picked up soon after. */
+async function keys(): Promise<Keys> {
+  if (keyCache && Date.now() - keyCache.at < 5 * 60_000) return keyCache.keys;
+  const envA = Deno.env.get("ANTHROPIC_API_KEY") || null;
+  const envG = Deno.env.get("GROQ_API_KEY") || null;
+  let vault: Record<string, string> = {};
+  if (!envA || !envG) {
+    const { data, error } = await admin.rpc("get_ai_keys");
+    if (error) console.error("Could not read keys from Vault:", error.message);
+    else vault = (data ?? {}) as Record<string, string>;
+  }
+  const anthropic = envA ?? vault.anthropic_api_key ?? null;
+  const groq = envG ?? vault.groq_api_key ?? null;
+  const k = {
+    anthropic,
+    groq,
+    from: { claude: envA ? "secret" : anthropic ? "vault" : "none", groq: envG ? "secret" : groq ? "vault" : "none" },
+  };
+  keyCache = { keys: k, at: Date.now() };
+  return k;
+}
+
+let claude: Anthropic | null = null;
+let claudeKey = "";
+/** The Claude client for the current key, or null when there's no key. */
+async function getClaude(): Promise<Anthropic | null> {
+  const k = (await keys()).anthropic;
+  if (!k) return null;
+  if (k !== claudeKey) {
+    claude = new Anthropic({ apiKey: k, timeout: 120_000, maxRetries: 1 });
+    claudeKey = k;
+  }
+  return claude;
+}
+
 // If Claude declines a request, Anthropic re-runs it on its recommended fallback model.
 const FALLBACK = { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const };
 
@@ -289,7 +329,7 @@ const ANNOUNCEMENT_SCHEMA = {
 
 /** Writes down a draft voice note in the language it was spoken; Claude then writes the English announcement from it. */
 async function transcribeDraft(path: string): Promise<string> {
-  const key = Deno.env.get("GROQ_API_KEY");
+  const key = (await keys()).groq;
   if (!key) throw new UserError("Voice-to-text isn't switched on yet, so Claude can't hear the voice note. Type your notes instead.", 503, "groq_off");
   const { data: audio, error } = await admin.storage.from("files").download(path);
   if (error || !audio) throw new UserError("Couldn't read the voice note.");
@@ -352,17 +392,57 @@ async function announcementDraft(p: { title?: string; notes?: string; voice_path
   return { title: out.title.trim(), body: out.body.trim(), transcript: spoken || null };
 }
 
+/* ---------------------------------------------------------------- health check */
+// Says only whether each key is present and where it comes from (never the keys), and only to a
+// caller holding the database's shared push secret, so the set-up can be confirmed without
+// signing in. With {"deep": true} it also makes one tiny call to Claude and to Groq to prove the
+// keys are accepted.
+async function health(req: Request) {
+  const given = req.headers.get("x-push-secret") ?? "";
+  const { data } = await admin.rpc("get_push_config");
+  const secret = (data as { push_webhook_secret?: string } | null)?.push_webhook_secret ?? "";
+  if (!secret || given.length !== secret.length) return null;
+  let diff = 0;
+  for (let i = 0; i < secret.length; i++) diff |= given.charCodeAt(i) ^ secret.charCodeAt(i);
+  if (diff !== 0) return null;
+
+  keyCache = null; // always read fresh here
+  const k = await keys();
+  const out: Record<string, unknown> = { claude: !!k.anthropic, groq: !!k.groq, from: k.from };
+  const body = await req.json().catch(() => ({}));
+  if (body?.deep) {
+    const ai = await getClaude();
+    if (ai) {
+      try {
+        const r = await ai.messages.create({ model: MODEL, max_tokens: 1024, messages: [{ role: "user", content: "Reply with the single word: ok" }] });
+        out.claude_works = r.stop_reason !== "refusal";
+      } catch (e) {
+        out.claude_works = false;
+        out.claude_error = e instanceof Anthropic.APIError ? e.status : "network";
+      }
+    }
+    if (k.groq) {
+      const r = await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: `Bearer ${k.groq}` } }).catch(() => null);
+      out.groq_works = !!r?.ok;
+      if (r && !r.ok) out.groq_error = r.status;
+      await r?.body?.cancel();
+    }
+  }
+  return json(out);
+}
+
 /* ---------------------------------------------------------------- entry */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.headers.has("x-push-secret")) return (await health(req)) ?? json({ error: "Unauthorized" }, 401);
 
   const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   const { data: auth } = await admin.auth.getUser(token);
   if (!auth?.user) return json({ error: "Please sign in again." }, 401);
   const { data: me } = await admin.from("profiles").select("id, short_name, full_name, role, can_assign, active").eq("id", auth.user.id).maybeSingle<Me>();
   if (!me?.active) return json({ error: "Your account doesn't have access." }, 403);
-  if (!claude) return json({ error: "Claude isn't switched on yet. Hassan needs to add the Claude API key in Supabase.", code: "off" }, 503);
+  if (!(await getClaude())) return json({ error: "Claude isn't switched on yet. Hassan needs to add the Claude API key in Supabase.", code: "off" }, 503);
 
   const body = await req.json().catch(() => ({}));
   try {
@@ -381,6 +461,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof UserError) return json({ error: e.message, code: e.code }, e.status);
     if (e instanceof Anthropic.AuthenticationError) {
+      keyCache = null; // re-read next time, in case the key has just been replaced
       return json({ error: "The Claude API key isn't valid. Check ANTHROPIC_API_KEY in Supabase.", code: "bad_key" }, 503);
     }
     if (e instanceof Anthropic.RateLimitError) return json({ error: "Claude is busy right now. Try again in a minute.", code: "busy" }, 429);
