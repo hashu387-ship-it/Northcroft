@@ -99,7 +99,7 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
         <div className="files">
           {rows.map((a) => (
             <div key={a.id} className="file" style={{ position: "relative" }}>
-              <button onClick={() => open(a)} className="row" style={{ border: 0, background: "none", padding: 0, minWidth: 0, flex: 1, textAlign: "left", color: "inherit" }} type="button">
+              <button onClick={() => open(a, isImage(a) ? rows.filter(isImage) : undefined)} className="row" style={{ border: 0, background: "none", padding: 0, minWidth: 0, flex: 1, textAlign: "left", color: "inherit" }} type="button">
                 <span className="icon">{isImage(a) && q.data?.urls[a.path] ? <img src={q.data.urls[a.path]} alt="" /> : <FileIcon a={a} />}</span>
                 <span style={{ minWidth: 0 }}>
                   <span className="ellipsis small bold" style={{ display: "block" }}>

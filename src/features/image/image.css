@@ -1,0 +1,293 @@
+/* Photo viewer and mark-up. The same glass bars as the PDF tool, over a dark stage so photos pop. */
+.img-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* The bars sit on the app's own background, like the PDF tool; only the stage is dark. */
+  background: color-mix(in srgb, var(--bg) 82%, #8a96ad 18%);
+}
+:root[data-theme="dark"] .img-editor { background: #0d1324; }
+
+.img-spin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  display: inline-block;
+  animation: img-spin 0.8s linear infinite;
+}
+@keyframes img-spin { to { transform: rotate(360deg); } }
+
+/* ------------------------------------------------------------ top bar: tabs and save */
+.img-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border-bottom: 1px solid var(--separator);
+  z-index: 4;
+}
+.img-tabs { flex: 1; min-width: 0; display: flex; gap: 2px; }
+.img-tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.img-tab svg { width: 16px; height: 16px; stroke-width: 1.9; }
+.img-tab:hover { background: var(--fill); color: var(--text); }
+.img-tab.on { background: var(--brand); color: #fff; box-shadow: 0 2px 8px rgba(1, 32, 97, 0.25); }
+:root[data-theme="dark"] .img-tab.on { background: #2b4a8f; }
+.img-bar-end { flex: none; display: flex; align-items: center; gap: 2px; }
+.img-save { margin-left: 6px; gap: 6px; }
+.img-narrow-text { display: none; }
+
+/* ------------------------------------------------------------ tool row */
+.img-tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid var(--separator);
+  z-index: 3;
+}
+.img-tools::-webkit-scrollbar { display: none; }
+.img-tool {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.img-tool svg { width: 17px; height: 17px; stroke-width: 1.9; flex: none; }
+.img-tool:hover { background: var(--fill); }
+.img-tool:disabled { opacity: 0.45; pointer-events: none; }
+.img-tool.on {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+.img-tool.danger { color: var(--red); }
+.img-sep { flex: none; width: 1px; height: 22px; background: var(--separator); margin: 0 4px; }
+.img-colors { display: inline-flex; gap: 6px; align-items: center; padding: 0 2px; flex: none; }
+.img-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.22);
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+}
+.img-dot.on { box-shadow: 0 0 0 2px var(--accent); }
+.img-size { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.img-width, .img-tsize {
+  width: 32px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+}
+.img-width i { display: block; width: 18px; border-radius: 3px; background: var(--text); }
+.img-width.on, .img-tsize.on { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--accent); }
+
+/* ------------------------------------------------------------ the photo */
+.img-stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(43, 74, 143, 0.28), transparent 60%),
+    #0b1020;
+  cursor: grab;
+}
+.img-stage canvas { position: absolute; inset: 0; display: block; }
+.img-stage.tool-select { cursor: default; }
+.img-stage.tool-text { cursor: text; }
+.img-stage.tool-pen, .img-stage.tool-arrow, .img-stage.tool-line, .img-stage.tool-rect, .img-stage.tool-ellipse { cursor: crosshair; }
+.img-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13.5px;
+}
+
+.img-failed {
+  flex: 1;
+  background: #0b1020;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.86);
+}
+.img-failed svg { width: 40px; height: 40px; opacity: 0.7; }
+.img-failed b { font-size: 16px; color: #fff; }
+.img-failed span { font-size: 13.5px; max-width: 320px; }
+
+/* Label text box, at the top of the photo so the phone keyboard doesn't hide it. */
+.img-textbar {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 24px));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 14px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+}
+.img-textbar .input { flex: 1; min-width: 0; font-size: 16px; }
+
+/* Floating zoom, undo and tips. */
+.img-zoom {
+  position: absolute;
+  right: 14px;
+  bottom: calc(14px + var(--safe-bottom));
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.img-zoom-pct {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  min-width: 50px;
+  height: 28px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.img-zoom-pct:hover { background: var(--fill); }
+.img-undo-float { display: none; }
+.img-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(66px + var(--safe-bottom));
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 550;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+  width: max-content;
+  max-width: calc(100% - 32px);
+}
+.img-hint-x {
+  border: 0;
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+}
+.img-hint-x svg { width: 13px; height: 13px; }
+
+/* Phones */
+@media (max-width: 899px) {
+  .img-wide { display: none; }
+  .img-wide-text { display: none; }
+  .img-narrow-text { display: inline; }
+  .img-bar { padding: 5px 6px; gap: 4px; }
+  .img-tab { padding: 0 11px; }
+  .img-tools { padding: 5px 6px; }
+  .img-tool { padding: 0 8px; }
+  .img-save { padding: 0 14px; }
+  .img-undo-float {
+    position: absolute;
+    left: 14px;
+    bottom: calc(14px + var(--safe-bottom));
+    z-index: 9;
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+/* Small phones: tools on the first line, colours and line widths on the second, so nothing is
+   hidden off the edge. */
+@media (max-width: 600px) {
+  /* Phones pinch to zoom, so the View row keeps just turning and the whole photo. */
+  .img-tools.view .img-actual { display: none; }
+  .img-tools.markup { flex-wrap: wrap; overflow-x: visible; row-gap: 4px; }
+  .img-tools.markup .img-tool span { display: none; }
+  .img-tools.markup .img-tool { padding: 0 9px; }
+  .img-tools.markup .img-sep { display: none; }
+  .img-tools.markup .img-colors { margin-right: 6px; }
+  .img-tools.markup .img-tool.danger span { display: inline; }
+}

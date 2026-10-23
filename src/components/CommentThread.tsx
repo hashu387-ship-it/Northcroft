@@ -177,6 +177,8 @@ export function CommentThread({
     }
     return m;
   }, [files.data]);
+  // Every photo in this thread, in the order shown, to swipe through when one is opened.
+  const threadImages = useMemo(() => list.flatMap((c) => (filesByComment.get(c.id) ?? []).filter(isImage)), [list, filesByComment]);
 
   const reactions = useReactions(ids.filter((id) => !byId.get(id)?.event));
   const reads = useChatReads(chatKey);
@@ -371,11 +373,11 @@ export function CommentThread({
                   <div className="stack" style={{ gap: 6, marginTop: 8 }}>
                     {atts.map((a) =>
                       isImage(a) && files.data?.urls[a.path] ? (
-                        <button key={a.id} onClick={() => openFile(a)} style={{ border: 0, padding: 0, background: "none" }} type="button">
+                        <button key={a.id} onClick={() => openFile(a, threadImages)} style={{ border: 0, padding: 0, background: "none" }} type="button">
                           <img src={files.data.urls[a.path]} alt={a.name} style={{ borderRadius: 12, maxHeight: 220, objectFit: "cover" }} />
                         </button>
                       ) : (
-                        <button key={a.id} className="file" onClick={() => openFile(a)} type="button">
+                        <button key={a.id} className="file" onClick={() => openFile(a, isImage(a) ? threadImages : undefined)} type="button">
                           <span className="icon">
                             <FileText />
                           </span>

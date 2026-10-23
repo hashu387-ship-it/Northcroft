@@ -39,6 +39,15 @@
   color: #fff;
 }
 .file-head-icon.sheet { background: #1f7a45; }
+.file-head-icon.image { background: #0a84ff; }
+/* "3 of 12" with previous and next, when a photo was opened from a list. */
+.file-steps { flex: none; display: flex; align-items: center; gap: 0; }
+.file-steps .icon-btn:disabled { opacity: 0.35; }
+.file-steps-count { font-size: 12.5px; font-weight: 650; color: var(--on-navy); white-space: nowrap; min-width: 52px; text-align: center; }
+@media (max-width: 599px) {
+  .file-steps-count { min-width: 44px; font-size: 12px; }
+  .file-steps .icon-btn { width: 32px; }
+}
 .file-head-icon svg { width: 17px; height: 17px; }
 .file-head-title { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .file-head-title b { font-size: 14.5px; font-weight: 650; }

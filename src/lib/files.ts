@@ -135,8 +135,8 @@ export const isImage = (a: Pick<Attachment, "mime" | "name">) =>
 
 /* ---------------------------------------------------------------- viewing and editing in the app */
 
-/** Which in-app tool opens a file: the PDF tool, the spreadsheet tool, or neither (opens in a new tab). */
-export type FileKind = "pdf" | "sheet" | "other";
+/** Which in-app tool opens a file: the PDF, spreadsheet or photo tool, or none (opens in a new tab). */
+export type FileKind = "pdf" | "sheet" | "image" | "other";
 
 export function fileKind(a: Pick<Attachment, "mime" | "name">): FileKind {
   const mime = (a.mime ?? "").toLowerCase();
@@ -150,6 +150,7 @@ export function fileKind(a: Pick<Attachment, "mime" | "name">): FileKind {
   ) {
     return "sheet";
   }
+  if (mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|heic|heif)$/i.test(a.name)) return "image";
   return "other";
 }
 

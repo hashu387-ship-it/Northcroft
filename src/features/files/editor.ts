@@ -25,6 +25,8 @@ export interface EditorProps {
   saveVersion: (file: Blob, opts?: SaveOptions) => Promise<Attachment>;
   /** Tell the file screen whether there are unsaved changes, so closing asks first. */
   setDirty: (dirty: boolean) => void;
+  /** When opened from a list of photos: where this one is, and how to go to the one before or after. */
+  nav?: { index: number; total: number; prev?: () => void; next?: () => void };
 }
 
 /** Height reserved at the top of the screen by the file screen's header (px). */

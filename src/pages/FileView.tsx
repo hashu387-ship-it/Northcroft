@@ -3,9 +3,9 @@
 // and saves edits as a new version next to the original. The tools live in src/features/.
 import "@/styles/files.css";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Download, FileSpreadsheet, FileText, History, X } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText, History, Image as ImageIcon, X } from "lucide-react";
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { fetchAttachmentData, fileKind, fileVersions, openAttachment, saveNewVersion } from "@/lib/files";
@@ -15,9 +15,17 @@ import { timeAgo } from "@/lib/time";
 import type { Attachment } from "@/lib/types";
 import { Spinner, useConfirm, useToast } from "@/components/ui";
 import type { EditorProps, SaveOptions } from "@/features/files/editor";
+import type { OpenFileState } from "@/components/useOpenFile";
 
 const PdfEditor = lazy(() => import("@/features/pdf/PdfEditor"));
 const SheetEditor = lazy(() => import("@/features/sheet/SheetEditor"));
+const ImageEditor = lazy(() => import("@/features/image/ImageEditor"));
+
+const attachmentRow = (id: string) => ({
+  queryKey: ["attachments", "one", id],
+  queryFn: () => unwrap<Attachment | null>(supabase.from("attachments").select("*").eq("id", id).maybeSingle()),
+  staleTime: 60_000,
+});
 
 function Loader({ label, fraction }: { label: string; fraction?: number | null }) {
   return (
@@ -47,12 +55,16 @@ export default function FileView() {
   const [saving, setSaving] = useState<{ label: string; fraction: number | null } | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
 
-  const row = useQuery({
-    queryKey: ["attachments", "one", id],
-    queryFn: () => unwrap<Attachment | null>(supabase.from("attachments").select("*").eq("id", id).maybeSingle()),
-    staleTime: 60_000,
-  });
+  const row = useQuery(attachmentRow(id));
   const a = row.data ?? null;
+
+  // Opened from a list of photos: the others to step through, and where this one is.
+  const location = useLocation();
+  const qc = useQueryClient();
+  const navState = (location.state ?? null) as OpenFileState | null;
+  const siblings = navState?.siblings ?? [];
+  const at = siblings.indexOf(id);
+  const hasNav = at >= 0 && siblings.length > 1;
 
   const versions = useQuery({
     queryKey: ["attachments", "versions", a?.version_of ?? a?.id],
@@ -124,6 +136,49 @@ export default function FileView() {
     navigate(`/files/${versionId}`, { replace: true });
   }
 
+  /** The photo before (-1) or after (+1) in the list it was opened from. */
+  async function step(delta: number) {
+    if (!hasNav) return;
+    const next = siblings[at + delta];
+    if (!next || !(await leaveOk())) return;
+    setDirty(false);
+    navigate(`/files/${next}`, { replace: true, state: navState });
+  }
+  const stepRef = useRef(step);
+  stepRef.current = step;
+
+  // Left and right arrow keys step through the photos (not while typing).
+  useEffect(() => {
+    if (!hasNav) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      if (e.key === "ArrowLeft") void stepRef.current(-1);
+      else if (e.key === "ArrowRight") void stepRef.current(1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hasNav]);
+
+  // Load the next and previous photos in the background so swiping feels instant.
+  useEffect(() => {
+    if (!hasNav || !contents.data) return;
+    for (const near of [siblings[at + 1], siblings[at - 1]]) {
+      if (!near) continue;
+      void qc
+        .fetchQuery(attachmentRow(near))
+        .then((r) =>
+          r && fileKind(r) === "image"
+            ? qc.prefetchQuery({ queryKey: ["file-data", near], queryFn: () => fetchAttachmentData(r), staleTime: Infinity, gcTime: 60_000 })
+            : undefined,
+        )
+        .catch(() => undefined);
+    }
+    // The neighbours only change with this photo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, hasNav, contents.data]);
+
   function download() {
     if (!a) return;
     if (!contents.data) {
@@ -171,15 +226,30 @@ export default function FileView() {
   const editorProps: EditorProps | null = useMemo(
     () =>
       a && contents.data
-        ? { attachment: a, data: contents.data, versions: list, me, saveVersion, setDirty }
+        ? {
+            attachment: a,
+            data: contents.data,
+            versions: list,
+            me,
+            saveVersion,
+            setDirty,
+            nav: hasNav
+              ? {
+                  index: at,
+                  total: siblings.length,
+                  prev: at > 0 ? () => void stepRef.current(-1) : undefined,
+                  next: at < siblings.length - 1 ? () => void stepRef.current(1) : undefined,
+                }
+              : undefined,
+          }
         : null,
     // saveVersion reads the latest state through closures; the editor gets fresh props on each change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [a, contents.data, list, me, nextVersion],
+    [a, contents.data, list, me, nextVersion, hasNav, at, siblings.length],
   );
 
   const who = a ? people.get(a.uploaded_by)?.short_name ?? "Someone" : "";
-  const Icon = kind === "sheet" ? FileSpreadsheet : FileText;
+  const Icon = kind === "sheet" ? FileSpreadsheet : kind === "image" ? ImageIcon : FileText;
 
   return (
     <div className="file-screen" role="dialog" aria-label={a?.name ?? "File"}>
@@ -199,6 +269,19 @@ export default function FileView() {
             </span>
           )}
         </div>
+        {hasNav && (
+          <div className="file-steps" role="group" aria-label="Photos">
+            <button className="icon-btn plain" type="button" onClick={() => void step(-1)} disabled={at <= 0} aria-label="Previous photo" title="Previous photo">
+              <ChevronLeft />
+            </button>
+            <span className="file-steps-count" aria-live="polite">
+              {at + 1} of {siblings.length}
+            </span>
+            <button className="icon-btn plain" type="button" onClick={() => void step(1)} disabled={at >= siblings.length - 1} aria-label="Next photo" title="Next photo">
+              <ChevronRight />
+            </button>
+          </div>
+        )}
         {list.length > 1 && (
           <label className="file-versions" title="Versions">
             <History />
@@ -251,8 +334,14 @@ export default function FileView() {
             </button>
           </div>
         ) : (
-          <Suspense fallback={<Loader label={kind === "pdf" ? "Opening the PDF tools..." : "Opening the spreadsheet..."} />}>
-            {kind === "pdf" ? <PdfEditor key={a.id} {...editorProps} /> : <SheetEditor key={a.id} {...editorProps} />}
+          <Suspense fallback={<Loader label={kind === "pdf" ? "Opening the PDF tools..." : kind === "image" ? "Opening the photo..." : "Opening the spreadsheet..."} />}>
+            {kind === "pdf" ? (
+              <PdfEditor key={a.id} {...editorProps} />
+            ) : kind === "image" ? (
+              <ImageEditor key={a.id} {...editorProps} />
+            ) : (
+              <SheetEditor key={a.id} {...editorProps} />
+            )}
           </Suspense>
         )}
       </div>
