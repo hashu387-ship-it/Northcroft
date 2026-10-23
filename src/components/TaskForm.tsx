@@ -6,7 +6,7 @@ import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { DOW_LONG, addDays, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Task } from "@/lib/types";
-import { Field, PeopleSelect, PersonSelect, ProjectSelect, Segmented, Sheet, useToast } from "./ui";
+import { Field, PeopleSelect, PersonSelect, PriorityPicker, ProjectSelect, Segmented, Sheet, useToast } from "./ui";
 
 type Repeat = "none" | "daily" | "weekly" | "monthly";
 
@@ -182,12 +182,10 @@ export function TaskForm({
         <Field label="Task" className="full">
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
         </Field>
-        <Field label="Project">
-          <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} />
-        </Field>
         <Field
           label="Assign to"
           className="full"
+          group
           hint={lockPeople ? "Only a manager or a senior can change who's on a task" : assignees.length > 1 ? "They all see it, get its notifications, and any of them can submit it" : "Add one person or several"}
         >
           <PeopleSelect
@@ -198,6 +196,9 @@ export function TaskForm({
             disabled={lockPeople}
           />
         </Field>
+        <Field label="Project">
+          <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} />
+        </Field>
         <Field label="Reviewer" hint="Checks the work before it's marked done">
           <PersonSelect value={reviewerId} onChange={setReviewerId} people={people.assigners} placeholder="Whoever created it" disabled={lockPeople} />
         </Field>
@@ -206,16 +207,11 @@ export function TaskForm({
             <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </Field>
         )}
-        <Field label="Priority">
-          <select className="select" value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
-            <option value="low">Low</option>
-            <option value="normal">Normal</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-        </Field>
         <Field label="Estimate (hours)" hint="Used in the workload view">
           <input className="input" type="number" min="0" step="0.5" inputMode="decimal" value={estimate} onChange={(e) => setEstimate(e.target.value)} placeholder="Optional" />
+        </Field>
+        <Field label="Priority" className="full" group>
+          <PriorityPicker value={priority} onChange={setPriority} />
         </Field>
         <Field label="Details" className="full">
           <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What needs doing, drawings to use, anything to watch for" />

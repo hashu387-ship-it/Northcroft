@@ -95,6 +95,9 @@
   .alert-row { flex-wrap: wrap; row-gap: 4px; }
   .alert-row .grow { flex: 1 1 calc(100% - 60px); }
   .alert-row > .pill { margin-left: 48px; }
+  /* Priority badge first, then the due date, both lined up with the text. */
+  .alert-row > .prio { margin-left: 48px; }
+  .alert-row > .prio + .pill { margin-left: 0; }
 }
 
 .event-row {

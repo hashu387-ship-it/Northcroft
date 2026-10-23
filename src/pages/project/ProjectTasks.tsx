@@ -96,7 +96,7 @@ export function ProjectTasks({ project }: { project: Project }) {
                   {TASK_STATUS[s].label} <span className="count">{byStatus[s].length}</span>
                 </h3>
                 {(s === "done" ? byStatus[s].slice(0, 12) : byStatus[s]).map((t) => (
-                  <Link key={t.id} to={`/tasks/${t.id}`} className="board-card">
+                  <Link key={t.id} to={`/tasks/${t.id}`} className={t.status === "done" ? "board-card done" : "board-card"}>
                     <div className="t">{t.title}</div>
                     <div className="m">
                       <DueLabel date={t.due_date} done={t.status === "done"} />

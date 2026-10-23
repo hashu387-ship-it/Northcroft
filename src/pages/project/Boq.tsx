@@ -7,8 +7,8 @@ import { BOQ_STATUS, BOQ_STATUS_ORDER } from "@/lib/constants";
 import { parseMoney, sar } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { dueState } from "@/lib/time";
-import type { BoqPackage, BoqStatus, Project } from "@/lib/types";
-import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, Sheet, useConfirm, useToast } from "@/components/ui";
+import type { BoqPackage, BoqStatus, Priority, Project } from "@/lib/types";
+import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, PriorityFlag, PriorityPicker, Sheet, useConfirm, useToast } from "@/components/ui";
 import { dueInline, useBoq } from "./api";
 import { nameList, ownersOf } from "@/lib/people";
 
@@ -82,7 +82,8 @@ export function Boq({ project }: { project: Project }) {
                 <div className="row" style={{ alignItems: "flex-start" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="bold">{b.name}</div>
-                    <div className="row wrap small muted" style={{ gap: "2px 10px", marginTop: 2 }}>
+                    <div className="row wrap small muted" style={{ gap: "4px 10px", marginTop: 4 }}>
+                      <PriorityFlag priority={b.priority ?? "normal"} />
                       {b.trade && <span>{b.trade}</span>}
                       {b.value != null && <span className="money">{sar(b.value)}</span>}
                     </div>
@@ -130,6 +131,7 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
   const [name, setName] = useState("");
   const [trade, setTrade] = useState("Civil");
   const [status, setStatus] = useState<BoqStatus>("not_started");
+  const [priority, setPriority] = useState<Priority>("normal");
   const [owners, setOwners] = useState<string[]>([]);
   const [due, setDue] = useState("");
   const [value, setValue] = useState("");
@@ -141,6 +143,7 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
     setName(pkg?.name ?? "");
     setTrade(pkg?.trade ?? "Civil");
     setStatus(pkg?.status ?? "not_started");
+    setPriority(pkg?.priority ?? "normal");
     setOwners(pkg ? ownersOf(pkg) : []);
     setDue(pkg?.due_date ?? "");
     setValue(pkg?.value != null ? String(pkg.value) : "");
@@ -153,7 +156,7 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
       return;
     }
     setSaving(true);
-    const row = { name: name.trim(), trade: trade || null, status, owners, due_date: due || null, value: parseMoney(value), notes: notes.trim() || null };
+    const row = { name: name.trim(), trade: trade || null, status, priority, owners, due_date: due || null, value: parseMoney(value), notes: notes.trim() || null };
     try {
       const { error } = pkg
         ? await supabase.from("boq_packages").update(row).eq("id", pkg.id)
@@ -223,7 +226,10 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
             ))}
           </select>
         </Field>
-        <Field label="Owners" className="full" hint="Everyone here gets this package's updates and reminders">
+        <Field label="Priority" className="full" group>
+          <PriorityPicker value={priority} onChange={setPriority} />
+        </Field>
+        <Field label="Owners" className="full" group hint="Everyone here gets this package's updates and reminders">
           <PeopleSelect value={owners} onChange={setOwners} people={people.active} empty="Nobody yet" />
         </Field>
         <Field label="Due date">

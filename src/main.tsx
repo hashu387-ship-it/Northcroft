@@ -11,11 +11,14 @@ import "./styles/liquid.css";
 
 // Appearance preferences are per device. Light is the default; Dark or Automatic (follow the phone)
 // only when someone chooses it in Settings > Appearance.
+// Glass is the default for everyone. Solid surfaces only come on when switched on again in
+// Settings > Appearance; the old setting ("nc-solid") is cleared so every phone starts on glass.
 try {
   const theme = localStorage.getItem("nc-theme");
   if (theme === "dark") document.documentElement.dataset.theme = "dark";
   else if (theme !== "system") document.documentElement.dataset.theme = "light";
-  if (localStorage.getItem("nc-solid") === "true") document.documentElement.dataset.solid = "true";
+  localStorage.removeItem("nc-solid");
+  if (localStorage.getItem("nc-solid-v2") === "true") document.documentElement.dataset.solid = "true";
 } catch {
   /* storage can be blocked; the light default still applies */
   document.documentElement.dataset.theme = "light";

@@ -295,17 +295,8 @@ p {
 }
 
 /* Reduced transparency: in-app switch, OS setting, or higher contrast */
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .glass,
-  .glass-strong {
-    background: var(--solid);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    border-color: var(--solid-border);
-  }
-  .glass::before,
-  .glass-strong::before { display: none; }
-}
+/* Solid surfaces are only used when someone switches them on in Settings > Appearance
+   (the phone's own accessibility settings no longer force them). */
 :root[data-solid="true"] .glass,
 :root[data-solid="true"] .glass-strong {
   background: var(--solid);
@@ -1046,11 +1037,119 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .due svg { width: 13px; height: 13px; }
 .due.overdue { color: var(--red); font-weight: 600; }
 .due.today { color: var(--orange); font-weight: 600; }
-.prio { display: inline-flex; align-items: center; gap: 3px; font-weight: 600; }
-.prio svg { width: 13px; height: 13px; }
-.prio.urgent { color: var(--red); }
-.prio.high { color: var(--orange); }
-.prio.low { color: var(--text-3); }
+/* Priority: glossy liquid-glass pills. Urgent deep red with a glow, High red, Normal yellow, Low green. */
+.prio {
+  --p-top: #ffe27a;
+  --p-bot: #f2b705;
+  --p-edge: rgba(176, 128, 0, 0.45);
+  --p-text: #4a3400;
+  --p-glow: rgba(242, 183, 5, 0.32);
+  --p-ink: rgba(255, 255, 255, 0.4);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 8px 0 5px;
+  border-radius: 999px;
+  border: 1px solid var(--p-edge);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--p-text);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.18) 46%, rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, var(--p-top) 0%, var(--p-bot) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(15, 23, 42, 0.12),
+    0 3px 10px var(--p-glow);
+  text-shadow: 0 1px 0 var(--p-ink);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  backdrop-filter: blur(10px) saturate(180%);
+  vertical-align: middle;
+}
+.prio svg { width: 12px; height: 12px; flex: none; }
+.prio.urgent {
+  --p-top: #e8343e;
+  --p-bot: #8f0b14;
+  --p-edge: rgba(120, 6, 14, 0.6);
+  --p-text: #fff;
+  --p-glow: rgba(220, 24, 36, 0.55);
+  --p-ink: rgba(80, 0, 6, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 70, 80, 0.18),
+    0 2px 6px rgba(143, 11, 20, 0.35),
+    0 0 14px var(--p-glow);
+  animation: prio-glow 2.6s ease-in-out infinite;
+}
+.prio.high {
+  --p-top: #ff7a80;
+  --p-bot: #e5313b;
+  --p-edge: rgba(180, 24, 32, 0.45);
+  --p-text: #fff;
+  --p-glow: rgba(229, 49, 59, 0.3);
+  --p-ink: rgba(120, 0, 8, 0.35);
+}
+.prio.low {
+  --p-top: #72e39b;
+  --p-bot: #1d9a49;
+  --p-edge: rgba(16, 110, 50, 0.45);
+  --p-text: #fff;
+  --p-glow: rgba(29, 154, 73, 0.28);
+  --p-ink: rgba(0, 70, 25, 0.4);
+}
+.prio.small { height: 18px; font-size: 10.5px; padding: 0 6px 0 4px; }
+@keyframes prio-glow {
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(255, 70, 80, 0.3),
+      0 2px 6px rgba(143, 11, 20, 0.35),
+      0 0 22px rgba(235, 30, 44, 0.75);
+  }
+}
+@media (prefers-reduced-motion: reduce) { .prio.urgent { animation: none; } }
+/* Finished work keeps its badge, quieter. */
+.task-row.done .prio,
+.board-card.done .prio { filter: saturate(0.35); opacity: 0.7; animation: none; }
+
+/* The picker in forms: the chosen level is glossy, the rest are plain glass with a coloured icon. */
+.prio-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.prio-picker .prio {
+  height: 34px;
+  padding: 0 14px 0 10px;
+  font-size: 13.5px;
+  gap: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s var(--ease), box-shadow 0.2s, background 0.2s;
+}
+.prio-picker .prio svg { width: 15px; height: 15px; }
+.prio-picker .prio:active { transform: scale(0.96); }
+.prio-picker .prio:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prio-picker .prio.off {
+  color: var(--text-2);
+  background: var(--btn-glass, var(--fill));
+  border-color: var(--btn-glass-border, var(--separator));
+  box-shadow: var(--btn-glass-shadow, none);
+  text-shadow: none;
+  animation: none;
+}
+.prio-picker .prio.off svg { color: var(--p-bot); }
+.prio-picker .prio.off.normal svg { color: #d99e00; }
+.prio-picker .prio.off:hover { background: var(--btn-glass-hover, var(--fill-2)); }
+.prio-picker .prio:disabled { cursor: default; opacity: 0.6; }
+@media (max-width: 599px) {
+  .prio-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .prio-picker .prio { justify-content: center; padding: 0 6px; font-size: 13px; gap: 3px; }
+}
 .section-title {
   font-size: 11px;
   font-weight: 650;

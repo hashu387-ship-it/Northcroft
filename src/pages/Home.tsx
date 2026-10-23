@@ -22,7 +22,7 @@ import { InstallBanner } from "@/components/InstallBanner";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
 import { VoiceNote } from "@/components/Voice";
-import { Avatar, CountUp, Empty, Loading, Pill, useToast } from "@/components/ui";
+import { Avatar, CountUp, Empty, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { BOQ_STATUS, EVENT_KIND, VO_STATUS } from "@/lib/constants";
@@ -542,6 +542,7 @@ function QsAlertsCard() {
                     {ownersOf(v).length ? ` · ${nameList(ownersOf(v).map((id) => people.get(id)?.short_name ?? "someone"))}` : ""}
                   </span>
                 </span>
+                <PriorityFlag priority={v.priority ?? "normal"} size="small" />
                 <Pill tone={late ? "red" : "orange"}>{dueText(v.response_due)}</Pill>
               </Link>
             );
@@ -562,6 +563,7 @@ function QsAlertsCard() {
                     {ownersOf(b).length ? ` · ${nameList(ownersOf(b).map((id) => people.get(id)?.short_name ?? "someone"))}` : ""}
                   </span>
                 </span>
+                <PriorityFlag priority={b.priority ?? "normal"} size="small" />
                 <Pill tone={late ? "red" : "orange"}>{dueText(b.due_date)}</Pill>
               </Link>
             );

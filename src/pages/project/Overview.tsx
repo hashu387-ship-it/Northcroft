@@ -6,8 +6,8 @@ import { usePeople, useTasks } from "@/lib/api";
 import { BOQ_STATUS, VO_STATUS } from "@/lib/constants";
 import { pct, sar } from "@/lib/format";
 import { addDays, dueState, fmtDue, todayISO } from "@/lib/time";
-import type { Project } from "@/lib/types";
-import { Avatar, Empty, Loading, Pill, StatusRing } from "@/components/ui";
+import type { Priority, Project } from "@/lib/types";
+import { Avatar, Empty, Loading, Pill, PriorityFlag, StatusRing } from "@/components/ui";
 import { ActivityFeed } from "./ActivityFeed";
 import { VoMeter } from "./Variations";
 import { VO_PENDING, useActivity, useBoq, useVariations, voTotals } from "./api";
@@ -21,6 +21,7 @@ interface Deadline {
   to: string;
   person?: string | null;
   tone: string;
+  priority: Priority;
 }
 
 export function Overview({ project }: { project: Project }) {
@@ -43,15 +44,15 @@ export function Overview({ project }: { project: Project }) {
     const list: Deadline[] = [];
     for (const t of open) {
       if (t.due_date && t.due_date <= horizon && t.status !== "in_review")
-        list.push({ key: `t${t.id}`, date: t.due_date, title: t.title, kind: "Task", to: `/tasks/${t.id}`, person: t.assignee_id, tone: "blue" });
+        list.push({ key: `t${t.id}`, date: t.due_date, title: t.title, kind: "Task", to: `/tasks/${t.id}`, person: t.assignee_id, tone: "blue", priority: t.priority });
     }
     for (const x of vos) {
       if (x.response_due && x.response_due <= horizon && VO_PENDING.includes(x.status))
-        list.push({ key: `v${x.id}`, date: x.response_due, title: `${x.vo_number} ${x.title}`, kind: VO_STATUS[x.status].label, to: `/projects/${project.id}/variations?vo=${x.id}`, person: x.owner_id, tone: "orange" });
+        list.push({ key: `v${x.id}`, date: x.response_due, title: `${x.vo_number} ${x.title}`, kind: VO_STATUS[x.status].label, to: `/projects/${project.id}/variations?vo=${x.id}`, person: x.owner_id, tone: "orange", priority: x.priority ?? "normal" });
     }
     for (const b of boq) {
       if (b.due_date && b.due_date <= horizon && b.status !== "issued")
-        list.push({ key: `b${b.id}`, date: b.due_date, title: `${b.name} BOQ`, kind: BOQ_STATUS[b.status].label, to: `/projects/${project.id}/boq`, person: b.owner_id, tone: "purple" });
+        list.push({ key: `b${b.id}`, date: b.due_date, title: `${b.name} BOQ`, kind: BOQ_STATUS[b.status].label, to: `/projects/${project.id}/boq`, person: b.owner_id, tone: "purple", priority: b.priority ?? "normal" });
     }
     return list.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10);
   }, [open, vos, boq, today, project.id]);
@@ -121,6 +122,7 @@ export function Overview({ project }: { project: Project }) {
                       <div className="title">{d.title}</div>
                       <div className="meta">
                         <Pill tone={d.tone}>{d.kind}</Pill>
+                        <PriorityFlag priority={d.priority} size="small" />
                         <span className={clsx(st === "overdue" && "danger-text bold", st === "today" && "warn-text bold")}>{fmtDue(d.date)}</span>
                       </div>
                     </div>
@@ -179,6 +181,7 @@ export function Overview({ project }: { project: Project }) {
                   <div className="title">{t.title}</div>
                   <div className="meta">From {nameList(peopleOn(t).map((id) => people.get(id)?.short_name ?? "someone")) || "someone"}</div>
                 </div>
+                <PriorityFlag priority={t.priority} size="small" />
               </Link>
             ))}
           </div>

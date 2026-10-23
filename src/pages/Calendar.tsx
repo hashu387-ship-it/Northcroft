@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { CalendarDays, ChevronLeft, ChevronRight, MapPin, Plus, Trash2, Users } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
-import { Avatar, AvatarStack, Empty, Field, Loading, ProjectSelect, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Avatar, AvatarStack, Empty, Field, Loading, PriorityFlag, ProjectSelect, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
 import { useInvalidate, usePeople, useProjectMap, useProjects, useSettings, useTasks } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { BOQ_STATUS, EVENT_KIND, VO_STATUS } from "@/lib/constants";
@@ -22,7 +22,7 @@ import {
   todayISO,
   weekStart,
 } from "@/lib/time";
-import type { CalendarEvent, EventKind } from "@/lib/types";
+import type { CalendarEvent, EventKind, Priority } from "@/lib/types";
 import { useBoqBetween, useEventsBetween, useVosBetween } from "./home/data";
 import { nameList, ownersOf, peopleOn } from "@/lib/people";
 
@@ -38,6 +38,7 @@ interface Item {
   color: string;
   link?: string;
   event?: CalendarEvent;
+  priority?: Priority;
   mine: boolean;
   sort: string;
 }
@@ -113,6 +114,7 @@ export default function Calendar() {
         sub: ["Task due", nameList(peopleOn(t).map((id) => people.get(id)?.short_name ?? "someone")) || "Unassigned", project?.name].filter(Boolean).join(" · "),
         color: project?.color ?? TASK_COLOR,
         link: `/tasks/${t.id}`,
+        priority: t.priority,
         mine: peopleOn(t).includes(me.id) || t.created_by === me.id,
         sort: `${KIND_RANK.task}${t.title}`,
       });
@@ -127,6 +129,7 @@ export default function Calendar() {
         sub: [v.title, VO_STATUS[v.status].label, projects.get(v.project_id)?.name].filter(Boolean).join(" · "),
         color: VO_COLOR,
         link: `/projects/${v.project_id}/variations?vo=${v.id}`,
+        priority: v.priority,
         mine: ownersOf(v).includes(me.id),
         sort: `${KIND_RANK.vo}${v.vo_number}`,
       });
@@ -141,6 +144,7 @@ export default function Calendar() {
         sub: [BOQ_STATUS[b.status].label, nameList(ownersOf(b).map((id) => people.get(id)?.short_name ?? "someone")), projects.get(b.project_id)?.name].filter(Boolean).join(" · "),
         color: BOQ_COLOR,
         link: `/projects/${b.project_id}/boq`,
+        priority: b.priority,
         mine: ownersOf(b).includes(me.id),
         sort: `${KIND_RANK.boq}${b.name}`,
       });
@@ -332,6 +336,7 @@ function DayItem({ item, onEvent }: { item: Item; onEvent: (e: CalendarEvent) =>
         </span>
         <span className="meta">{item.sub}</span>
       </span>
+      {item.priority && <PriorityFlag priority={item.priority} size="small" />}
       {item.event && item.event.attendees.length > 0 && <AvatarStack people={item.event.attendees.map((id) => people.get(id))} size={22} max={3} />}
     </>
   );

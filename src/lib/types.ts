@@ -301,6 +301,7 @@ export interface Variation {
   project_id: string;
   vo_number: string;
   title: string;
+  priority: Priority;
   description: string | null;
   status: VoStatus;
   initiated_by: string | null;
@@ -323,6 +324,7 @@ export interface BoqPackage {
   id: string;
   project_id: string;
   name: string;
+  priority: Priority;
   trade: string | null;
   status: BoqStatus;
   /** The first owner (kept for older screens); `owners` is the full list. */

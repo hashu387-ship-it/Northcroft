@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useRef,
   useState,
   type ReactNode,
@@ -10,10 +11,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
-import { Check, CircleAlert, CircleCheck, Clock, Flag, Info, X } from "lucide-react";
+import { Check, ChevronDown, ChevronsUp, ChevronUp, CircleAlert, CircleCheck, Clock, Info, Minus, X } from "lucide-react";
 import { initials } from "@/lib/format";
 import { dueState, fmtDue } from "@/lib/time";
-import { PRIORITY, TASK_STATUS } from "@/lib/constants";
+import { PRIORITY, PRIORITY_ORDER, TASK_STATUS } from "@/lib/constants";
 import type { Priority, Profile, Project, TaskStatus } from "@/lib/types";
 import { artForIcon, Illustration, type ArtName } from "./Illustrations";
 
@@ -148,13 +149,43 @@ export function CountUp({ value, duration = 650 }: { value: number; duration?: n
   return <span className="count-up">{shown}</span>;
 }
 
-export function PriorityFlag({ priority, showNormal = false }: { priority: Priority; showNormal?: boolean }) {
-  if (priority === "normal" && !showNormal) return null;
+const PRIORITY_ICON: Record<Priority, typeof ChevronUp> = { urgent: ChevronsUp, high: ChevronUp, normal: Minus, low: ChevronDown };
+
+/** Glossy priority badge: Urgent deep red with a glow, High red, Normal yellow, Low green. Shown on every item. */
+export function PriorityFlag({ priority, size }: { priority: Priority; size?: "small" }) {
+  const Icon = PRIORITY_ICON[priority] ?? Minus;
+  const label = PRIORITY[priority]?.label ?? "Normal";
   return (
-    <span className={clsx("prio", priority)}>
-      <Flag fill="currentColor" />
-      {PRIORITY[priority].label}
+    <span className={clsx("prio", priority, size)} title={`${label} priority`}>
+      <Icon strokeWidth={3} aria-hidden />
+      {label}
     </span>
+  );
+}
+
+/** Four glossy buttons to pick a priority, used in the task, VO and BOQ package forms. */
+export function PriorityPicker({ value, onChange, disabled }: { value: Priority; onChange: (p: Priority) => void; disabled?: boolean }) {
+  return (
+    <div className="prio-picker" role="radiogroup" aria-label="Priority">
+      {PRIORITY_ORDER.map((p) => {
+        const Icon = PRIORITY_ICON[p];
+        const on = value === p;
+        return (
+          <button
+            key={p}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            className={clsx("prio", p, !on && "off")}
+            onClick={() => onChange(p)}
+            disabled={disabled}
+          >
+            <Icon strokeWidth={3} aria-hidden />
+            {PRIORITY[p].label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -264,7 +295,21 @@ export function Segmented<T extends string>({
   );
 }
 
-export function Field({ label, children, className, hint }: { label: string; children: ReactNode; className?: string; hint?: ReactNode }) {
+/**
+ * A labelled form field. Use `group` when it holds several buttons (people chips, the priority picker):
+ * a plain label would pass a tap on its text to the first button inside it.
+ */
+export function Field({ label, children, className, hint, group }: { label: string; children: ReactNode; className?: string; hint?: ReactNode; group?: boolean }) {
+  const id = useId();
+  if (group) {
+    return (
+      <div className={clsx("field", className)} role="group" aria-labelledby={id}>
+        <span id={id}>{label}</span>
+        {children}
+        {hint && <small className="muted tiny">{hint}</small>}
+      </div>
+    );
+  }
   return (
     <label className={clsx("field", className)}>
       <span>{label}</span>

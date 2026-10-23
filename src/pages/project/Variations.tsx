@@ -8,8 +8,8 @@ import { VO_STATUS, VO_STATUS_ORDER } from "@/lib/constants";
 import { num, parseMoney, pct, plural, sar } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { dateOf, dueState, fmtDate, fmtDue, todayISO } from "@/lib/time";
-import type { Project, Variation, VoStatus } from "@/lib/types";
-import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import type { Priority, Project, Variation, VoStatus } from "@/lib/types";
+import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, PriorityFlag, PriorityPicker, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
 import { VO_APPROVED, VO_PENDING, dueInline, nextVoNumber, useVariations, voTotals } from "./api";
 import { ownersOf } from "@/lib/people";
 
@@ -139,6 +139,7 @@ export function Variations({ project }: { project: Project }) {
                     <th>VO</th>
                     <th>Description</th>
                     <th>Status</th>
+                    <th>Priority</th>
                     <th className="r">Submitted</th>
                     <th className="r">Assessed</th>
                     <th className="r">Approved</th>
@@ -159,6 +160,9 @@ export function Variations({ project }: { project: Project }) {
                         <td>
                           <Pill tone={VO_STATUS[v.status].tone}>{VO_STATUS[v.status].label}</Pill>
                         </td>
+                        <td>
+                          <PriorityFlag priority={v.priority ?? "normal"} />
+                        </td>
                         <td className="r money">{num(v.submitted_value)}</td>
                         <td className="r money">{num(v.assessed_value)}</td>
                         <td className="r money bold">{num(v.approved_value)}</td>
@@ -178,7 +182,7 @@ export function Variations({ project }: { project: Project }) {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={3}>
+                    <td colSpan={4}>
                       Totals
                       <div className="faint tiny" style={{ fontWeight: 500 }}>Submitted and assessed count pending VOs only</div>
                     </td>
@@ -202,6 +206,7 @@ export function Variations({ project }: { project: Project }) {
                   <div className="row">
                     <b>{v.vo_number}</b>
                     <Pill tone={VO_STATUS[v.status].tone}>{VO_STATUS[v.status].label}</Pill>
+                    <PriorityFlag priority={v.priority ?? "normal"} />
                     <span className="spacer" />
                     {ownersOf(v).length > 1 ? (
                       <AvatarStack people={ownersOf(v).map((id) => people.get(id))} size={22} max={3} />
@@ -262,6 +267,7 @@ function VoSheet({
     title: "",
     description: "",
     status: "identified" as VoStatus,
+    priority: "normal" as Priority,
     initiated_by: "Client",
     submitted_value: "",
     assessed_value: "",
@@ -281,6 +287,7 @@ function VoSheet({
       title: vo?.title ?? "",
       description: vo?.description ?? "",
       status: vo?.status ?? "identified",
+      priority: vo?.priority ?? "normal",
       initiated_by: vo?.initiated_by ?? "Client",
       submitted_value: vo?.submitted_value != null ? String(vo.submitted_value) : "",
       assessed_value: vo?.assessed_value != null ? String(vo.assessed_value) : "",
@@ -306,6 +313,7 @@ function VoSheet({
       title: f.title.trim(),
       description: f.description.trim() || null,
       status: f.status,
+      priority: f.priority,
       initiated_by: f.initiated_by || null,
       submitted_value: parseMoney(f.submitted_value),
       assessed_value: parseMoney(f.assessed_value),
@@ -390,7 +398,10 @@ function VoSheet({
             ))}
           </select>
         </Field>
-        <Field label="Owners on our team" className="full" hint="Everyone here gets this VO's updates and reminders">
+        <Field label="Priority" className="full" group>
+          <PriorityPicker value={f.priority} onChange={(p) => set("priority", p)} />
+        </Field>
+        <Field label="Owners on our team" className="full" group hint="Everyone here gets this VO's updates and reminders">
           <PeopleSelect value={f.owners} onChange={(v) => set("owners", v)} people={people.active} empty="Nobody yet" />
         </Field>
         <Field label="Submitted value (SAR)" hint="Contractor's quotation">

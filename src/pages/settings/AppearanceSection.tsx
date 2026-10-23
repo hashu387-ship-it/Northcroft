@@ -16,7 +16,7 @@ function readTheme(): Theme {
 
 function readSolid(): boolean {
   try {
-    return localStorage.getItem("nc-solid") === "true";
+    return localStorage.getItem("nc-solid-v2") === "true";
   } catch {
     return false;
   }
@@ -46,8 +46,8 @@ export function AppearanceSection() {
     if (v) root.dataset.solid = "true";
     else delete root.dataset.solid;
     try {
-      if (v) localStorage.setItem("nc-solid", "true");
-      else localStorage.removeItem("nc-solid");
+      if (v) localStorage.setItem("nc-solid-v2", "true");
+      else localStorage.removeItem("nc-solid-v2");
     } catch {
       /* the switch still works for this visit */
     }

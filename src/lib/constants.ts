@@ -12,10 +12,11 @@ export const TASK_STATUS_ORDER: TaskStatus[] = ["todo", "in_progress", "in_revie
 
 export const PRIORITY: Record<Priority, { label: string; tone: Tone; rank: number }> = {
   urgent: { label: "Urgent", tone: "red", rank: 0 },
-  high: { label: "High", tone: "orange", rank: 1 },
-  normal: { label: "Normal", tone: "gray", rank: 2 },
-  low: { label: "Low", tone: "gray", rank: 3 },
+  high: { label: "High", tone: "red", rank: 1 },
+  normal: { label: "Normal", tone: "yellow", rank: 2 },
+  low: { label: "Low", tone: "green", rank: 3 },
 };
+export const PRIORITY_ORDER: Priority[] = ["urgent", "high", "normal", "low"];
 
 export const VO_STATUS: Record<VoStatus, { label: string; tone: Tone; group: "pending" | "approved" | "closed_out" }> = {
   identified: { label: "Identified", tone: "gray", group: "pending" },

@@ -429,7 +429,7 @@ export default function TaskDetail() {
             )}
           </Row>
           <Row label="Priority">
-            <PriorityFlag priority={task.priority} showNormal />
+            <PriorityFlag priority={task.priority} />
           </Row>
           <Row label="Project">
             <ProjectTag project={projects.get(task.project_id)} />

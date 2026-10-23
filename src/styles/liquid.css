@@ -16,29 +16,36 @@
   --on-navy-fill: rgba(255, 255, 255, 0.1);
   --on-navy-active: rgba(255, 255, 255, 0.17);
 
-  /* A touch more colour behind the glass, so it reads as glass. */
-  --blob-1: #b9cbee;
-  --blob-2: #9db6e4;
-  --blob-3: #d3ddf0;
-  --blob-4: #f3d3d6;
-  --blob-5: #aebfe0;
+  /* More colour behind the glass, so the light theme reads as liquid glass. */
+  --blob-1: #a7bfee;
+  --blob-2: #8cabe6;
+  --blob-3: #c8d6f3;
+  --blob-4: #f5c4cb;
+  --blob-5: #a9c0ec;
+  --blob-alpha: 0.8;
 
-  /* Liquid glass: more see-through, brighter edge, soft shine. */
-  --glass: rgba(255, 255, 255, 0.5);
-  --glass-strong: rgba(255, 255, 255, 0.66);
-  --glass-border: rgba(255, 255, 255, 0.78);
+  /* Liquid glass: see-through panels, a bright rim, a glossy shine across the top
+     and a soft glow along the bottom edge. */
+  --glass: rgba(255, 255, 255, 0.4);
+  --glass-strong: rgba(255, 255, 255, 0.58);
+  --glass-border: rgba(255, 255, 255, 0.85);
   --glass-edge: rgba(255, 255, 255, 1);
-  --glass-shadow: 0 1px 1px rgba(15, 23, 42, 0.04), 0 10px 30px rgba(30, 45, 90, 0.1);
-  --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.1) 32%, rgba(255, 255, 255, 0) 55%);
+  --glass-rim: inset 0 0 0 0.5px rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.5), inset 0 16px 30px -22px rgba(255, 255, 255, 0.95);
+  --glass-shadow: 0 1px 1px rgba(15, 23, 42, 0.04), 0 12px 34px rgba(30, 45, 90, 0.12);
+  --glass-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.66) 0%, rgba(255, 255, 255, 0.18) 28%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0) 80%, rgba(255, 255, 255, 0.22) 100%);
+  --glass-blur: blur(30px) saturate(210%);
 
   /* Frosted buttons */
-  --btn-glass: rgba(255, 255, 255, 0.62);
-  --btn-glass-hover: rgba(255, 255, 255, 0.85);
+  --btn-glass: rgba(255, 255, 255, 0.5);
+  --btn-glass-hover: rgba(255, 255, 255, 0.8);
   --btn-glass-border: rgba(255, 255, 255, 0.9);
   --btn-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(30, 45, 90, 0.08);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --blob-alpha: 0.62;
+    --glass-rim: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+    --glass-blur: blur(28px) saturate(180%);
     --navy-glass: rgba(8, 20, 52, 0.82);
     --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 45%);
     --btn-glass: rgba(255, 255, 255, 0.08);
@@ -48,6 +55,9 @@
   }
 }
 :root[data-theme="dark"] {
+  --blob-alpha: 0.62;
+  --glass-rim: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  --glass-blur: blur(28px) saturate(180%);
   --navy-glass: rgba(8, 20, 52, 0.82);
   --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 45%);
   --btn-glass: rgba(255, 255, 255, 0.08);
@@ -57,23 +67,23 @@
 }
 
 /* ------------------------------------------------------------------ liquid glass cards */
-.wallpaper .blob { opacity: 0.62; }
+.wallpaper .blob { opacity: var(--blob-alpha, 0.62); }
 .glass,
 .glass-strong {
   background-color: var(--glass-strong);
   background-image: var(--glass-sheen);
-  box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 0 0 0.5px rgba(255, 255, 255, 0.35), var(--glass-shadow);
+  box-shadow: inset 0 1px 0 var(--glass-edge), var(--glass-rim, inset 0 0 0 0.5px rgba(255, 255, 255, 0.35)), var(--glass-shadow);
 }
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .glass {
     background-color: var(--glass);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
-    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: var(--glass-blur, blur(28px) saturate(180%));
+    backdrop-filter: var(--glass-blur, blur(28px) saturate(180%));
   }
   .glass-strong {
     background-color: var(--glass-strong);
-    -webkit-backdrop-filter: blur(32px) saturate(180%);
-    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: var(--glass-blur, blur(32px) saturate(180%));
+    backdrop-filter: var(--glass-blur, blur(32px) saturate(180%));
   }
 }
 /* The shine now sits in the background, under the text, instead of over it. */
@@ -207,11 +217,6 @@
 :root[data-solid="true"] .tabbar.glass-strong {
   background: var(--navy-solid);
   border-color: rgba(255, 255, 255, 0.1);
-}
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .sidebar.glass,
-  .topbar.glass,
-  .tabbar.glass-strong { background: var(--navy-solid); }
 }
 
 .sidebar .brand-word,
