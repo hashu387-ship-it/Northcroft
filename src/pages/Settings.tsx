@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, NavLink, useParams } from "react-router-dom";
-import { BellRing, ChevronRight, Clock, Info, KeyRound, MapPin, SunMoon, User, Users } from "lucide-react";
+import { BellRing, ChevronRight, Clock, HardDrive, Info, KeyRound, MapPin, SunMoon, User, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth, useMe } from "@/lib/auth";
 import { PageHead } from "@/components/PageHead";
@@ -13,6 +13,7 @@ import { AppearanceSection } from "./settings/AppearanceSection";
 import { TeamSection } from "./settings/TeamSection";
 import { HoursSection } from "./settings/HoursSection";
 import { PlacesSection } from "./settings/PlacesSection";
+import { DriveSection } from "./settings/DriveSection";
 import { AboutSection } from "./settings/AboutSection";
 import "@/styles/admin.css";
 
@@ -32,6 +33,7 @@ const SECTIONS: SectionDef[] = [
   { id: "team", label: "Team", hint: "People, access and passwords", icon: Users, color: "#1B3570" },
   { id: "hours", label: "Working hours", hint: "Start, finish and working days", icon: Clock, color: "#1B3570" },
   { id: "places", label: "Office and sites", hint: "Where check-ins are matched", icon: MapPin, color: "#1B3570" },
+  { id: "drive", label: "Google Drive", hint: "Files over 50 MB", icon: HardDrive, color: "#1B3570" },
   { id: "about", label: "Install and about", hint: "Phone install guide, sign out", icon: Info, color: "#1B3570" },
 ];
 
@@ -69,6 +71,8 @@ function SectionBody({ id }: { id: string }) {
       return <HoursSection />;
     case "places":
       return <PlacesSection />;
+    case "drive":
+      return <DriveSection />;
     case "about":
       return <AboutSection />;
     default:

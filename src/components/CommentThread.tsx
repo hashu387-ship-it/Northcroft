@@ -5,7 +5,7 @@ import { FileText, MessageCircle, Mic, Paperclip, SendHorizontal, Trash2, X } fr
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { assist, type TaskDraft } from "@/lib/assist";
-import { isImage, signedUrl, signedUrls, uploadFile } from "@/lib/files";
+import { STORAGE_MAX_BYTES, isImage, isOnDrive, openAttachment, signedUrls, uploadFile } from "@/lib/files";
 import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
@@ -106,7 +106,7 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
     enabled: ids.length > 0,
     queryFn: async () => {
       const rows = await unwrap<Attachment[]>(supabase.from("attachments").select("*").in("comment_id", ids));
-      const urls = await signedUrls(rows.filter(isImage).map((r) => r.path));
+      const urls = await signedUrls(rows.filter((r) => isImage(r) && !isOnDrive(r)).map((r) => r.path));
       return { rows, urls };
     },
   });
@@ -137,7 +137,7 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
 
   async function open(a: Attachment) {
     try {
-      window.open(await signedUrl(a.path), "_blank", "noopener");
+      await openAttachment(a);
     } catch (e) {
       toast(errorMessage(e), "error");
     }
@@ -216,7 +216,10 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
                             <span className="ellipsis small">
                               {a.name}
                               <br />
-                              <span className="faint">{fileSize(a.size)}</span>
+                              <span className="faint">
+                                {isOnDrive(a) ? "Google Drive · " : ""}
+                                {fileSize(a.size)}
+                              </span>
                             </span>
                           </button>
                         ),
@@ -272,6 +275,8 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  // Big files go to Google Drive and can take a while: show how far along they are.
+  const [progress, setProgress] = useState<string | null>(null);
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -400,7 +405,15 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
       const { data, error } = await supabase.from("comments").insert(row).select().single();
       if (error) throw error;
       for (const f of files) {
-        await uploadFile(f, { taskId: row.task_id, projectId: row.project_id, commentId: data.id, userId: me.id });
+        const big = f.size > STORAGE_MAX_BYTES;
+        setProgress(big ? `Uploading ${f.name} to Google Drive...` : null);
+        await uploadFile(f, {
+          taskId: row.task_id,
+          projectId: row.project_id,
+          commentId: data.id,
+          userId: me.id,
+          onProgress: big ? (x) => setProgress(`Uploading ${f.name} to Google Drive, ${Math.round(x * 100)}%`) : undefined,
+        });
       }
       setBody("");
       setFiles([]);
@@ -415,11 +428,17 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
       toast(errorMessage(e), "error");
     } finally {
       setSending(false);
+      setProgress(null);
     }
   }
 
   return (
     <div className="stack" style={{ gap: 6 }}>
+      {progress && (
+        <div className="muted small row" role="status" style={{ gap: 8 }}>
+          <span className="vspin" style={{ color: "var(--accent)" }} /> {progress}
+        </div>
+      )}
       {files.length > 0 && (
         <div className="row wrap">
           {files.map((f, i) => (

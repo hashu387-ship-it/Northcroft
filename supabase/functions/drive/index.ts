@@ -1,0 +1,454 @@
+// Google Drive for files over 50 MB.
+//
+// Files go to the manager's Drive, in a "Northcroft" folder with a subfolder per project (plus
+// "General"). They stay private: team members open them through this function, which checks a
+// short-lived signed link and streams the file from Drive. Nothing is shared publicly.
+//
+// The app only gets the drive.file permission, so it can see the files and folders it created and
+// nothing else in the Drive.
+//
+// POST (signed-in team member, JSON {action}):
+//   configure       manager: save the Google OAuth client and get the Google sign-in link
+//   disconnect      manager: stop using Drive (files stay in Drive)
+//   start_upload    start a resumable upload; the browser then sends the file straight to Google
+//   finish_upload   check the upload in Drive and add it to the task, project or chat
+//   link            a 1-hour link that opens a Drive file through this function
+//   delete          remove the attachment and move the file to the Drive bin
+// GET /drive/callback   Google sends the manager back here after they allow access
+// GET ?f=<id>&e=<expiry>&s=<signature>[&d=1]   stream the file (d=1 downloads instead of opening)
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+const SELF_URL = `${SUPABASE_URL}/functions/v1/drive`;
+const REDIRECT_URI = `${SELF_URL}/callback`;
+// Google addresses (overridable only for local testing against a stand-in).
+const GOOGLE_API = Deno.env.get("GOOGLE_API_ORIGIN") ?? "https://www.googleapis.com";
+const GOOGLE_OAUTH = Deno.env.get("GOOGLE_OAUTH_ORIGIN") ?? "https://oauth2.googleapis.com";
+const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const DRIVE = `${GOOGLE_API}/drive/v3`;
+const FOLDER = "application/vnd.google-apps.folder";
+const LINK_HOURS = 1;
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, range",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Expose-Headers": "content-length, content-range, content-disposition",
+};
+
+class UserError extends Error {
+  constructor(message: string, public status = 400, public code = "error") {
+    super(message);
+  }
+}
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
+type Me = { id: string; short_name: string; role: string; can_assign: boolean; active: boolean };
+type Config = { drive_client_id?: string; drive_client_secret?: string; drive_refresh_token?: string; drive_link_secret?: string };
+
+/* ---------------------------------------------------------------- config and tokens */
+async function config(): Promise<Config> {
+  const { data, error } = await admin.rpc("get_drive_config");
+  if (error) throw new Error(`Could not read Drive settings: ${error.message}`);
+  return (data ?? {}) as Config;
+}
+async function setSecret(name: string, value: string) {
+  const { error } = await admin.rpc("set_drive_secret", { p_name: name, p_value: value });
+  if (error) throw new Error(`Could not save ${name}: ${error.message}`);
+}
+async function settings() {
+  const { data } = await admin.from("app_settings").select("drive_account, drive_root_id, drive_general_id, drive_connected_at").eq("id", 1).single();
+  return data as { drive_account: string | null; drive_root_id: string | null; drive_general_id: string | null; drive_connected_at: string | null };
+}
+
+let token: { value: string; until: number } | null = null;
+/** A Drive access token, refreshed from the stored refresh token when needed. */
+async function accessToken(): Promise<string> {
+  if (token && Date.now() < token.until) return token.value;
+  const c = await config();
+  if (!c.drive_refresh_token || !c.drive_client_id || !c.drive_client_secret) {
+    throw new UserError("Google Drive isn't connected yet. A manager can connect it in Settings > Google Drive.", 503, "drive_off");
+  }
+  const res = await fetch(`${GOOGLE_OAUTH}/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: c.drive_client_id,
+      client_secret: c.drive_client_secret,
+      refresh_token: c.drive_refresh_token,
+      grant_type: "refresh_token",
+    }),
+  });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok || !out.access_token) {
+    console.error("Token refresh failed", res.status, out.error);
+    if (out.error === "invalid_grant") {
+      throw new UserError("Google Drive access has expired or was removed. A manager needs to reconnect it in Settings > Google Drive.", 503, "drive_expired");
+    }
+    throw new UserError("Couldn't reach Google Drive. Try again in a moment.", 502);
+  }
+  token = { value: out.access_token, until: Date.now() + (Number(out.expires_in ?? 3600) - 120) * 1000 };
+  return token.value;
+}
+
+async function drive(path: string, init: RequestInit = {}) {
+  const res = await fetch(path.startsWith("http") ? path : `${DRIVE}${path}`, {
+    ...init,
+    headers: { Authorization: `Bearer ${await accessToken()}`, ...(init.headers ?? {}) },
+  });
+  return res;
+}
+
+async function createFolder(name: string, parent?: string | null): Promise<string> {
+  const res = await drive("/files?fields=id", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, mimeType: FOLDER, ...(parent ? { parents: [parent] } : {}) }),
+  });
+  const out = await res.json();
+  if (!res.ok) throw new Error(`Could not create folder ${name}: ${res.status} ${JSON.stringify(out).slice(0, 200)}`);
+  return out.id as string;
+}
+
+/** True if the folder still exists and isn't in the bin. */
+async function folderOk(id: string | null | undefined) {
+  if (!id) return false;
+  const res = await drive(`/files/${id}?fields=id,trashed`);
+  if (!res.ok) return false;
+  const f = await res.json();
+  return !f.trashed;
+}
+
+/** The Northcroft folder, made if missing. */
+async function rootFolder(): Promise<string> {
+  const s = await settings();
+  if (await folderOk(s.drive_root_id)) return s.drive_root_id!;
+  const id = await createFolder("Northcroft");
+  await admin.from("app_settings").update({ drive_root_id: id, drive_general_id: null }).eq("id", 1);
+  await admin.from("projects").update({ drive_folder_id: null }).not("drive_folder_id", "is", null);
+  return id;
+}
+
+/** The project's subfolder (or General), made if missing. */
+async function folderFor(projectId: string | null): Promise<string> {
+  const root = await rootFolder();
+  if (!projectId) {
+    const s = await settings();
+    if (await folderOk(s.drive_general_id)) return s.drive_general_id!;
+    const id = await createFolder("General", root);
+    await admin.from("app_settings").update({ drive_general_id: id }).eq("id", 1);
+    return id;
+  }
+  const { data: p } = await admin.from("projects").select("id, name, code, drive_folder_id").eq("id", projectId).maybeSingle();
+  if (!p) throw new UserError("That project no longer exists.", 404);
+  if (await folderOk(p.drive_folder_id)) return p.drive_folder_id!;
+  const id = await createFolder(p.code ? `${p.name} (${p.code})` : p.name, root);
+  await admin.from("projects").update({ drive_folder_id: id }).eq("id", p.id);
+  return id;
+}
+
+/* ---------------------------------------------------------------- signing */
+async function hmac(text: string): Promise<string> {
+  const c = await config();
+  if (!c.drive_link_secret) throw new Error("Drive link key missing");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(c.drive_link_secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function same(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
+/* ---------------------------------------------------------------- connect */
+async function configure(body: { client_id?: string; client_secret?: string }, me: Me, origin: string) {
+  if (me.role !== "manager") throw new UserError("Only a manager can connect Google Drive.", 403);
+  const clientId = (body.client_id ?? "").trim();
+  const clientSecret = (body.client_secret ?? "").trim();
+  const c = await config();
+  if (clientId) {
+    if (!/\.apps\.googleusercontent\.com$/.test(clientId)) throw new UserError("That Client ID doesn't look right. It ends in .apps.googleusercontent.com.");
+    await setSecret("drive_client_id", clientId);
+  } else if (!c.drive_client_id) {
+    throw new UserError("Paste the Client ID from Google Cloud first.");
+  }
+  if (clientSecret) await setSecret("drive_client_secret", clientSecret);
+  else if (!c.drive_client_secret) throw new UserError("Paste the Client secret from Google Cloud first.");
+
+  if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(origin) && !/^http:\/\/localhost(:\d+)?$/.test(origin)) throw new UserError("Open the app from its normal web address and try again.");
+  const payload = btoa(JSON.stringify({ u: me.id, o: origin, e: Date.now() + 15 * 60_000 }));
+  const state = `${payload}.${await hmac(`state:${payload}`)}`;
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  url.search = new URLSearchParams({
+    client_id: clientId || c.drive_client_id!,
+    redirect_uri: REDIRECT_URI,
+    response_type: "code",
+    scope: SCOPE,
+    access_type: "offline",
+    prompt: "consent",
+    include_granted_scopes: "true",
+    state,
+  }).toString();
+  return { url: url.toString(), redirect_uri: REDIRECT_URI };
+}
+
+async function callback(url: URL): Promise<Response> {
+  const back = (origin: string, q: string) => Response.redirect(`${origin}/settings/drive?${q}`, 302);
+  const state = url.searchParams.get("state") ?? "";
+  const [payload, sig] = state.split(".");
+  if (!payload || !sig || !same(sig, await hmac(`state:${payload}`))) return new Response("This sign-in link isn't valid. Start again from Settings > Google Drive.", { status: 400 });
+  const st = JSON.parse(atob(payload)) as { u: string; o: string; e: number };
+  if (Date.now() > st.e) return back(st.o, "drive=error&reason=expired");
+  if (url.searchParams.get("error")) return back(st.o, `drive=error&reason=${encodeURIComponent(url.searchParams.get("error")!)}`);
+  const { data: who } = await admin.from("profiles").select("role, active").eq("id", st.u).maybeSingle();
+  if (!who?.active || who.role !== "manager") return back(st.o, "drive=error&reason=not_manager");
+
+  const c = await config();
+  const res = await fetch(`${GOOGLE_OAUTH}/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code: url.searchParams.get("code") ?? "",
+      client_id: c.drive_client_id ?? "",
+      client_secret: c.drive_client_secret ?? "",
+      redirect_uri: REDIRECT_URI,
+      grant_type: "authorization_code",
+    }),
+  });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok || !out.refresh_token) {
+    console.error("Code exchange failed", res.status, out.error, out.error_description);
+    return back(st.o, `drive=error&reason=${encodeURIComponent(out.error ?? "no_refresh_token")}`);
+  }
+  if (!String(out.scope ?? "").includes("drive.file")) return back(st.o, "drive=error&reason=scope");
+  await setSecret("drive_refresh_token", out.refresh_token);
+  token = { value: out.access_token, until: Date.now() + (Number(out.expires_in ?? 3600) - 120) * 1000 };
+
+  // Whose Drive is it? A different account than before means new folders.
+  const about = await (await drive("/about?fields=user(emailAddress,displayName)")).json().catch(() => ({}));
+  const account = about?.user?.emailAddress ?? null;
+  const s = await settings();
+  if (s.drive_account && account && s.drive_account !== account) {
+    await admin.from("app_settings").update({ drive_root_id: null, drive_general_id: null }).eq("id", 1);
+    await admin.from("projects").update({ drive_folder_id: null }).not("drive_folder_id", "is", null);
+  }
+  await admin.from("app_settings").update({ drive_account: account, drive_connected_at: new Date().toISOString() }).eq("id", 1);
+
+  // Make the folders now: Northcroft, General, and one per active project.
+  try {
+    await folderFor(null);
+    const { data: projects } = await admin.from("projects").select("id").neq("status", "completed");
+    for (const p of projects ?? []) await folderFor(p.id);
+  } catch (e) {
+    console.error("Folder set-up", e);
+  }
+  return back(st.o, "drive=connected");
+}
+
+async function disconnect(me: Me) {
+  if (me.role !== "manager") throw new UserError("Only a manager can disconnect Google Drive.", 403);
+  const c = await config();
+  if (c.drive_refresh_token) {
+    await fetch(`${GOOGLE_OAUTH}/revoke?token=${encodeURIComponent(c.drive_refresh_token)}`, { method: "POST" }).catch(() => null);
+  }
+  await setSecret("drive_refresh_token", "");
+  token = null;
+  await admin.from("app_settings").update({ drive_connected_at: null }).eq("id", 1);
+  return { ok: true };
+}
+
+/* ---------------------------------------------------------------- uploads */
+type Target = { project_id?: string | null; task_id?: string | null; comment_id?: string | null };
+
+async function checkTarget(t: Target, me: Me): Promise<string | null> {
+  let projectId = t.project_id ?? null;
+  if (t.task_id) {
+    const { data: task } = await admin.from("tasks").select("id, project_id").eq("id", t.task_id).maybeSingle();
+    if (!task) throw new UserError("That task no longer exists.", 404);
+    projectId = task.project_id;
+  }
+  if (t.comment_id) {
+    const { data: c } = await admin.from("comments").select("author_id").eq("id", t.comment_id).maybeSingle();
+    if (!c || c.author_id !== me.id) throw new UserError("That message isn't yours.", 403);
+  }
+  return projectId;
+}
+
+async function startUpload(body: Target & { name?: string; mime?: string; size?: number }, me: Me, origin: string) {
+  const name = String(body.name ?? "").trim().slice(0, 240) || "file";
+  const size = Number(body.size);
+  if (!Number.isFinite(size) || size <= 0) throw new UserError("That file is empty.");
+  if (size > 5 * 1024 ** 4) throw new UserError("That file is too big for Google Drive.");
+  const projectId = await checkTarget(body, me);
+  const folder = await folderFor(projectId);
+  const mime = body.mime || "application/octet-stream";
+  // The Origin header lets the browser send the file straight to Google (CORS).
+  const res = await drive(`${GOOGLE_API}/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,mimeType,parents`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Upload-Content-Type": mime,
+      "X-Upload-Content-Length": String(size),
+      ...(origin ? { Origin: origin } : {}),
+    },
+    body: JSON.stringify({
+      name,
+      parents: [folder],
+      description: `Uploaded by ${me.short_name} through Northcroft`,
+      appProperties: { northcroft: "1", uploadedBy: me.id },
+    }),
+  });
+  const location = res.headers.get("location");
+  if (!res.ok || !location) {
+    console.error("Start upload failed", res.status, (await res.text()).slice(0, 300));
+    throw new UserError("Couldn't start the upload to Google Drive. Try again.", 502);
+  }
+  return { upload_url: location, folder_id: folder };
+}
+
+async function finishUpload(body: Target & { file_id?: string }, me: Me) {
+  const id = String(body.file_id ?? "");
+  if (!/^[\w-]{10,}$/.test(id)) throw new UserError("Upload not found.");
+  const projectId = await checkTarget(body, me);
+  const res = await drive(`/files/${id}?fields=id,name,size,mimeType,parents,trashed,appProperties`);
+  if (!res.ok) throw new UserError("Couldn't find the uploaded file in Google Drive.", 404);
+  const f = await res.json();
+  if (f.trashed || f.appProperties?.northcroft !== "1" || f.appProperties?.uploadedBy !== me.id) {
+    throw new UserError("That upload can't be attached.", 403);
+  }
+  const { data, error } = await admin
+    .from("attachments")
+    .insert({
+      path: `drive/${f.id}`,
+      drive_file_id: f.id,
+      name: f.name,
+      mime: f.mimeType ?? null,
+      size: f.size ? Number(f.size) : null,
+      task_id: body.task_id ?? null,
+      project_id: projectId,
+      comment_id: body.comment_id ?? null,
+      uploaded_by: me.id,
+    })
+    .select()
+    .single();
+  if (error) {
+    if (/duplicate key/.test(error.message)) {
+      const { data: existing } = await admin.from("attachments").select("*").eq("drive_file_id", f.id).single();
+      return existing;
+    }
+    throw new Error(error.message);
+  }
+  return data;
+}
+
+/* ---------------------------------------------------------------- opening */
+const INLINE = /^(application\/pdf|image\/(png|jpe?g|gif|webp)|video\/(mp4|webm|quicktime)|audio\/|text\/plain)/i;
+
+async function link(body: { attachment_id?: string; download?: boolean }) {
+  const { data: a } = await admin.from("attachments").select("id, drive_file_id").eq("id", body.attachment_id ?? "").maybeSingle();
+  if (!a?.drive_file_id) throw new UserError("File not found.", 404);
+  const e = Math.floor(Date.now() / 1000) + LINK_HOURS * 3600;
+  const d = body.download ? "1" : "0";
+  const s = await hmac(`open:${a.id}:${e}:${d}`);
+  return { url: `${SELF_URL}?f=${a.id}&e=${e}&d=${d}&s=${s}` };
+}
+
+async function stream(req: Request, url: URL): Promise<Response> {
+  const id = url.searchParams.get("f") ?? "";
+  const e = Number(url.searchParams.get("e"));
+  const d = url.searchParams.get("d") === "1" ? "1" : "0";
+  const s = url.searchParams.get("s") ?? "";
+  if (!id || !e || !s || !same(s, await hmac(`open:${id}:${e}:${d}`))) return new Response("This link isn't valid.", { status: 403, headers: CORS });
+  if (Date.now() / 1000 > e) return new Response("This link has expired. Open the file again from the app.", { status: 410, headers: CORS });
+  const { data: a } = await admin.from("attachments").select("drive_file_id, name, mime").eq("id", id).maybeSingle();
+  if (!a?.drive_file_id) return new Response("This file has been removed.", { status: 404, headers: CORS });
+
+  const range = req.headers.get("range");
+  const g = await drive(`/files/${a.drive_file_id}?alt=media`, range ? { headers: { Range: range } } : {});
+  if (!g.ok && g.status !== 206) {
+    console.error("Drive download failed", g.status);
+    return new Response(g.status === 404 ? "This file is no longer in Google Drive." : "Couldn't open the file from Google Drive.", { status: g.status === 404 ? 404 : 502, headers: CORS });
+  }
+  const mime = a.mime || g.headers.get("content-type") || "application/octet-stream";
+  const inline = d === "0" && INLINE.test(mime);
+  const headers = new Headers(CORS);
+  for (const h of ["content-length", "content-range", "accept-ranges", "etag", "last-modified"]) {
+    const v = g.headers.get(h);
+    if (v) headers.set(h, v);
+  }
+  if (!headers.has("accept-ranges")) headers.set("Accept-Ranges", "bytes");
+  headers.set("Content-Type", inline ? mime : "application/octet-stream");
+  headers.set("Content-Disposition", `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(a.name)}`);
+  headers.set("Cache-Control", "private, max-age=3600");
+  // Only PDFs, plain images, audio, video and plain text open in the browser; anything else
+  // (web pages, SVG, Office files) downloads, so nothing from Drive can run as a web page.
+  headers.set("X-Content-Type-Options", "nosniff");
+  return new Response(g.body, { status: g.status, headers });
+}
+
+/* ---------------------------------------------------------------- delete */
+async function remove(body: { attachment_id?: string }, req: Request) {
+  // Delete as the signed-in person so the normal rule applies (their own files, or managers and seniors).
+  const asUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await asUser.from("attachments").delete().eq("id", body.attachment_id ?? "").select("drive_file_id");
+  if (error) throw new UserError(error.message, 400);
+  if (!data?.length) throw new UserError("You can't delete that file.", 403);
+  const fileId = data[0].drive_file_id as string | null;
+  if (fileId) {
+    // Into the Drive bin, so it can still be recovered for 30 days.
+    const res = await drive(`/files/${fileId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trashed: true }) }).catch(() => null);
+    if (res && !res.ok && res.status !== 404) console.error("Trash failed", res.status);
+  }
+  return { ok: true };
+}
+
+/* ---------------------------------------------------------------- entry */
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  const url = new URL(req.url);
+  try {
+    if (req.method === "GET") {
+      if (url.pathname.endsWith("/callback")) return await callback(url);
+      if (url.searchParams.has("f")) return await stream(req, url);
+      return new Response("Not found", { status: 404, headers: CORS });
+    }
+    if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+    const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: auth } = await admin.auth.getUser(jwt);
+    if (!auth?.user) return json({ error: "Please sign in again." }, 401);
+    const { data: me } = await admin.from("profiles").select("id, short_name, role, can_assign, active").eq("id", auth.user.id).maybeSingle<Me>();
+    if (!me?.active) return json({ error: "Your account doesn't have access." }, 403);
+
+    const body = await req.json().catch(() => ({}));
+    const origin = req.headers.get("origin") ?? "";
+    switch (body.action) {
+      case "configure":
+        return json(await configure(body, me, origin));
+      case "disconnect":
+        return json(await disconnect(me));
+      case "start_upload":
+        return json(await startUpload(body, me, origin));
+      case "finish_upload":
+        return json(await finishUpload(body, me));
+      case "link":
+        return json(await link(body));
+      case "delete":
+        return json(await remove(body, req));
+      default:
+        return json({ error: "Unknown action" }, 400);
+    }
+  } catch (e) {
+    if (e instanceof UserError) return json({ error: e.message, code: e.code }, e.status);
+    console.error(e);
+    return json({ error: "Something went wrong with Google Drive. Try again." }, 500);
+  }
+});

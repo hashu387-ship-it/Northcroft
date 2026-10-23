@@ -259,3 +259,16 @@
 .cover-skyline { position: absolute; right: 8px; bottom: 3px; height: 80%; width: auto; max-width: 72%; fill: rgba(255, 255, 255, 0.1); }
 .cover-skyline .crane { fill: none; stroke: rgba(255, 255, 255, 0.16); stroke-width: 2; stroke-linecap: round; }
 .cover-actions { position: absolute; right: 10px; bottom: 12px; display: flex; gap: 6px; }
+
+/* Files kept in Google Drive (over 50 MB) */
+.drive-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--green);
+  font-weight: 600;
+}
+.drive-tag svg {
+  width: 11px;
+  height: 11px;
+}

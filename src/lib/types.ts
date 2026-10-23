@@ -38,6 +38,11 @@ export interface AppSettings {
   grace_minutes: number;
   work_days: number[]; // 0 = Sunday
   weekly_task_capacity: number;
+  /** Google Drive for files over 50 MB: whose Drive, the Northcroft folder, and when it was connected. */
+  drive_account: string | null;
+  drive_root_id: string | null;
+  drive_general_id: string | null;
+  drive_connected_at: string | null;
   updated_at: string;
 }
 
@@ -142,6 +147,8 @@ export interface Attachment {
   mime: string | null;
   size: number | null;
   uploaded_by: string | null;
+  /** Set when the file is in Google Drive (over 50 MB) rather than the app's storage. */
+  drive_file_id: string | null;
   created_at: string;
 }
 

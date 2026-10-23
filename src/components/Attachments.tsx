@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileSpreadsheet, FileText, Paperclip, Trash2, Upload } from "lucide-react";
-import { unwrap, useInvalidate, usePeople } from "@/lib/api";
+import { FileSpreadsheet, FileText, HardDrive, Paperclip, Trash2, Upload } from "lucide-react";
+import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
-import { deleteAttachment, isImage, signedUrl, signedUrls, uploadFile } from "@/lib/files";
+import { STORAGE_MAX_BYTES, deleteAttachment, isImage, isOnDrive, openAttachment, signedUrls, uploadFile } from "@/lib/files";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fileSize } from "@/lib/format";
 import { timeAgo } from "@/lib/time";
@@ -25,6 +25,9 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
   const invalidate = useInvalidate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  // "Uploading plans.pdf to Google Drive, 40%" while a big file goes up.
+  const [progress, setProgress] = useState<string | null>(null);
+  const driveOn = !!useSettings().data?.drive_connected_at;
 
   const q = useQuery({
     queryKey: ["attachments", taskId ? "task" : "project", taskId ?? projectId],
@@ -32,7 +35,7 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
       let query = supabase.from("attachments").select("*");
       query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
       const rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(300));
-      const urls = await signedUrls(rows.filter(isImage).map((r) => r.path));
+      const urls = await signedUrls(rows.filter((r) => isImage(r) && !isOnDrive(r)).map((r) => r.path));
       return { rows, urls };
     },
   });
@@ -42,7 +45,14 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
     setBusy(true);
     try {
       for (const f of Array.from(list)) {
-        await uploadFile(f, { taskId: taskId ?? null, projectId: projectId ?? null, userId: me.id });
+        const big = f.size > STORAGE_MAX_BYTES;
+        setProgress(big ? `Uploading ${f.name} to Google Drive...` : null);
+        await uploadFile(f, {
+          taskId: taskId ?? null,
+          projectId: projectId ?? null,
+          userId: me.id,
+          onProgress: big ? (x) => setProgress(`Uploading ${f.name} to Google Drive, ${Math.round(x * 100)}%`) : undefined,
+        });
       }
       toast(list.length === 1 ? "File added" : `${list.length} files added`);
       invalidate("attachments");
@@ -50,13 +60,14 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
       toast(errorMessage(e), "error");
     } finally {
       setBusy(false);
+      setProgress(null);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
 
   async function open(a: Attachment) {
     try {
-      window.open(await signedUrl(a.path), "_blank", "noopener");
+      await openAttachment(a);
     } catch (e) {
       toast(errorMessage(e), "error");
     }
@@ -80,7 +91,9 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
           <button className="btn small" onClick={() => inputRef.current?.click()} disabled={busy} type="button">
             <Upload /> {busy ? "Uploading..." : "Add files"}
           </button>
-          <span className="faint tiny">Drawings, BOQs, PDFs, photos. Up to 50 MB each.</span>
+          <span className="faint tiny">
+            {progress ?? (driveOn ? "Drawings, BOQs, PDFs, photos. Files over 50 MB go to Google Drive." : "Drawings, BOQs, PDFs, photos. Up to 50 MB each.")}
+          </span>
           <input ref={inputRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
         </div>
       )}
@@ -99,6 +112,14 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
                     {a.name}
                   </span>
                   <span className="faint tiny">
+                    {isOnDrive(a) && (
+                      <>
+                        <span className="drive-tag">
+                          <HardDrive size={11} /> Drive
+                        </span>
+                        {" · "}
+                      </>
+                    )}
                     {fileSize(a.size)} · {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
                   </span>
                 </span>
