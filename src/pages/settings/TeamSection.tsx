@@ -12,7 +12,7 @@ import { Section, adminCall, copyText } from "./common";
 
 function RoleBadge({ p }: { p: Profile }) {
   if (!p.active) return <Pill tone="red">Access off</Pill>;
-  if (p.role === "manager") return <Pill tone="blue">Manager</Pill>;
+  if (p.role === "manager") return <Pill tone="blue">{p.assignable === false ? "Manager · gives tasks" : "Manager"}</Pill>;
   if (p.can_assign) return <Pill tone="purple">Can assign</Pill>;
   return <Pill>Member</Pill>;
 }
@@ -206,6 +206,34 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
               disabled={isManagerRow || busy || !person.active}
               onChange={(v) => update({ can_assign: v }, v ? `${person.short_name} can now assign tasks` : `${person.short_name} can no longer assign tasks`)}
               label="Can assign tasks"
+            />
+          </div>
+          <div className="setting-row">
+            <div className="grow">
+              <b>Checks in and out</b>
+              <small>Off for people who don't record attendance. They get no Check in tab and aren't shown as missing or late.</small>
+            </div>
+            <Switch
+              checked={!person.attendance_exempt}
+              disabled={busy || !person.active}
+              onChange={(v) =>
+                update({ attendance_exempt: !v }, v ? `${person.short_name} now checks in` : `${person.short_name} no longer needs to check in`)
+              }
+              label="Checks in and out"
+            />
+          </div>
+          <div className="setting-row">
+            <div className="grow">
+              <b>Can be given tasks</b>
+              <small>Off for someone who only gives out work. Nobody else can assign them a task; they can still give themselves one.</small>
+            </div>
+            <Switch
+              checked={person.assignable !== false}
+              disabled={busy || !person.active}
+              onChange={(v) =>
+                update({ assignable: v }, v ? `Tasks can now be given to ${person.short_name}` : `Nobody else can give ${person.short_name} tasks now`)
+              }
+              label="Can be given tasks"
             />
           </div>
           <div className="setting-row" style={{ flexWrap: "wrap" }}>

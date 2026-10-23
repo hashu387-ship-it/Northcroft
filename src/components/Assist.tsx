@@ -38,7 +38,7 @@ function AssistProblem({ error, onRetry }: { error: AssistError; onRetry: () => 
     <div className="assist-problem">
       <p className="bold">{off ? "Claude isn't switched on yet" : "That didn't work"}</p>
       <p className="muted small">
-        {off ? "Hassan needs to add the Claude API key in Supabase (Edge Functions, Secrets). Everything else in the app works as normal." : error.message}
+        {off ? "A manager needs to add the Claude API key. Everything else in the app works as normal." : error.message}
       </p>
       {!off && (
         <button className="btn small" type="button" onClick={onRetry}>

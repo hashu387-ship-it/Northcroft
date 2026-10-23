@@ -17,7 +17,8 @@ export function TeamBoard() {
   const working = settings ? isWorkday(date, settings.work_days) : true;
 
   const byUser = useMemo(() => new Map(rows.map((r) => [r.user_id, r])), [rows]);
-  const list = people.active;
+  // Only people who check in (the Commercial Manager doesn't).
+  const list = people.attenders;
   const inNow = rows.filter((r) => !r.check_out_at).length;
   const out = rows.filter((r) => r.check_out_at).length;
   const missing = list.filter((p) => !byUser.has(p.id)).length;

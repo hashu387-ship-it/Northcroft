@@ -18,6 +18,21 @@ export default function Attendance() {
   const today = (mine.data ?? []).find((r) => r.work_date === todayISO());
   const noOffice = isManager && places.data && !places.data.some((p) => p.kind === "office" && p.active);
 
+  // Someone who doesn't check in (the Commercial Manager) only sees the team's attendance.
+  if (me.attendance_exempt) {
+    return (
+      <div className="page">
+        <PageHead title="Attendance" sub={canAssign ? "The team's day and the monthly report. You don't need to check in." : "You don't need to check in."} />
+        {canAssign && (
+          <div className="attendance-grid">
+            <TeamBoard />
+            <MonthlyReport />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <PageHead

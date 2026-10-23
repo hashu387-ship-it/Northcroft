@@ -21,6 +21,10 @@ export interface Profile {
   must_change_password: boolean;
   phone: string | null;
   avatar_url: string | null;
+  /** Doesn't check in or out (e.g. the Commercial Manager); left off attendance lists. */
+  attendance_exempt: boolean;
+  /** False when nobody else can give this person tasks (they can still give themselves one). */
+  assignable: boolean;
   created_at: string;
 }
 

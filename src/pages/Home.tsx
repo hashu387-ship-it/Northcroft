@@ -158,7 +158,7 @@ export default function Home() {
 
       <div className="home-grid">
         <div className="stack">
-          <CheckInCard />
+          {!me.attendance_exempt && <CheckInCard />}
           <FocusCard tasks={myOpen} loading={mine.isLoading} />
           {canAssign && <ReviewCard tasks={toReview} loading={allOpen.isLoading} />}
           {canAssign && <TeamSnapshot />}
@@ -362,13 +362,13 @@ function TeamSnapshot() {
         <Link to="/attendance">Attendance</Link>
       </div>
       <p className="muted small" style={{ marginBottom: 10 }}>
-        {workday ? `${inCount} of ${people.active.length} checked in right now` : `${DOW_SHORT[dow(today)]} is a weekend day`}
+        {workday ? `${inCount} of ${people.attenders.length} checked in right now` : `${DOW_SHORT[dow(today)]} is a weekend day`}
       </p>
       {q.isLoading ? (
         <Loading />
       ) : (
         <div className="team-snap">
-          {people.active.map((p) => (
+          {people.attenders.map((p) => (
             <TeamPerson key={p.id} person={p} row={rows.get(p.id)} />
           ))}
         </div>

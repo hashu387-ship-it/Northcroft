@@ -173,7 +173,7 @@ export function TaskForm({
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} />
         </Field>
         <Field label="Assign to">
-          <PersonSelect value={assigneeId} onChange={setAssigneeId} people={people.active} />
+          <PersonSelect value={assigneeId} onChange={setAssigneeId} people={people.assignableBy(me.id, task?.assignee_id)} />
         </Field>
         <Field label="Reviewer" hint="Checks the work before it's marked done">
           <PersonSelect value={reviewerId} onChange={setReviewerId} people={people.assigners} placeholder="Whoever created it" />

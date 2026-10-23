@@ -28,7 +28,21 @@ export function usePeople() {
       .filter((p) => p.active)
       .sort((a, b) => (a.role === b.role ? a.short_name.localeCompare(b.short_name) : a.role === "manager" ? -1 : 1));
     const assigners = active.filter((p) => p.role === "manager" || p.can_assign);
-    return { all, active, assigners, byId, get: (id: string | null | undefined) => (id ? byId.get(id) : undefined), loading: q.isLoading };
+    // People who check in (the attendance board, map, late list and monthly export).
+    const attenders = active.filter((p) => !p.attendance_exempt);
+    /** Who `meId` can give a task to: everyone who takes tasks, plus themselves, plus whoever has it now. */
+    const assignableBy = (meId: string, current?: string | null) =>
+      active.filter((p) => p.assignable !== false || p.id === meId || p.id === current);
+    return {
+      all,
+      active,
+      assigners,
+      attenders,
+      assignableBy,
+      byId,
+      get: (id: string | null | undefined) => (id ? byId.get(id) : undefined),
+      loading: q.isLoading,
+    };
   }, [q.data, q.isLoading]);
 }
 

@@ -26,7 +26,11 @@ export default function More() {
     { to: "/announcements", label: "Announcements", hint: unacked ? `${unacked} to acknowledge` : "Team news", icon: Megaphone, color: "#FF9F0A", count: unacked },
     { to: "/calendar", label: "Calendar", hint: "Deadlines and visits", icon: CalendarDays, color: "#FF375F" },
     { to: "/chat", label: "Team chat", hint: "Talk to everyone", icon: MessagesSquare, color: "#30D158" },
-    { to: "/attendance", label: "Check in", hint: "Arrive and leave", icon: MapPin, color: "#0A84FF" },
+    ...(!me.attendance_exempt
+      ? [{ to: "/attendance", label: "Check in", hint: "Arrive and leave", icon: MapPin, color: "#0A84FF" }]
+      : canAssign
+        ? [{ to: "/attendance", label: "Attendance", hint: "The team's day", icon: MapPin, color: "#0A84FF" }]
+        : []),
     ...(canAssign ? [{ to: "/workload", label: "Workload", hint: "Who has what", icon: BarChart3, color: "#BF5AF2" }] : []),
     { to: "/settings", label: "Settings", hint: "Notifications, password", icon: Settings, color: "#8E8E93" },
   ];

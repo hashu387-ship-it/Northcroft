@@ -49,7 +49,7 @@ export function MonthlyReport() {
   }, [workdays, trackingStart]);
 
   const summaries = useMemo<Summary[]>(() => {
-    return people.active.map((person) => {
+    return people.attenders.map((person) => {
       const mine = rows.filter((r) => r.user_id === person.id);
       const hrs = mine.map(hoursWorked).filter((h): h is number => h !== null);
       const presentDays = new Set(mine.map((r) => r.work_date));
@@ -64,7 +64,7 @@ export function MonthlyReport() {
         absent: absenceDays.filter((d) => !presentDays.has(d)).length,
       };
     });
-  }, [people.active, rows, absenceDays]);
+  }, [people.attenders, rows, absenceDays]);
 
   function download() {
     const header = ["Date", "Name", "Check in", "In place", "In address", "Check out", "Out place", "Out address", "Hours", "Late minutes", "Early minutes", "Note"];
@@ -73,7 +73,7 @@ export function MonthlyReport() {
     const allDays = new Set<string>([...absenceDays, ...rows.map((r) => r.work_date)]);
     const days = [...allDays].sort();
     for (const d of days) {
-      for (const p of people.active) {
+      for (const p of people.attenders) {
         const r = byKey.get(`${d}|${p.id}`);
         if (!r) {
           if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent"].map(csvCell).join(","));

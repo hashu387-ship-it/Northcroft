@@ -52,7 +52,7 @@ export default function Announcements() {
     <div className="page">
       <PageHead
         title="Announcements"
-        sub={waiting ? `${waiting} waiting for you to acknowledge` : "Team news and instructions from Hassan and the seniors"}
+        sub={waiting ? `${waiting} waiting for you to acknowledge` : "Team news and instructions from the managers and seniors"}
         actions={
           canAssign && (
             <button className="btn primary" onClick={() => setComposing(true)}>

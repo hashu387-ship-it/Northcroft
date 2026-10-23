@@ -86,7 +86,7 @@ export function Checklist({ task }: { task: Task }) {
                     aria-label={`Who does "${i.text}"`}
                   >
                     <option value="">Anyone</option>
-                    {people.active.map((p) => (
+                    {people.assignableBy(me.id, i.assignee_id).map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.short_name}
                       </option>

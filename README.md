@@ -45,13 +45,18 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 
 ## Who can do what
 
-| | Hassan (manager) | Seniors (switched on in Settings > Team) | Team members |
+| | Managers: Fawaz (Commercial Manager) and Hassan | Seniors (switched on in Settings > Team) | Team members |
 |---|---|---|---|
 | Create and assign tasks, approve work | Yes | Yes | No |
 | Post announcements, create projects | Yes | Yes | No |
 | See everyone's attendance | Yes | Yes | Own only |
 | Add people, reset passwords, set hours, office pins | Yes | No | No |
 | Update VOs and BOQ packages, comment, chat, upload files | Yes | Yes | Yes |
+
+Work flows down: Fawaz gives tasks to Hassan, and Hassan gives tasks to the team. Two switches in Settings > Team control this for anyone:
+
+- **Checks in and out**: off for Fawaz. He has no Check in tab and isn't on the attendance board, map, late list or monthly export. Managers who don't check in still see everyone else's attendance.
+- **Can be given tasks**: off for Fawaz. He doesn't appear in anyone's "Assign to" list (the database blocks it too), but he can give himself a reminder task.
 
 ## Tech
 

@@ -121,7 +121,12 @@ export default function AppShell() {
     { to: "/announcements", label: "Announcements", icon: Megaphone, count: unacked },
     { to: "/calendar", label: "Calendar", icon: CalendarDays },
     { to: "/chat", label: "Team chat", icon: MessagesSquare },
-    { to: "/attendance", label: "Check in", icon: MapPin },
+    // People who don't check in see "Attendance" (the team's board) if they manage, otherwise nothing.
+    ...(!me.attendance_exempt
+      ? [{ to: "/attendance", label: "Check in", icon: MapPin }]
+      : canAssign
+        ? [{ to: "/attendance", label: "Attendance", icon: MapPin }]
+        : []),
   ];
   const manage = [
     ...(canAssign ? [{ to: "/workload", label: "Workload", icon: BarChart3 }] : []),
@@ -183,9 +188,11 @@ export default function AppShell() {
           <Wordmark height={15} />
         </div>
         <div className="side right">
-          <Link to="/attendance" className="icon-btn plain" aria-label="Check in">
-            <MapPin />
-          </Link>
+          {!me.attendance_exempt && (
+            <Link to="/attendance" className="icon-btn plain" aria-label="Check in">
+              <MapPin />
+            </Link>
+          )}
           <Link to="/settings" aria-label="Settings">
             <Avatar person={me} size={32} />
           </Link>

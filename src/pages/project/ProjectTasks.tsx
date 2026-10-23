@@ -55,7 +55,7 @@ export function ProjectTasks({ project }: { project: Project }) {
       <div className="view-head">
         <select className="select inline-select" value={person} onChange={(e) => setPerson(e.target.value)} aria-label="Filter by person">
           <option value="">Everyone</option>
-          {people.active.map((p) => (
+          {people.active.filter((p) => p.assignable !== false || tasks.some((t) => t.assignee_id === p.id)).map((p) => (
             <option key={p.id} value={p.id}>
               {p.short_name}
             </option>

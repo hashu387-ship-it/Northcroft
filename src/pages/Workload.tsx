@@ -57,7 +57,7 @@ export default function Workload() {
       <div className="page">
         <PageHead title="Workload" />
         <div className="glass">
-          <Empty icon={<Lock />} title="This page is for Hassan and the seniors">
+          <Empty icon={<Lock />} title="This page is for managers and seniors">
             It shows how busy everyone is so work can be shared out fairly.
           </Empty>
         </div>
@@ -65,7 +65,8 @@ export default function Workload() {
     );
   }
 
-  const rows = people.active.map((p) => {
+  // People who take tasks, plus anyone else who happens to have one (e.g. a reminder they set themselves).
+  const rows = people.active.filter((p) => p.assignable !== false || active.some((t) => t.assignee_id === p.id)).map((p) => {
     const mine = active.filter((t) => t.assignee_id === p.id);
     return { person: p, total: mine.length, cells: cols.map((c) => mine.filter(c.match)) };
   });
