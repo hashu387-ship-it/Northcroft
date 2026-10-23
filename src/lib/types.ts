@@ -135,7 +135,15 @@ export interface Comment {
   voice_peaks: number[] | null;
   transcript: string | null;
   transcript_status: TranscriptStatus | null;
+  /** Set for messages in a private one-to-one or group chat. */
+  conversation_id: string | null;
+  /** The message this one replies to (it may since have been taken down). */
+  reply_to: string | null;
+  /** Grey group lines such as "Hassan added Rimash"; null for normal messages. */
+  event: ChatEvent | null;
 }
+
+export type ChatEvent = "created" | "added" | "removed" | "left" | "renamed" | "admin";
 
 export interface Attachment {
   id: string;
@@ -147,9 +155,69 @@ export interface Attachment {
   mime: string | null;
   size: number | null;
   uploaded_by: string | null;
-  /** Set when the file is in Google Drive (over 50 MB) rather than the app's storage. */
+  /** Set when the file is in Google Drive rather than the app's storage. */
   drive_file_id: string | null;
+  /** Set for files in a private one-to-one or group chat. */
+  conversation_id: string | null;
+  /** For an edited copy: the first version of the file. */
+  version_of: string | null;
+  /** 1 for the original, 2 for the first edited copy, and so on. */
+  version: number;
   created_at: string;
+}
+
+/* ---------------------------------------------------------------- chats */
+export interface Conversation {
+  id: string;
+  kind: "direct" | "group";
+  name: string | null;
+  direct_key: string | null;
+  created_by: string | null;
+  created_at: string;
+  last_message_at: string;
+}
+
+export interface ConversationMember {
+  conversation_id: string;
+  user_id: string;
+  is_admin: boolean;
+  added_by: string | null;
+  joined_at: string;
+  left_at: string | null;
+}
+
+/** One row of the Chats list (from the my_chats() database function). */
+export interface ChatSummary {
+  /** "team", "project:<id>" or "conv:<id>" */
+  chat: string;
+  kind: "team" | "project" | "direct" | "group";
+  conversation_id: string | null;
+  project_id: string | null;
+  name: string;
+  members: string[] | null;
+  is_admin: boolean;
+  last_at: string | null;
+  last_body: string | null;
+  last_author: string | null;
+  last_voice: boolean;
+  last_event: ChatEvent | null;
+  unread: number;
+}
+
+export interface ChatRead {
+  user_id: string;
+  chat: string;
+  read_at: string;
+}
+
+export type ReactionKind = "like" | "done" | "love" | "haha" | "thanks" | "sad";
+
+export interface Reaction {
+  comment_id: string;
+  user_id: string;
+  /** null when the reaction was taken back */
+  reaction: ReactionKind | null;
+  updated_at: string;
 }
 
 export interface Activity {

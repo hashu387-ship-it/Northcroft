@@ -22,15 +22,24 @@ export async function previewUrls(rows: Attachment[]): Promise<Record<string, st
   return { ...fromStorage, ...fromDrive };
 }
 
+export interface UploadTarget {
+  taskId?: string | null;
+  projectId?: string | null;
+  commentId?: string | null;
+  /** A private one-to-one or group chat: the file is only for the people in it. */
+  conversationId?: string | null;
+  /** This file is an edited copy (new version) of that attachment. */
+  versionOf?: string | null;
+  userId: string;
+  onProgress?: (fraction: number) => void;
+}
+
 /**
  * Attach a file to a task, project or chat message. Every file, whoever uploads it, goes straight
  * to the team's Google Drive (the project's folder, or General); `onProgress` gets 0 to 1.
  * Until a manager connects Drive, files up to 50 MB are kept in the app's own storage instead.
  */
-export async function uploadFile(
-  file: File,
-  opts: { taskId?: string | null; projectId?: string | null; commentId?: string | null; userId: string; onProgress?: (fraction: number) => void },
-): Promise<Attachment> {
+export async function uploadFile(file: File, opts: UploadTarget): Promise<Attachment> {
   try {
     return await uploadToDrive(file, opts, opts.onProgress);
   } catch (e) {
@@ -41,8 +50,10 @@ export async function uploadFile(
     }
     // Drive isn't connected yet: keep the file in the app's storage for now.
   }
-  const folder = opts.projectId ?? "general";
-  const path = `${folder}/${opts.taskId ?? "project"}/${crypto.randomUUID()}-${safeName(file.name)}`;
+  // Private chat files live under c/<chat id>/, which only the people in that chat can read.
+  const path = opts.conversationId
+    ? `c/${opts.conversationId}/${crypto.randomUUID()}-${safeName(file.name)}`
+    : `${opts.projectId ?? "general"}/${opts.taskId ?? "project"}/${crypto.randomUUID()}-${safeName(file.name)}`;
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
@@ -58,6 +69,8 @@ export async function uploadFile(
       task_id: opts.taskId ?? null,
       project_id: opts.projectId ?? null,
       comment_id: opts.commentId ?? null,
+      conversation_id: opts.conversationId ?? null,
+      version_of: opts.versionOf ?? null,
       uploaded_by: opts.userId,
     })
     .select()
@@ -119,3 +132,116 @@ export async function deleteAttachment(a: Attachment) {
 
 export const isImage = (a: Pick<Attachment, "mime" | "name">) =>
   (a.mime ?? "").startsWith("image/") || /\.(png|jpe?g|gif|webp|heic)$/i.test(a.name);
+
+/* ---------------------------------------------------------------- viewing and editing in the app */
+
+/** Which in-app tool opens a file: the PDF tool, the spreadsheet tool, or neither (opens in a new tab). */
+export type FileKind = "pdf" | "sheet" | "other";
+
+export function fileKind(a: Pick<Attachment, "mime" | "name">): FileKind {
+  const mime = (a.mime ?? "").toLowerCase();
+  if (mime === "application/pdf" || /\.pdf$/i.test(a.name)) return "pdf";
+  if (
+    /\.(xlsx|xlsm|xls|csv)$/i.test(a.name) ||
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/vnd.ms-excel.sheet.macroenabled.12" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "text/csv"
+  ) {
+    return "sheet";
+  }
+  return "other";
+}
+
+/** "BOQ rev 3.xlsx" + 2 -> "BOQ rev 3 (v2).xlsx"; an existing "(v4)" is replaced. */
+export function versionName(name: string, version: number): string {
+  const dot = name.lastIndexOf(".");
+  const base = (dot > 0 ? name.slice(0, dot) : name).replace(/\s*\(v\d+\)$/i, "");
+  const ext = dot > 0 ? name.slice(dot) : "";
+  return `${base} (v${version})${ext}`;
+}
+
+async function readWithProgress(res: Response, onProgress?: (fraction: number) => void): Promise<ArrayBuffer> {
+  const total = Number(res.headers.get("content-length")) || 0;
+  if (!res.body || !total || !onProgress) return res.arrayBuffer();
+  const reader = res.body.getReader();
+  const parts: Uint8Array[] = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    got += value.length;
+    onProgress(Math.min(1, got / total));
+  }
+  const out = new Uint8Array(got);
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.length;
+  }
+  return out.buffer;
+}
+
+/** The file's contents, from Google Drive or the app's storage. `onProgress` gets 0 to 1. */
+export async function fetchAttachmentData(a: Attachment, onProgress?: (fraction: number) => void): Promise<ArrayBuffer> {
+  const url = isOnDrive(a) ? await driveLink(a) : await signedUrl(a.path);
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(res.status === 404 || res.status === 410 ? "This file is no longer there." : `The file didn't download (${res.status}). Try again.`);
+  }
+  return readWithProgress(res, onProgress);
+}
+
+/** Every version of a file (the original and its edited copies), newest first. */
+export async function fileVersions(a: Pick<Attachment, "id" | "version_of">): Promise<Attachment[]> {
+  const root = a.version_of ?? a.id;
+  const { data, error } = await supabase.from("attachments").select("*").or(`id.eq.${root},version_of.eq.${root}`).order("version", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Attachment[];
+}
+
+/**
+ * Save an edited copy next to the original, as its next version. A file that was shared in a chat
+ * or a task comment is shared again in the same place ("Edited plan.pdf, version 2"), so the people
+ * there see it; a file on a task or project is added to the same task or project.
+ */
+export async function saveNewVersion(
+  original: Attachment,
+  data: Blob,
+  opts: { userId: string; nextVersion: number; onProgress?: (fraction: number) => void },
+): Promise<Attachment> {
+  const name = versionName(original.name, opts.nextVersion);
+  const file = new File([data], name, { type: data.type || original.mime || "application/octet-stream" });
+  let where = { taskId: original.task_id, projectId: original.project_id, conversationId: original.conversation_id };
+  let commentId: string | null = null;
+
+  if (original.comment_id) {
+    const { data: msg } = await supabase.from("comments").select("task_id, project_id, conversation_id").eq("id", original.comment_id).maybeSingle();
+    if (msg) {
+      where = { taskId: msg.task_id, projectId: msg.project_id, conversationId: msg.conversation_id };
+      const { data: posted, error } = await supabase
+        .from("comments")
+        .insert({
+          body: `Edited ${original.name}, saved as version ${opts.nextVersion}`,
+          mentions: [],
+          author_id: opts.userId,
+          task_id: msg.task_id,
+          project_id: msg.project_id,
+          conversation_id: msg.conversation_id,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      commentId = posted.id;
+    }
+  }
+
+  return uploadFile(file, {
+    ...where,
+    commentId,
+    versionOf: original.id,
+    userId: opts.userId,
+    onProgress: opts.onProgress,
+  });
+}

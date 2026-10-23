@@ -55,8 +55,10 @@ export interface Recording {
   peaks: number[];
 }
 
-export async function uploadVoice(rec: Recording, userId: string): Promise<string> {
-  const path = `voice/${userId}/${crypto.randomUUID()}.${extFor(rec.mime)}`;
+/** Store a voice note. In a private chat it goes under c/<chat id>/ so only the people in it can play it. */
+export async function uploadVoice(rec: Recording, userId: string, conversationId?: string | null): Promise<string> {
+  const name = `${crypto.randomUUID()}.${extFor(rec.mime)}`;
+  const path = conversationId ? `c/${conversationId}/voice/${userId}-${name}` : `voice/${userId}/${name}`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, rec.blob, { contentType: rec.mime, upsert: false });
   if (error) throw error;
   return path;

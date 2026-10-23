@@ -12,7 +12,8 @@
 //   disconnect      manager: stop using Drive (files stay in Drive)
 //   start_upload    start a resumable upload; the browser then sends the file straight to Google
 //   finish_upload   check the upload in Drive and add it to the task, project or chat
-//   link            a 1-hour link that opens a Drive file through this function
+//   link            a 1-hour link that opens a Drive file through this function (only files the
+//                   person can see: private chat files are for the people in that chat)
 //   links           the same for up to 100 files at once (photo previews)
 //   delete          remove the attachment and move the file to the Drive bin
 // GET /drive/callback   Google sends the manager back here after they allow access
@@ -263,29 +264,64 @@ async function disconnect(me: Me) {
   return { ok: true };
 }
 
-/* ---------------------------------------------------------------- uploads */
-type Target = { project_id?: string | null; task_id?: string | null; comment_id?: string | null };
+/** The database as the signed-in person, so the normal rules decide what they can see. */
+function asUser(req: Request) {
+  return createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
-async function checkTarget(t: Target, me: Me): Promise<string | null> {
+/* ---------------------------------------------------------------- uploads */
+type Target = {
+  project_id?: string | null;
+  task_id?: string | null;
+  comment_id?: string | null;
+  /** A private one-to-one or group chat. */
+  conversation_id?: string | null;
+  /** This upload is an edited copy (new version) of that attachment. */
+  version_of?: string | null;
+};
+
+async function checkTarget(t: Target, me: Me, req: Request): Promise<string | null> {
   let projectId = t.project_id ?? null;
   if (t.task_id) {
     const { data: task } = await admin.from("tasks").select("id, project_id").eq("id", t.task_id).maybeSingle();
     if (!task) throw new UserError("That task no longer exists.", 404);
     projectId = task.project_id;
   }
+  let conversation = t.conversation_id ?? null;
   if (t.comment_id) {
-    const { data: c } = await admin.from("comments").select("author_id").eq("id", t.comment_id).maybeSingle();
+    const { data: c } = await admin.from("comments").select("author_id, conversation_id").eq("id", t.comment_id).maybeSingle();
     if (!c || c.author_id !== me.id) throw new UserError("That message isn't yours.", 403);
+    conversation = c.conversation_id ?? conversation;
+  }
+  if (conversation) {
+    const { data: m } = await admin
+      .from("conversation_members")
+      .select("user_id")
+      .eq("conversation_id", conversation)
+      .eq("user_id", me.id)
+      .is("left_at", null)
+      .maybeSingle();
+    if (!m) throw new UserError("You're not in that chat.", 403);
+    // Private chat files go in the General folder, never a project folder.
+    projectId = null;
+  }
+  if (t.version_of) {
+    // Only a file this person can see can get a new version.
+    const { data: o } = await asUser(req).from("attachments").select("id").eq("id", t.version_of).maybeSingle();
+    if (!o) throw new UserError("The original file is no longer there.", 404);
   }
   return projectId;
 }
 
-async function startUpload(body: Target & { name?: string; mime?: string; size?: number }, me: Me, origin: string) {
+async function startUpload(body: Target & { name?: string; mime?: string; size?: number }, me: Me, origin: string, req: Request) {
   const name = String(body.name ?? "").trim().slice(0, 240) || "file";
   const size = Number(body.size);
   if (!Number.isFinite(size) || size <= 0) throw new UserError("That file is empty.");
   if (size > 5 * 1024 ** 4) throw new UserError("That file is too big for Google Drive.");
-  const projectId = await checkTarget(body, me);
+  const projectId = await checkTarget(body, me, req);
   const folder = await folderFor(projectId);
   const mime = body.mime || "application/octet-stream";
   // The Origin header lets the browser send the file straight to Google (CORS).
@@ -312,10 +348,10 @@ async function startUpload(body: Target & { name?: string; mime?: string; size?:
   return { upload_url: location, folder_id: folder };
 }
 
-async function finishUpload(body: Target & { file_id?: string }, me: Me) {
+async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Request) {
   const id = String(body.file_id ?? "");
   if (!/^[\w-]{10,}$/.test(id)) throw new UserError("Upload not found.");
-  const projectId = await checkTarget(body, me);
+  const projectId = await checkTarget(body, me, req);
   const res = await drive(`/files/${id}?fields=id,name,size,mimeType,parents,trashed,appProperties`);
   if (!res.ok) throw new UserError("Couldn't find the uploaded file in Google Drive.", 404);
   const f = await res.json();
@@ -333,6 +369,8 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me) {
       task_id: body.task_id ?? null,
       project_id: projectId,
       comment_id: body.comment_id ?? null,
+      conversation_id: body.conversation_id ?? null,
+      version_of: body.version_of ?? null,
       uploaded_by: me.id,
     })
     .select()
@@ -350,8 +388,8 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me) {
 /* ---------------------------------------------------------------- opening */
 const INLINE = /^(application\/pdf|image\/(png|jpe?g|gif|webp)|video\/(mp4|webm|quicktime)|audio\/|text\/plain)/i;
 
-async function link(body: { attachment_id?: string; download?: boolean }) {
-  const { data: a } = await admin.from("attachments").select("id, drive_file_id").eq("id", body.attachment_id ?? "").maybeSingle();
+async function link(body: { attachment_id?: string; download?: boolean }, req: Request) {
+  const { data: a } = await asUser(req).from("attachments").select("id, drive_file_id").eq("id", body.attachment_id ?? "").maybeSingle();
   if (!a?.drive_file_id) throw new UserError("File not found.", 404);
   const e = Math.floor(Date.now() / 1000) + LINK_HOURS * 3600;
   const d = body.download ? "1" : "0";
@@ -360,10 +398,10 @@ async function link(body: { attachment_id?: string; download?: boolean }) {
 }
 
 /** Links for several files at once (photo previews in chats and file lists). */
-async function links(body: { attachment_ids?: string[] }) {
+async function links(body: { attachment_ids?: string[] }, req: Request) {
   const ids = (body.attachment_ids ?? []).filter((x) => typeof x === "string").slice(0, 100);
   if (!ids.length) return { urls: {} };
-  const { data } = await admin.from("attachments").select("id, path, drive_file_id").in("id", ids);
+  const { data } = await asUser(req).from("attachments").select("id, path, drive_file_id").in("id", ids);
   const e = Math.floor(Date.now() / 1000) + LINK_HOURS * 3600;
   const urls: Record<string, string> = {};
   for (const a of data ?? []) {
@@ -409,11 +447,7 @@ async function stream(req: Request, url: URL): Promise<Response> {
 /* ---------------------------------------------------------------- delete */
 async function remove(body: { attachment_id?: string }, req: Request) {
   // Delete as the signed-in person so the normal rule applies (their own files, or managers and seniors).
-  const asUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await asUser.from("attachments").delete().eq("id", body.attachment_id ?? "").select("drive_file_id");
+  const { data, error } = await asUser(req).from("attachments").delete().eq("id", body.attachment_id ?? "").select("drive_file_id");
   if (error) throw new UserError(error.message, 400);
   if (!data?.length) throw new UserError("You can't delete that file.", 403);
   const fileId = data[0].drive_file_id as string | null;
@@ -451,13 +485,13 @@ Deno.serve(async (req) => {
       case "disconnect":
         return json(await disconnect(me));
       case "start_upload":
-        return json(await startUpload(body, me, origin));
+        return json(await startUpload(body, me, origin, req));
       case "finish_upload":
-        return json(await finishUpload(body, me));
+        return json(await finishUpload(body, me, req));
       case "link":
-        return json(await link(body));
+        return json(await link(body, req));
       case "links":
-        return json(await links(body));
+        return json(await links(body, req));
       case "delete":
         return json(await remove(body, req));
       default:

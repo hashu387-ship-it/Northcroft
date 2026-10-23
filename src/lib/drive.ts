@@ -48,6 +48,8 @@ export interface DriveTarget {
   taskId?: string | null;
   projectId?: string | null;
   commentId?: string | null;
+  conversationId?: string | null;
+  versionOf?: string | null;
 }
 
 /**
@@ -55,7 +57,13 @@ export interface DriveTarget {
  * subfolder, or General), then attach it. `onProgress` gets 0 to 1.
  */
 export async function uploadToDrive(file: File, target: DriveTarget, onProgress?: (fraction: number) => void): Promise<Attachment> {
-  const ids = { project_id: target.projectId ?? null, task_id: target.taskId ?? null, comment_id: target.commentId ?? null };
+  const ids = {
+    project_id: target.projectId ?? null,
+    task_id: target.taskId ?? null,
+    comment_id: target.commentId ?? null,
+    conversation_id: target.conversationId ?? null,
+    version_of: target.versionOf ?? null,
+  };
   const { upload_url } = await driveCall<{ upload_url: string }>("start_upload", {
     ...ids,
     name: file.name,

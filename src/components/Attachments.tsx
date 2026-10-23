@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { FileSpreadsheet, FileText, HardDrive, Paperclip, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
-import { deleteAttachment, isImage, isOnDrive, openAttachment, previewUrls, uploadFile } from "@/lib/files";
+import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fileSize } from "@/lib/format";
 import { timeAgo } from "@/lib/time";
 import type { Attachment } from "@/lib/types";
 import { Empty, Loading, useConfirm, useToast } from "./ui";
+import { useOpenFile } from "./useOpenFile";
 
 function FileIcon({ a }: { a: Attachment }) {
   if (/\.(xlsx?|csv)$/i.test(a.name)) return <FileSpreadsheet />;
@@ -64,13 +65,7 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
     }
   }
 
-  async function open(a: Attachment) {
-    try {
-      await openAttachment(a);
-    } catch (e) {
-      toast(errorMessage(e), "error");
-    }
-  }
+  const open = useOpenFile();
 
   async function remove(a: Attachment) {
     if (!(await confirm({ title: `Delete ${a.name}?`, confirmLabel: "Delete", danger: true }))) return;
@@ -119,6 +114,7 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
                         {" · "}
                       </>
                     )}
+                    {a.version > 1 ? `Version ${a.version} · ` : ""}
                     {fileSize(a.size)} · {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
                   </span>
                 </span>

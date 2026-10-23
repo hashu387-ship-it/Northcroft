@@ -95,8 +95,17 @@ Deno.serve(async (req) => {
       : Promise.resolve({ data: null }),
     sameConversation(),
   ]);
+  // Group and one-to-one chats: the group's name, or nothing for a one-to-one chat.
+  const convId = isChat(n) && n.link?.startsWith("/chats/") ? n.link.slice(7) : null;
+  const { data: conv } = convId
+    ? await supabase.from("conversations").select("kind, name").eq("id", convId).maybeSingle<{ kind: string; name: string | null }>()
+    : { data: null };
 
-  const shown = compose(n, actor ?? null, { place: project?.name, count: waiting ?? 1 });
+  const shown = compose(n, actor ?? null, {
+    place: conv?.name ?? project?.name,
+    direct: conv?.kind === "direct",
+    count: waiting ?? 1,
+  });
   const tag = tagFor(n);
   const path = n.link || "/inbox";
   const person = actor

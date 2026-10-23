@@ -35,9 +35,10 @@ export function slug(link: string): string {
   return link.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-/** Team chat and project chat messages (not task comments). */
-export function isChat(n: Pick<NotificationRow, "task_id" | "link">): boolean {
-  return !n.task_id && !!n.link && /\/chat$/.test(n.link);
+/** Team chat, project chat, group and one-to-one messages (not task comments). */
+export function isChat(n: Pick<NotificationRow, "task_id" | "link" | "type">): boolean {
+  if (n.task_id || !n.link || n.type === "group_added") return false;
+  return /\/chat$/.test(n.link) || /^\/chats\/[0-9a-f-]{36}$/.test(n.link);
 }
 
 /**
@@ -60,7 +61,7 @@ function startsWithName(text: string, name: string) {
 export function compose(
   n: NotificationRow,
   actor: Actor | null,
-  opts: { place?: string | null; count?: number } = {},
+  opts: { place?: string | null; count?: number; direct?: boolean } = {},
 ): { title: string; body: string } {
   if (!actor) return { title: n.title, body: n.body ?? "" };
 
@@ -68,8 +69,11 @@ export function compose(
   const count = opts.count ?? 1;
   const lines: string[] = [];
 
-  if (isChat(n)) {
-    // "Team chat: can you send the L14 drawings?"
+  if (isChat(n) && opts.direct) {
+    // One-to-one: the sender's name is the title, so the message stands on its own.
+    lines.push((n.body ?? "").trim());
+  } else if (isChat(n)) {
+    // "Team chat: can you send the L14 drawings?" or "Site team: ..." for a group.
     const place = opts.place?.trim() || "Team chat";
     lines.push(`${cap(place)}: ${(n.body ?? "").trim()}`);
   } else {
