@@ -59,7 +59,9 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Edge Functions:
     - `send-push` sends Web Push messages, signed with VAPID keys kept in Supabase Vault.
     - `admin-users` lets the manager add people and reset passwords.
-    - `transcribe` writes voice notes out in English with Groq Whisper (`whisper-large-v3`). It needs a `GROQ_API_KEY` secret (Supabase dashboard > Edge Functions > Secrets). Without it, voice notes still work but show "Voice-to-text isn't switched on yet".
+    - `transcribe` writes voice notes out in English in two steps:
+      1. Groq Whisper (`whisper-large-v3`) turns the speech into English text. This needs a `GROQ_API_KEY` secret (Supabase dashboard > Edge Functions > Secrets). Without it, voice notes still work but show "Voice-to-text isn't switched on yet".
+      2. Claude (`claude-opus-5-5`, low effort) tidies the text. It corrects misheard names, projects and QS terms and fixes punctuation, without changing the meaning. This step is optional and turns on with an `ANTHROPIC_API_KEY` secret. If Claude is unavailable, the Groq text is used as it is.
 - **Database**: the SQL is in `supabase/migrations/`, and the Edge Function source is in `supabase/functions/`.
 
 ## Running locally
