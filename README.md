@@ -31,6 +31,10 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
     - @mentions, and comments on tasks you follow
     - announcements and calendar invites
     - 8:00 am reminders, Sunday to Thursday, for work that's due or overdue
+- **Check-in and check-out reminders**, on working days, for everyone set to check in:
+  - 8:30 am: "Good morning Imthath. It's 8:30 and you haven't checked in yet. Tap to check in." Not sent to anyone with a Leave entry on the Calendar that day.
+  - 5:30 pm: "Remember to check out when you leave", and at 6:30 pm "you're still checked in" for anyone who still hasn't.
+  - Each goes out once a day. Checking in or out marks that day's reminder as read. The times follow the working hours in Settings > Working hours.
 - **Calendar**: task due dates, VO action dates, BOQ deadlines, site visits and meetings.
 - **Check in and check out** with location:
   - Each check-in is labelled Office, a project site or Elsewhere.

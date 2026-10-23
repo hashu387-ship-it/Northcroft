@@ -66,7 +66,7 @@ export function HoursSection() {
       title="Working hours"
       sub={
         isManager
-          ? "Used to flag late check-ins and early check-outs, and to send reminders only on working days."
+          ? "Used to flag late check-ins and early check-outs, and to send reminders only on working days. The check-in reminder goes out at the start of the day to anyone not checked in; check-out reminders go out at the end of the day and an hour later to anyone still checked in."
           : `Work hours are ${fmtClock(s.work_start)} to ${fmtClock(s.work_end)}. Only Hassan can change these.`
       }
     >

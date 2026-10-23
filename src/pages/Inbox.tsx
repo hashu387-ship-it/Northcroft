@@ -28,6 +28,8 @@ import {
   SquareCheckBig,
   TriangleAlert,
   type LucideIcon,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, Empty, Loading, Segmented, useToast } from "@/components/ui";
@@ -66,6 +68,8 @@ const TYPE_META: Record<string, { icon: LucideIcon; color: string; label: string
   boq_assigned: { icon: Layers, color: "#30B0C7", label: "BOQ" },
   boq_update: { icon: Layers, color: "#30B0C7", label: "BOQ" },
   boq_due: { icon: Layers, color: "#FF3B30", label: "BOQ" },
+  checkin_reminder: { icon: LogIn, color: "#0A84FF", label: "Check in" },
+  checkout_reminder: { icon: LogOut, color: "#FF9F0A", label: "Check out" },
   test: { icon: Bell, color: "#8E8E93", label: "Test" },
 };
 const ASSIGNED = new Set(["task_assigned", "checklist_assigned", "vo_assigned", "boq_assigned"]);

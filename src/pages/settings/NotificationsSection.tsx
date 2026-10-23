@@ -18,6 +18,7 @@ const TRIGGERS = [
   "New announcements, and a reminder if you haven't acknowledged one",
   "Calendar events you're added to",
   "8:00 am reminders, Sunday to Thursday, for work due today, due next and overdue",
+  "8:30 am if you haven't checked in yet, and 5:30 pm and 6:30 pm if you're still checked in (on working days, not when you're on leave)",
 ];
 
 export function NotificationsSection() {
