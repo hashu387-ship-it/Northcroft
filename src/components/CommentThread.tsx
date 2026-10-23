@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { FileText, MessageCircle, Mic, Paperclip, SendHorizontal, Trash2, X } from "lucide-react";
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
-import { useMe } from "@/lib/auth";
+import { useAuth, useMe } from "@/lib/auth";
+import { assist, type TaskDraft } from "@/lib/assist";
 import { isImage, signedUrl, signedUrls, uploadFile } from "@/lib/files";
 import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, supabase } from "@/lib/supabase";
@@ -13,6 +14,8 @@ import type { Attachment, Comment, Profile } from "@/lib/types";
 import { Avatar, Empty, Loading, useConfirm, useToast } from "./ui";
 import { PersonAvatar, openPersonCard } from "./People";
 import { RecorderBar, VoiceNote } from "./Voice";
+import { CatchUpSheet, ClaudeIcon } from "./Assist";
+import { TaskForm, type TaskDefaults } from "./TaskForm";
 import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
 
 type Scope = { kind: "task"; taskId: string; projectId: string | null } | { kind: "project"; projectId: string } | { kind: "team" };
@@ -55,6 +58,32 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
   const invalidate = useInvalidate();
   const listRef = useRef<HTMLDivElement>(null);
   const isChat = scope.kind !== "task";
+  const { canAssign } = useAuth();
+  // Claude: "Catch me up" for everyone; "Make a task" for Hassan and the seniors.
+  const [catchUp, setCatchUp] = useState(false);
+  const [making, setMaking] = useState<string | null>(null);
+  const [draft, setDraft] = useState<TaskDefaults | null>(null);
+
+  async function makeTask(c: Comment) {
+    setMaking(c.id);
+    try {
+      const d = await assist<TaskDraft>("task_from_text", { comment_id: c.id });
+      setDraft({
+        title: d.title,
+        description: d.description,
+        assigneeId: d.assignee_id,
+        dueDate: d.due_date,
+        projectId: d.project_id ?? (scope.kind === "team" ? null : scope.projectId),
+        priority: d.priority,
+        steps: d.steps,
+      });
+      toast("Claude drafted it. Check the details, then assign.", "info");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setMaking(null);
+    }
+  }
 
   // Reading a chat clears its notifications (task pages do this for the whole task).
   useMarkSeen(scope.kind === "team" ? { link: "/chat" } : scope.kind === "project" ? { link: `/projects/${scope.projectId}/chat` } : null);
@@ -119,6 +148,13 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
 
   return (
     <div className="stack" style={{ gap: 12 }}>
+      {list.length >= 3 && (
+        <div className="thread-tools">
+          <button className="btn small claude" type="button" onClick={() => setCatchUp(true)}>
+            <ClaudeIcon size={15} /> Catch me up
+          </button>
+        </div>
+      )}
       <div ref={listRef} className="thread" style={height ? { maxHeight: height, overflowY: "auto", paddingRight: 4 } : undefined}>
         {comments.isLoading && <Loading />}
         {!comments.isLoading && list.length === 0 && (
@@ -192,6 +228,18 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
                       {!isChat && dateOf(c.created_at) !== todayISO() ? `${fmtDue(dateOf(c.created_at))}, ` : ""}
                       {fmtTime12(c.created_at)}
                     </span>
+                    {canAssign && (c.voice_path ? !!c.transcript : !!c.body.trim()) && (
+                      <button
+                        type="button"
+                        className="make-task"
+                        onClick={() => makeTask(c)}
+                        disabled={making !== null}
+                        title="Claude drafts a task from this message for you to check"
+                      >
+                        {making === c.id ? <span className="vspin" /> : <ClaudeIcon size={13} />}
+                        {making === c.id ? "Reading..." : "Make a task"}
+                      </button>
+                    )}
                     {mine && (
                       <button className="icon-btn small plain" style={{ width: 22, height: 22, color: "inherit" }} onClick={() => remove(c)} aria-label="Delete message" type="button">
                         <Trash2 size={13} />
@@ -205,6 +253,13 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
         })}
       </div>
       <Composer scope={scope} placeholder={placeholder ?? (isChat ? "Message the team" : "Add a comment")} />
+      <CatchUpSheet
+        open={catchUp}
+        onClose={() => setCatchUp(false)}
+        scope={scope.kind === "task" ? { kind: "task", taskId: scope.taskId } : scope}
+        place={scope.kind === "team" ? "team chat" : scope.kind === "project" ? "the project chat" : "this task"}
+      />
+      {canAssign && <TaskForm open={!!draft} onClose={() => setDraft(null)} defaults={draft ?? undefined} />}
     </div>
   );
 }

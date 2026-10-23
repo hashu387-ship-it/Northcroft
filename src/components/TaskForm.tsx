@@ -14,6 +14,11 @@ export interface TaskDefaults {
   projectId?: string | null;
   assigneeId?: string | null;
   dueDate?: string | null;
+  /** Filled in when Claude drafts the task from a chat message or voice note. */
+  title?: string;
+  description?: string;
+  priority?: Priority;
+  steps?: string[];
 }
 
 export function TaskForm({
@@ -52,20 +57,21 @@ export function TaskForm({
 
   useEffect(() => {
     if (!open) return;
-    setTitle(task?.title ?? "");
-    setDescription(task?.description ?? "");
+    setTitle(task?.title ?? defaults?.title ?? "");
+    setDescription(task?.description ?? defaults?.description ?? "");
     setProjectId(task ? task.project_id : defaults?.projectId ?? null);
     setAssigneeId(task ? task.assignee_id : defaults?.assigneeId ?? null);
     setReviewerId(task ? task.reviewer_id : me.id);
     setDueDate(task?.due_date ?? defaults?.dueDate ?? addDays(todayISO(), 2));
-    setPriority(task?.priority ?? "normal");
+    setPriority(task?.priority ?? defaults?.priority ?? "normal");
     setEstimate(task?.estimate_hours ? String(task.estimate_hours) : "");
-    setSteps([]);
+    setSteps(task ? [] : defaults?.steps ?? []);
     setRepeat("none");
     setWeekday(0);
     setMonthDay(Math.min(28, Number(todayISO().slice(8, 10))));
     setOffset(2);
-  }, [open, task, defaults?.projectId, defaults?.assigneeId, defaults?.dueDate, me.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, task, defaults?.projectId, defaults?.assigneeId, defaults?.dueDate, defaults?.title, defaults?.description, defaults?.priority, defaults?.steps?.join("\n"), me.id]);
 
   const cleanSteps = steps.map((s) => s.trim()).filter(Boolean);
 

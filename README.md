@@ -26,6 +26,11 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 - **Voice notes** in team chat, project chat, task comments and announcements:
   - Tap the microphone, speak (up to 3 minutes), then send. Others get a play button with a waveform.
   - Each note is written out in English a few seconds later, even if spoken in Arabic or Tamil. The sender can correct the text.
+- **Claude helpers** (the red sparkle buttons):
+  - **Status report** (Projects page, and Report on each project). Claude writes the team report in Hassan's usual format: project, then each person with their email and what they did. Choose all projects or one, and today, 3 days, a week or 2 weeks. It flags overdue work, anything waiting for review and changes requested, and adds "Completion status needs confirmation" where progress was reported but nothing submitted. You can edit it, then copy it or send it to WhatsApp.
+  - **Catch me up** (top of every chat and task thread). A short summary of the last day, 3 days or week: decisions, who's doing what, open questions, and anything asked of you. Voice notes are included.
+  - **Make a task** (under each message, for Hassan and the seniors). Claude reads the message or voice note and fills in the New task form: title, who, project, due date (it understands "by Sunday" and "end of the week"), priority and checklist steps. You check it, then press Assign.
+  - **Write it up with Claude** (New announcement). Type rough notes or record a voice note in English, Arabic or Tamil, and Claude writes a clear announcement. Undo puts your own text back.
 - **Profiles and WhatsApp**:
   - Everyone adds a photo and a +966 mobile number the first time they sign in.
   - Tap anyone's photo to see their card, with WhatsApp, call and email buttons.
@@ -60,8 +65,10 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
     - `send-push` sends Web Push messages, signed with VAPID keys kept in Supabase Vault.
     - `admin-users` lets the manager add people and reset passwords.
     - `transcribe` writes voice notes out in English in two steps:
-      1. Groq Whisper (`whisper-large-v3`) turns the speech into English text. This needs a `GROQ_API_KEY` secret (Supabase dashboard > Edge Functions > Secrets). Without it, voice notes still work but show "Voice-to-text isn't switched on yet".
-      2. Claude (`claude-opus-5-5`, low effort) tidies the text. It corrects misheard names, projects and QS terms and fixes punctuation, without changing the meaning. This step is optional and turns on with an `ANTHROPIC_API_KEY` secret. If Claude is unavailable, the Groq text is used as it is.
+      1. Groq Whisper (`whisper-large-v3`) writes down what was said, in the language it was spoken, and reports the language. This needs a `GROQ_API_KEY` secret. Without it, voice notes still work but show "Voice-to-text isn't switched on yet".
+      2. Claude (`claude-opus-5-5`, low effort) finishes it. English is tidied (misheard names, projects and QS terms, punctuation). Arabic, Tamil or any other language is translated into English, keeping names, dates and times exactly; this is much more accurate than Whisper's own translation. This step turns on with an `ANTHROPIC_API_KEY` secret. Without Claude, English is kept as Whisper wrote it and other languages use Whisper's translation.
+    - `assist` runs the Claude helpers (status report, catch-up, make a task, announcement writer) for a signed-in team member. It uses `claude-opus-5-5` with Anthropic's automatic fallback, so if Claude declines a request it's retried on Anthropic's recommended fallback model. It needs `ANTHROPIC_API_KEY` (and `GROQ_API_KEY` for voice notes in the announcement writer). Without the key, the buttons say "Claude isn't switched on yet".
+  - Secrets live in Supabase dashboard > Edge Functions > Secrets, never in this repository.
 - **Database**: the SQL is in `supabase/migrations/`, and the Edge Function source is in `supabase/functions/`.
 
 ## Running locally

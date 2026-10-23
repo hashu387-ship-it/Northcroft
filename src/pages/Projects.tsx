@@ -9,6 +9,7 @@ import type { Project } from "@/lib/types";
 import { PageHead } from "@/components/PageHead";
 import { Empty, Loading, Pill, Progress, Segmented } from "@/components/ui";
 import { ProjectCover } from "@/components/ProjectCover";
+import { ClaudeIcon, StatusReportSheet } from "@/components/Assist";
 import { ProjectForm } from "./project/ProjectForm";
 import { useVariations, voTotals } from "./project/api";
 import "@/styles/tasks.css";
@@ -22,6 +23,7 @@ export default function Projects() {
   const vos = useVariations().data ?? [];
   const [filter, setFilter] = useState<Filter>("active");
   const [formOpen, setFormOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const today = todayISO();
 
   const stats = useMemo(() => {
@@ -53,13 +55,19 @@ export default function Projects() {
         title="Projects"
         sub={`${counts.active} active ${counts.active === 1 ? "project" : "projects"}`}
         actions={
-          canAssign && (
-            <button className="btn primary" onClick={() => setFormOpen(true)}>
-              <Plus /> New project
+          <>
+            <button className="btn claude" onClick={() => setReportOpen(true)}>
+              <ClaudeIcon /> Status report
             </button>
-          )
+            {canAssign && (
+              <button className="btn primary" onClick={() => setFormOpen(true)}>
+                <Plus /> New project
+              </button>
+            )}
+          </>
         }
       />
+      <StatusReportSheet open={reportOpen} onClose={() => setReportOpen(false)} />
       <div style={{ marginBottom: 16 }}>
         <Segmented<Filter>
           value={filter}
