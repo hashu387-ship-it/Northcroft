@@ -153,11 +153,11 @@ export function fileKind(a: Pick<Attachment, "mime" | "name">): FileKind {
   return "other";
 }
 
-/** "BOQ rev 3.xlsx" + 2 -> "BOQ rev 3 (v2).xlsx"; an existing "(v4)" is replaced. */
-export function versionName(name: string, version: number): string {
+/** "BOQ rev 3.xlsx" + 2 -> "BOQ rev 3 (v2).xlsx"; an existing "(v4)" is replaced. `extension` swaps the type. */
+export function versionName(name: string, version: number, extension?: string): string {
   const dot = name.lastIndexOf(".");
   const base = (dot > 0 ? name.slice(0, dot) : name).replace(/\s*\(v\d+\)$/i, "");
-  const ext = dot > 0 ? name.slice(dot) : "";
+  const ext = extension ? (extension.startsWith(".") ? extension : `.${extension}`) : dot > 0 ? name.slice(dot) : "";
   return `${base} (v${version})${ext}`;
 }
 
@@ -209,9 +209,9 @@ export async function fileVersions(a: Pick<Attachment, "id" | "version_of">): Pr
 export async function saveNewVersion(
   original: Attachment,
   data: Blob,
-  opts: { userId: string; nextVersion: number; onProgress?: (fraction: number) => void },
+  opts: { userId: string; nextVersion: number; extension?: string; onProgress?: (fraction: number) => void },
 ): Promise<Attachment> {
-  const name = versionName(original.name, opts.nextVersion);
+  const name = versionName(original.name, opts.nextVersion, opts.extension);
   const file = new File([data], name, { type: data.type || original.mime || "application/octet-stream" });
   let where = { taskId: original.task_id, projectId: original.project_id, conversationId: original.conversation_id };
   let commentId: string | null = null;

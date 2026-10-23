@@ -3,6 +3,11 @@
 // panels. The file screen does the loading, the version list, downloading and saving.
 import type { Attachment, Profile } from "@/lib/types";
 
+export interface SaveOptions {
+  /** Save under a different file type, for example ".xlsx" when an old .xls file is saved. */
+  extension?: string;
+}
+
 export interface EditorProps {
   /** The file being shown (one version of it). */
   attachment: Attachment;
@@ -17,7 +22,7 @@ export interface EditorProps {
    * Shows progress and moves the screen to the new version when done. Rejects with a readable
    * message if it couldn't be saved; the tool should keep the person's edits in that case.
    */
-  saveVersion: (file: Blob) => Promise<Attachment>;
+  saveVersion: (file: Blob, opts?: SaveOptions) => Promise<Attachment>;
   /** Tell the file screen whether there are unsaved changes, so closing asks first. */
   setDirty: (dirty: boolean) => void;
 }

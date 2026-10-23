@@ -14,7 +14,7 @@ import { fileSize } from "@/lib/format";
 import { timeAgo } from "@/lib/time";
 import type { Attachment } from "@/lib/types";
 import { Spinner, useConfirm, useToast } from "@/components/ui";
-import type { EditorProps } from "@/features/files/editor";
+import type { EditorProps, SaveOptions } from "@/features/files/editor";
 
 const PdfEditor = lazy(() => import("@/features/pdf/PdfEditor"));
 const SheetEditor = lazy(() => import("@/features/sheet/SheetEditor"));
@@ -144,13 +144,14 @@ export default function FileView() {
   const latest = list[0];
   const nextVersion = Math.max(1, ...list.map((v) => v.version ?? 1)) + 1;
 
-  async function saveVersion(file: Blob): Promise<Attachment> {
+  async function saveVersion(file: Blob, opts?: SaveOptions): Promise<Attachment> {
     if (!a) throw new Error("The file isn't loaded yet.");
     setSaving({ label: `Saving version ${nextVersion}...`, fraction: null });
     try {
       const saved = await saveNewVersion(a, file, {
         userId: me.id,
         nextVersion,
+        extension: opts?.extension,
         onProgress: (x) => setSaving({ label: `Saving version ${nextVersion} to Google Drive, ${Math.round(x * 100)}%`, fraction: x }),
       });
       setDirty(false);
