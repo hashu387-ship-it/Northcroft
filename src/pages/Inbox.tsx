@@ -51,6 +51,7 @@ const TYPE_META: Record<string, { icon: LucideIcon; color: string; label: string
   mention: { icon: AtSign, color: "#FF375F", label: "Mention" },
   comment: { icon: MessageCircle, color: "#30B0C7", label: "Comment" },
   chat: { icon: MessagesSquare, color: "#30D158", label: "Message" },
+  group_added: { icon: MessagesSquare, color: "#30D158", label: "Group" },
   announcement: { icon: Megaphone, color: "#FF9F0A", label: "Announcement" },
   ack_nudge: { icon: BellRing, color: "#FF9F0A", label: "Reminder" },
   due_soon: { icon: Clock, color: "#FF9F0A", label: "Due soon" },

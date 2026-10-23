@@ -1,15 +1,17 @@
 // People helpers: the WhatsApp button, the +966 mobile number box, and the profile card
 // that opens when you tap someone's photo anywhere in the app.
 import "@/styles/people.css";
-import { useSyncExternalStore } from "react";
-import { Link } from "react-router-dom";
+import { useState, useSyncExternalStore } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { Mail, Phone, UserPen } from "lucide-react";
+import { Mail, MessageCircle, Phone, UserPen } from "lucide-react";
 import { usePeople } from "@/lib/api";
+import { startDirectChat } from "@/lib/chats";
+import { errorMessage } from "@/lib/supabase";
 import { useMe } from "@/lib/auth";
 import { COUNTRY_CODE, formatPhone, localDigits, whatsappLink } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
-import { Avatar, Pill, Sheet } from "./ui";
+import { Avatar, Pill, Sheet, useToast } from "./ui";
 
 /* ---------------------------------------------------------------- WhatsApp */
 export function WhatsAppIcon({ size = 18 }: { size?: number }) {
@@ -147,6 +149,23 @@ export function PersonCardHost() {
   const p = id ? people.get(id) : undefined;
   const close = () => setOpenId(null);
   const isMe = p?.id === me.id;
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [opening, setOpening] = useState(false);
+
+  async function message() {
+    if (!p || opening) return;
+    setOpening(true);
+    try {
+      const id = await startDirectChat(p.id);
+      close();
+      navigate(`/chats/${id}`);
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setOpening(false);
+    }
+  }
 
   return (
     <Sheet open={!!p} onClose={close} title={p ? p.short_name : ""}>
@@ -161,6 +180,9 @@ export function PersonCardHost() {
 
           {!isMe && (
             <div className="pc-actions">
+              <button className="btn primary" type="button" onClick={message} disabled={opening}>
+                <MessageCircle /> Message
+              </button>
               {p.phone ? (
                 <>
                   <WhatsAppButton person={p} variant="button" />

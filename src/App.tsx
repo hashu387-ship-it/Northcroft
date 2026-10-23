@@ -13,7 +13,7 @@ const ProjectDetail = lazy(() => import("@/pages/ProjectDetail"));
 const Inbox = lazy(() => import("@/pages/Inbox"));
 const Announcements = lazy(() => import("@/pages/Announcements"));
 const Calendar = lazy(() => import("@/pages/Calendar"));
-const TeamChat = lazy(() => import("@/pages/TeamChat"));
+const Chats = lazy(() => import("@/pages/Chats"));
 const Attendance = lazy(() => import("@/pages/Attendance"));
 const Workload = lazy(() => import("@/pages/Workload"));
 const Settings = lazy(() => import("@/pages/Settings"));
@@ -44,7 +44,10 @@ export default function App() {
           <Route path="inbox" element={<Inbox />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="calendar" element={<Calendar />} />
-          <Route path="chat" element={<TeamChat />} />
+          <Route path="chat" element={<Chats />} />
+          <Route path="chats" element={<Chats />} />
+          <Route path="chats/project/:projectId" element={<Chats />} />
+          <Route path="chats/:id" element={<Chats />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="workload" element={<Workload />} />
           <Route path="settings" element={<Settings />} />

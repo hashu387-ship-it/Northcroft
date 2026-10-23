@@ -25,7 +25,7 @@ export default function More() {
   const tiles: Tile[] = [
     { to: "/announcements", label: "Announcements", hint: unacked ? `${unacked} to acknowledge` : "Team news", icon: Megaphone, color: "#FF9F0A", count: unacked },
     { to: "/calendar", label: "Calendar", hint: "Deadlines and visits", icon: CalendarDays, color: "#FF375F" },
-    { to: "/chat", label: "Team chat", hint: "Talk to everyone", icon: MessagesSquare, color: "#30D158" },
+    { to: "/chats", label: "Chats", hint: "Team, projects, groups", icon: MessagesSquare, color: "#30D158" },
     ...(!me.attendance_exempt
       ? [{ to: "/attendance", label: "Check in", hint: "Arrive and leave", icon: MapPin, color: "#0A84FF" }]
       : canAssign

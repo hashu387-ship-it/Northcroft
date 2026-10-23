@@ -22,10 +22,20 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Late arrivals and early finishes are flagged against 8:30 am to 5:30 pm.
   - Managers get a team board with a map and a monthly CSV export.
 - **Workload**: open tasks per person per week, shown in red when someone has too much.
-- **Team chat** with @mentions and file sharing.
+- **Chats**, like WhatsApp:
+  - One Chats page: Team chat pinned on top, then project chats, groups and one-to-one chats, newest first, with unread counts (also on the Chats tab).
+  - **One-to-one chats**: New chat, or the Message button on anyone's profile card.
+  - **Groups**: anyone can start one, name it and pick who's in it. The person who made it is its admin and can make others admins. Admins rename the group and add or remove people; anyone can leave. A group always keeps an admin.
+  - Group and one-to-one chats are **private**: only the people in them can read their messages, files and voice notes. Managers can't see chats they're not part of.
+  - **Seen ticks**: one tick sent, two ticks seen by some, bright two ticks seen by everyone. Tap the ticks to see who has seen it and when.
+  - **Reply** to a message (swipe it right on a phone, or the reply arrow on a computer); the reply quotes it, and tapping the quote jumps to it.
+  - **Reactions**: hold a message (or right-click) for Like, Done, Love, Haha, Thanks and Sad.
+  - "Saheeb is typing..." shows at the top of the chat.
+  - Voice notes, files and @mentions work in every chat. Project chats also stay inside each project.
 - **Voice notes** in team chat, project chat, task comments and announcements:
   - Tap the microphone, speak (up to 3 minutes), then send. Others get a play button with a waveform.
   - Each note is written out in English a few seconds later, even if spoken in Arabic or Tamil. The sender can correct the text.
+- **PDF and Excel inside the app**: tapping a PDF or a spreadsheet (Excel or CSV) opens it full screen in the app, with tools to edit it. Saving never changes the original: the edit is saved as a new version next to it (version 2, 3 and so on), with who edited it and when, and you can switch between versions. A file shared in a chat or on a task comment is shared again there as the new version.
 - **Files and Google Drive**: attach drawings, BOQs, PDFs and photos to tasks, projects and chats.
   - Every file anyone attaches is saved straight to the team's Google Drive (the one a manager connects), in a **Northcroft** folder with a subfolder per project (plus General). Files of any size; a progress figure shows while they upload.
   - Drive files stay private. Only signed-in team members can open them, through the app (PDFs, photos and videos open in the browser; other files download). Photos show as previews in chats and file lists. Deleting one in the app moves it to the Drive bin for 30 days.

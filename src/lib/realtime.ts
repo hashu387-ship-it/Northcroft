@@ -5,7 +5,10 @@ import { supabase } from "./supabase";
 const TABLES = [
   "tasks", "task_checklist", "comments", "announcements", "announcement_acks", "attendance",
   "variations", "boq_packages", "events", "projects", "attachments", "profiles",
+  "conversations", "conversation_members", "chat_reads", "comment_reactions",
 ];
+// Tables whose changes also move the Chats list (last message, unread counts, who's in a group).
+const CHAT_LIST = new Set(["comments", "conversations", "conversation_members", "chat_reads"]);
 
 /** One channel that refreshes cached queries whenever a row changes anywhere in the team. */
 export function useRealtime(userId: string | undefined) {
@@ -20,6 +23,8 @@ export function useRealtime(userId: string | undefined) {
         table,
         window.setTimeout(() => {
           qc.invalidateQueries({ queryKey: [table] });
+          if (CHAT_LIST.has(table)) qc.invalidateQueries({ queryKey: ["chats"] });
+          if (table === "conversation_members") qc.invalidateQueries({ queryKey: ["conversations"] });
           if (table === "tasks" || table === "variations" || table === "boq_packages") qc.invalidateQueries({ queryKey: ["activity"] });
         }, 150),
       );

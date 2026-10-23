@@ -1,27 +1,73 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import "@/styles/chats.css";
+import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { FileText, MessageCircle, Mic, Paperclip, SendHorizontal, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  Check,
+  CheckCheck,
+  Copy,
+  CornerUpLeft,
+  EllipsisVertical,
+  FileText,
+  Info,
+  MessageCircle,
+  Mic,
+  Paperclip,
+  SendHorizontal,
+  SmilePlus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
-import { isImage, isOnDrive, openAttachment, previewUrls, uploadFile } from "@/lib/files";
+import { REACTIONS, reactionInfo, setReaction, typingLine, useChatReads, useKeepRead, useReactions, useTyping } from "@/lib/chats";
+import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
 import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
 import { fileSize } from "@/lib/format";
-import type { Attachment, Comment, Profile } from "@/lib/types";
-import { Avatar, Empty, Loading, useConfirm, useToast } from "./ui";
+import type { Attachment, Comment, Profile, ReactionKind } from "@/lib/types";
+import { Avatar, Empty, Loading, Sheet, useConfirm, useToast } from "./ui";
 import { PersonAvatar, openPersonCard } from "./People";
 import { RecorderBar, VoiceNote } from "./Voice";
+import { useOpenFile } from "./useOpenFile";
 import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
 
-type Scope = { kind: "task"; taskId: string; projectId: string | null } | { kind: "project"; projectId: string } | { kind: "team" };
+export type Scope =
+  | { kind: "task"; taskId: string; projectId: string | null }
+  | { kind: "project"; projectId: string }
+  | { kind: "team" }
+  /** A private group or one-to-one chat. `members` are the people in it now. */
+  | { kind: "conversation"; conversationId: string; direct: boolean; members: string[] };
 
 function scopeKey(s: Scope) {
-  return s.kind === "task" ? ["task", s.taskId] : s.kind === "project" ? ["project", s.projectId] : ["team"];
+  return s.kind === "task"
+    ? ["task", s.taskId]
+    : s.kind === "project"
+      ? ["project", s.projectId]
+      : s.kind === "conversation"
+        ? ["conversation", s.conversationId]
+        : ["team"];
 }
 
-/** Find @Name mentions in text. "@all" or "@everyone" mentions the whole team. */
+/** The chat's key for seen ticks and unread counts ("team", "project:<id>", "conv:<id>"); none for task comments. */
+export function chatKeyOf(s: Scope): string | null {
+  if (s.kind === "team") return "team";
+  if (s.kind === "project") return `project:${s.projectId}`;
+  if (s.kind === "conversation") return `conv:${s.conversationId}`;
+  return null;
+}
+
+/** The address notifications for this chat point at, so opening it clears them. */
+function seenLink(s: Scope): string | null {
+  if (s.kind === "team") return "/chat";
+  if (s.kind === "project") return `/projects/${s.projectId}/chat`;
+  if (s.kind === "conversation") return `/chats/${s.conversationId}`;
+  return null;
+}
+
+/** Find @Name mentions in text. "@all" or "@everyone" mentions everyone who can be mentioned. */
 export function findMentions(body: string, people: Profile[], meId: string): string[] {
   const ids = new Set<string>();
   if (/@(all|everyone|team)\b/i.test(body)) people.forEach((p) => p.id !== meId && ids.add(p.id));
@@ -47,16 +93,46 @@ function renderBody(body: string, people: Profile[]): ReactNode {
   );
 }
 
-export function CommentThread({ scope, placeholder, height }: { scope: Scope; placeholder?: string; height?: number | string }) {
+/** A short line describing a message, for reply quotes. */
+function snippet(c: Pick<Comment, "body" | "voice_path"> | undefined): string {
+  if (!c) return "Message removed";
+  const text = c.body.replace(/\s+/g, " ").trim();
+  return text.length > 120 ? `${text.slice(0, 117)}...` : text;
+}
+
+const CONTINUE_MINUTES = 5;
+
+export function CommentThread({
+  scope,
+  placeholder,
+  height,
+  fill,
+}: {
+  scope: Scope;
+  placeholder?: string;
+  /** Fixed scroll height for the messages (task and project pages). */
+  height?: number | string;
+  /** Fill the parent's height, with the box to write in pinned at the bottom (the Chats screen). */
+  fill?: boolean;
+}) {
   const me = useMe();
   const people = usePeople();
   const toast = useToast();
   const confirm = useConfirm();
   const invalidate = useInvalidate();
+  const openFile = useOpenFile();
   const listRef = useRef<HTMLDivElement>(null);
   const isChat = scope.kind !== "task";
+  const direct = scope.kind === "conversation" && scope.direct;
+  const chatKey = chatKeyOf(scope);
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const [menuFor, setMenuFor] = useState<Comment | null>(null);
+  const [seenFor, setSeenFor] = useState<Comment | null>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const [flash, setFlash] = useState<string | null>(null);
+  const link = seenLink(scope);
   // Reading a chat clears its notifications (task pages do this for the whole task).
-  useMarkSeen(scope.kind === "team" ? { link: "/chat" } : scope.kind === "project" ? { link: `/projects/${scope.projectId}/chat` } : null);
+  useMarkSeen(link ? { link } : null);
 
   const comments = useQuery({
     queryKey: ["comments", ...scopeKey(scope)],
@@ -64,13 +140,26 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
       let q = supabase.from("comments").select("*");
       if (scope.kind === "task") q = q.eq("task_id", scope.taskId);
       else if (scope.kind === "project") q = q.eq("project_id", scope.projectId).is("task_id", null);
-      else q = q.is("task_id", null).is("project_id", null);
+      else if (scope.kind === "conversation") q = q.eq("conversation_id", scope.conversationId);
+      else q = q.is("task_id", null).is("project_id", null).is("conversation_id", null);
       const rows = await unwrap<Comment[]>(q.order("created_at", { ascending: false }).limit(300));
       return rows.reverse();
     },
   });
+  const list = useMemo(() => comments.data ?? [], [comments.data]);
+  const byId = useMemo(() => new Map(list.map((c) => [c.id, c])), [list]);
+  const ids = list.map((c) => c.id);
+  const latest = list[list.length - 1];
 
-  const ids = (comments.data ?? []).map((c) => c.id);
+  // Messages quoted by replies that are older than what's loaded here.
+  const missing = useMemo(() => [...new Set(list.map((c) => c.reply_to).filter((r): r is string => !!r && !byId.has(r)))], [list, byId]);
+  const quoted = useQuery({
+    queryKey: ["comments", "quoted", missing.join(",")],
+    enabled: missing.length > 0,
+    queryFn: () => unwrap<Comment[]>(supabase.from("comments").select("*").in("id", missing)),
+  });
+  const quote = (id: string) => byId.get(id) ?? quoted.data?.find((c) => c.id === id);
+
   const files = useQuery({
     queryKey: ["attachments", "comments", ids.join(",")],
     enabled: ids.length > 0,
@@ -80,7 +169,6 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
       return { rows, urls };
     },
   });
-
   const filesByComment = useMemo(() => {
     const m = new Map<string, Attachment[]>();
     for (const a of files.data?.rows ?? []) {
@@ -90,128 +178,513 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
     return m;
   }, [files.data]);
 
-  useEffect(() => {
-    if (isChat && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [comments.data?.length, isChat]);
+  const reactions = useReactions(ids.filter((id) => !byId.get(id)?.event));
+  const reads = useChatReads(chatKey);
+  useKeepRead(chatKey, latest?.id);
+  const typing = useTyping(chatKey, me.id);
 
-  async function remove(c: Comment) {
-    const ok = await confirm({ title: "Delete message?", message: "It will be removed for everyone.", confirmLabel: "Delete", danger: true });
-    if (!ok) return;
-    const { error } = await supabase.from("comments").delete().eq("id", c.id);
-    if (error) toast(errorMessage(error), "error");
-    else {
-      if (c.voice_path) await supabase.storage.from("files").remove([c.voice_path]);
-      invalidate("comments");
-    }
+  // Who receives messages here (for seen ticks), not counting me.
+  const audience = useMemo(() => {
+    if (scope.kind === "conversation") return scope.members.filter((id) => id !== me.id);
+    if (scope.kind === "task") return [];
+    return people.active.filter((p) => p.id !== me.id).map((p) => p.id);
+  }, [scope, people.active, me.id]);
+  // Who can be @mentioned: the people in a group, nobody in a one-to-one chat, everyone elsewhere.
+  const mentionable = useMemo(() => {
+    if (scope.kind !== "conversation") return people.active;
+    if (scope.direct) return [];
+    return people.active.filter((p) => scope.members.includes(p.id));
+  }, [scope, people.active]);
+
+  function seenBy(c: Comment) {
+    const r = reads.data ?? {};
+    return audience.filter((id) => r[id] && r[id] >= c.created_at);
   }
 
-  async function open(a: Attachment) {
+  // Stay at the newest message, unless you've scrolled up to read older ones.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || !isChat) return;
+    if (atBottom || latest?.author_id === me.id) el.scrollTop = el.scrollHeight;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latest?.id, isChat, list.length]);
+  useEffect(() => {
+    const el = listRef.current;
+    if (el && isChat) el.scrollTop = el.scrollHeight;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comments.isSuccess, chatKey]);
+
+  function onScroll() {
+    const el = listRef.current;
+    if (!el) return;
+    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 120);
+  }
+
+  function jumpTo(id: string) {
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-msg="${id}"]`);
+    if (!el) {
+      toast("That message is too far back to show here.", "info");
+      return;
+    }
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    setFlash(id);
+    window.setTimeout(() => setFlash((f) => (f === id ? null : f)), 1600);
+  }
+
+  async function remove(c: Comment) {
+    setMenuFor(null);
+    const ok = await confirm({ title: "Delete message?", message: "It will be removed for everyone.", confirmLabel: "Delete", danger: true });
+    if (!ok) return;
     try {
-      await openAttachment(a);
+      // Its files go too (Drive files move to the Drive bin).
+      for (const a of filesByComment.get(c.id) ?? []) {
+        if (a.uploaded_by === me.id) await deleteAttachment(a);
+      }
+      const { error } = await supabase.from("comments").delete().eq("id", c.id);
+      if (error) throw error;
+      if (c.voice_path) await supabase.storage.from("files").remove([c.voice_path]);
+      invalidate("comments", "attachments", "chats");
     } catch (e) {
       toast(errorMessage(e), "error");
     }
   }
 
-  const list = comments.data ?? [];
+  async function react(c: Comment, kind: ReactionKind) {
+    setMenuFor(null);
+    const mine = reactions.data?.get(c.id)?.find((r) => r.user_id === me.id)?.reaction ?? null;
+    try {
+      await setReaction(c.id, me.id, mine === kind ? null : kind);
+      invalidate("comment_reactions");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    }
+  }
+
+  async function copy(c: Comment) {
+    setMenuFor(null);
+    try {
+      await navigator.clipboard.writeText(c.transcript && c.voice_path ? c.transcript : c.body);
+      toast("Copied", "info");
+    } catch {
+      toast("Couldn't copy on this device.", "error");
+    }
+  }
+
+  function reply(c: Comment) {
+    setMenuFor(null);
+    setReplyTo(c);
+  }
+
+  const typers = typing.typers.map((id) => people.get(id)?.short_name).filter((n): n is string => !!n);
+  const typingText = typingLine(typers);
   let lastDay = "";
+  let prev: Comment | undefined;
 
   return (
-    <div className="stack" style={{ gap: 12 }}>
-      <div ref={listRef} className="thread" style={height ? { maxHeight: height, overflowY: "auto", paddingRight: 4 } : undefined}>
+    <div className={clsx("chat-thread", fill && "fill")}>
+      <div
+        ref={listRef}
+        className="thread"
+        onScroll={onScroll}
+        style={!fill && height ? { maxHeight: height, overflowY: "auto", paddingRight: 4 } : undefined}
+      >
         {comments.isLoading && <Loading />}
         {!comments.isLoading && list.length === 0 && (
           <Empty icon={<MessageCircle />} title={isChat ? "No messages yet" : "No comments yet"}>
-            {isChat
-              ? "Everyone on the team gets a notification when you post here."
-              : "Type @ to mention someone. They get a notification on their phone."}
+            {direct
+              ? "Say hello. Only the two of you can see this chat."
+              : scope.kind === "conversation"
+                ? "Only the people in this group can see it."
+                : isChat
+                  ? "Everyone on the team gets a notification when you post here."
+                  : "Type @ to mention someone. They get a notification on their phone."}
           </Empty>
         )}
         {list.map((c) => {
-          const author = people.get(c.author_id);
-          const mine = c.author_id === me.id;
           const day = dateOf(c.created_at);
           const showDay = isChat && day !== lastDay;
           lastDay = day;
+          const before = prev;
+          prev = c;
+          if (c.event) {
+            return (
+              <Fragment key={c.id}>
+                {showDay && <DayLine day={day} />}
+                <div className="chat-event" data-msg={c.id}>
+                  {c.body}
+                </div>
+              </Fragment>
+            );
+          }
+          const author = people.get(c.author_id);
+          const mine = c.author_id === me.id;
+          // Messages from the same person a few minutes apart sit together, like WhatsApp.
+          const cont =
+            !showDay &&
+            !!before &&
+            !before.event &&
+            before.author_id === c.author_id &&
+            new Date(c.created_at).getTime() - new Date(before.created_at).getTime() < CONTINUE_MINUTES * 60_000;
           const atts = filesByComment.get(c.id) ?? [];
+          const rx = reactions.data?.get(c.id) ?? [];
+          const seen = isChat && mine ? seenBy(c) : [];
+          const tick = !isChat || !mine ? null : audience.length > 0 && seen.length >= audience.length ? "all" : seen.length > 0 ? "some" : "sent";
           return (
             <Fragment key={c.id}>
-              {showDay && (
-                <div className="faint tiny" style={{ textAlign: "center", fontWeight: 600 }}>
-                  {day === todayISO() ? "Today" : fmtDue(day)}
-                </div>
-              )}
-              <div className={clsx("msg", mine && "mine")}>
-                {/* Tap a photo to see that person's card, with WhatsApp and call buttons. */}
-                {!mine && <PersonAvatar person={author} size={28} />}
-                <div className="bubble">
-                  {!mine && (
-                    <button type="button" className="who who-btn" onClick={() => author && openPersonCard(author.id)}>
-                      {author?.short_name ?? "Someone"}
-                    </button>
-                  )}
-                  {c.voice_path ? (
-                    <VoiceNote
-                      kind="comment"
-                      id={c.id}
-                      path={c.voice_path}
-                      seconds={c.voice_seconds}
-                      peaks={c.voice_peaks}
-                      transcript={c.transcript}
-                      status={c.transcript_status}
-                      canEdit={mine}
-                    />
-                  ) : (
-                    <div>{renderBody(c.body, people.active)}</div>
-                  )}
-                  {atts.length > 0 && (
-                    <div className="stack" style={{ gap: 6, marginTop: 8 }}>
-                      {atts.map((a) =>
-                        isImage(a) && files.data?.urls[a.path] ? (
-                          <button key={a.id} onClick={() => open(a)} style={{ border: 0, padding: 0, background: "none" }} type="button">
-                            <img src={files.data.urls[a.path]} alt={a.name} style={{ borderRadius: 12, maxHeight: 220, objectFit: "cover" }} />
-                          </button>
-                        ) : (
-                          <button key={a.id} className="file" onClick={() => open(a)} type="button">
-                            <span className="icon">
-                              <FileText />
+              {showDay && <DayLine day={day} />}
+              <Message
+                c={c}
+                mine={mine}
+                cont={cont}
+                showAuthor={!mine && !direct}
+                author={author}
+                flash={flash === c.id}
+                onReply={() => reply(c)}
+                onMenu={() => setMenuFor(c)}
+              >
+                {!mine && !direct && !cont && (
+                  <button type="button" className="who who-btn" onClick={() => author && openPersonCard(author.id)}>
+                    {author?.short_name ?? "Someone"}
+                  </button>
+                )}
+                {c.reply_to && (
+                  <button type="button" className="quote" onClick={() => jumpTo(c.reply_to!)}>
+                    <b>{quote(c.reply_to) ? (quote(c.reply_to)!.author_id === me.id ? "You" : people.get(quote(c.reply_to)!.author_id)?.short_name ?? "Someone") : ""}</b>
+                    <span>{snippet(quote(c.reply_to))}</span>
+                  </button>
+                )}
+                {c.voice_path ? (
+                  <VoiceNote
+                    kind="comment"
+                    id={c.id}
+                    path={c.voice_path}
+                    seconds={c.voice_seconds}
+                    peaks={c.voice_peaks}
+                    transcript={c.transcript}
+                    status={c.transcript_status}
+                    canEdit={mine}
+                  />
+                ) : (
+                  <div>{renderBody(c.body, mentionable.length ? mentionable : people.active)}</div>
+                )}
+                {atts.length > 0 && (
+                  <div className="stack" style={{ gap: 6, marginTop: 8 }}>
+                    {atts.map((a) =>
+                      isImage(a) && files.data?.urls[a.path] ? (
+                        <button key={a.id} onClick={() => openFile(a)} style={{ border: 0, padding: 0, background: "none" }} type="button">
+                          <img src={files.data.urls[a.path]} alt={a.name} style={{ borderRadius: 12, maxHeight: 220, objectFit: "cover" }} />
+                        </button>
+                      ) : (
+                        <button key={a.id} className="file" onClick={() => openFile(a)} type="button">
+                          <span className="icon">
+                            <FileText />
+                          </span>
+                          <span className="ellipsis small">
+                            {a.name}
+                            <br />
+                            <span className="faint">
+                              {isOnDrive(a) ? "Google Drive · " : ""}
+                              {a.version > 1 ? `Version ${a.version} · ` : ""}
+                              {fileSize(a.size)}
                             </span>
-                            <span className="ellipsis small">
-                              {a.name}
-                              <br />
-                              <span className="faint">
-                                {isOnDrive(a) ? "Google Drive · " : ""}
-                                {fileSize(a.size)}
-                              </span>
-                            </span>
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  )}
-                  <div className="when row" style={{ gap: 8 }}>
-                    <span>
-                      {!isChat && dateOf(c.created_at) !== todayISO() ? `${fmtDue(dateOf(c.created_at))}, ` : ""}
-                      {fmtTime12(c.created_at)}
-                    </span>
-                    {mine && (
-                      <button className="icon-btn small plain" style={{ width: 22, height: 22, color: "inherit" }} onClick={() => remove(c)} aria-label="Delete message" type="button">
-                        <Trash2 size={13} />
-                      </button>
+                          </span>
+                        </button>
+                      ),
                     )}
                   </div>
+                )}
+                <div className="when row" style={{ gap: 6 }}>
+                  <span>
+                    {!isChat && dateOf(c.created_at) !== todayISO() ? `${fmtDue(dateOf(c.created_at))}, ` : ""}
+                    {fmtTime12(c.created_at)}
+                    {c.edited_at && !c.voice_path ? " · edited" : ""}
+                  </span>
+                  {tick && (
+                    <button
+                      type="button"
+                      className={clsx("tick", tick)}
+                      onClick={() => setSeenFor(c)}
+                      aria-label={tick === "all" ? "Seen by everyone" : tick === "some" ? "Seen by some" : "Sent"}
+                      title={tick === "all" ? "Seen" : tick === "some" ? "Seen by some" : "Sent"}
+                    >
+                      {tick === "sent" ? <Check size={14} /> : <CheckCheck size={14} />}
+                    </button>
+                  )}
                 </div>
-              </div>
+                {rx.length > 0 && <ReactionChips list={rx} meId={me.id} onToggle={(k) => react(c, k)} />}
+              </Message>
             </Fragment>
           );
         })}
       </div>
-      <Composer scope={scope} placeholder={placeholder ?? (isChat ? "Message the team" : "Add a comment")} />
+
+      {isChat && !atBottom && (
+        <button
+          type="button"
+          className="jump-down glass-strong"
+          onClick={() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" })}
+          aria-label="Go to the newest message"
+        >
+          <ArrowDown />
+        </button>
+      )}
+
+      {/* On the Chats screen the header shows who's typing; elsewhere it shows here. */}
+      {!fill && isChat && (
+      <div className="typing-line" aria-live="polite">
+        {typingText && (
+          <>
+            <span className="dots" aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
+            {typingText}
+          </>
+        )}
+      </div>
+      )}
+
+      <Composer
+        scope={scope}
+        mentionable={mentionable}
+        placeholder={placeholder ?? (isChat ? "Message the team" : "Add a comment")}
+        replyTo={replyTo}
+        replyName={replyTo ? (replyTo.author_id === me.id ? "You" : people.get(replyTo.author_id)?.short_name ?? "Someone") : ""}
+        onClearReply={() => setReplyTo(null)}
+        onTyping={typing.typing}
+        onStopTyping={typing.stopped}
+      />
+
+      <Sheet open={!!menuFor} onClose={() => setMenuFor(null)} title="Message">
+        {menuFor && (
+          <div className="stack" style={{ gap: 14 }}>
+            <div className="react-row" role="group" aria-label="React">
+              {REACTIONS.map((r) => {
+                const on = reactions.data?.get(menuFor.id)?.some((x) => x.user_id === me.id && x.reaction === r.key);
+                return (
+                  <button key={r.key} type="button" className={clsx("react-btn", on && "on")} style={{ ["--rx" as string]: r.color }} onClick={() => react(menuFor, r.key)} aria-label={r.label} title={r.label}>
+                    <r.icon />
+                  </button>
+                );
+              })}
+            </div>
+            <div className="menu-list">
+              <button type="button" onClick={() => reply(menuFor)}>
+                <CornerUpLeft /> Reply
+              </button>
+              <button type="button" onClick={() => copy(menuFor)}>
+                <Copy /> Copy text
+              </button>
+              {isChat && menuFor.author_id === me.id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSeenFor(menuFor);
+                    setMenuFor(null);
+                  }}
+                >
+                  <Info /> Seen by
+                </button>
+              )}
+              {(menuFor.author_id === me.id || (scope.kind !== "conversation" && me.role === "manager")) && (
+                <button type="button" className="danger" onClick={() => remove(menuFor)}>
+                  <Trash2 /> Delete
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </Sheet>
+
+      <Sheet open={!!seenFor} onClose={() => setSeenFor(null)} title="Seen by">
+        {seenFor && <SeenList c={seenFor} audience={audience} reads={reads.data ?? {}} />}
+      </Sheet>
     </div>
   );
 }
 
-function Composer({ scope, placeholder }: { scope: Scope; placeholder: string }) {
+function DayLine({ day }: { day: string }) {
+  return <div className="chat-day">{day === todayISO() ? "Today" : fmtDue(day)}</div>;
+}
+
+/** One message: the bubble, plus swipe-to-reply on phones and a menu button. */
+function Message({
+  c,
+  mine,
+  cont,
+  showAuthor,
+  author,
+  flash,
+  onReply,
+  onMenu,
+  children,
+}: {
+  c: Comment;
+  mine: boolean;
+  cont: boolean;
+  showAuthor: boolean;
+  author: Profile | undefined;
+  flash: boolean;
+  onReply: () => void;
+  onMenu: () => void;
+  children: ReactNode;
+}) {
+  const [dx, setDx] = useState(0);
+  const start = useRef<{ x: number; y: number; t: number } | null>(null);
+  const press = useRef<number>(0);
+
+  function down(e: ReactPointerEvent) {
+    if (e.pointerType === "mouse") return;
+    start.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+    // Hold to open the menu, like WhatsApp.
+    press.current = window.setTimeout(() => {
+      start.current = null;
+      setDx(0);
+      navigator.vibrate?.(10);
+      onMenu();
+    }, 520);
+  }
+  function move(e: ReactPointerEvent) {
+    const s = start.current;
+    if (!s) return;
+    const x = e.clientX - s.x;
+    const y = Math.abs(e.clientY - s.y);
+    if (Math.abs(x) > 8 || y > 8) window.clearTimeout(press.current);
+    if (y > 24) {
+      start.current = null;
+      setDx(0);
+      return;
+    }
+    if (x > 0) setDx(Math.min(72, x));
+  }
+  function up() {
+    window.clearTimeout(press.current);
+    if (start.current && dx > 54) onReply();
+    start.current = null;
+    setDx(0);
+  }
+
+  return (
+    <div
+      className={clsx("msg", mine && "mine", cont && "cont", flash && "flash")}
+      data-msg={c.id}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onMenu();
+      }}
+    >
+      {showAuthor && (cont ? <span className="avatar-gap" /> : <PersonAvatar person={author} size={28} />)}
+      <div
+        className="bubble"
+        style={dx ? { transform: `translateX(${dx}px)` } : undefined}
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={up}
+      >
+        {dx > 0 && (
+          <span className="swipe-reply" style={{ opacity: Math.min(1, dx / 54) }} aria-hidden>
+            <CornerUpLeft size={16} />
+          </span>
+        )}
+        {children}
+      </div>
+      <div className="msg-tools">
+        <button type="button" className="icon-btn small plain" onClick={onReply} aria-label="Reply" title="Reply">
+          <CornerUpLeft />
+        </button>
+        <button type="button" className="icon-btn small plain" onClick={onMenu} aria-label="React and more" title="React and more">
+          <SmilePlus />
+        </button>
+        <button type="button" className="icon-btn small plain" onClick={onMenu} aria-label="More" title="More">
+          <EllipsisVertical />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReactionChips({ list, meId, onToggle }: { list: { user_id: string; reaction: ReactionKind | null }[]; meId: string; onToggle: (k: ReactionKind) => void }) {
+  const people = usePeople();
+  const groups = new Map<ReactionKind, string[]>();
+  for (const r of list) if (r.reaction) groups.set(r.reaction, [...(groups.get(r.reaction) ?? []), r.user_id]);
+  return (
+    <div className="rx-chips">
+      {[...groups.entries()].map(([k, who]) => {
+        const info = reactionInfo(k);
+        const names = who.map((id) => (id === meId ? "You" : people.get(id)?.short_name ?? "Someone"));
+        return (
+          <button
+            key={k}
+            type="button"
+            className={clsx("rx-chip", who.includes(meId) && "mine")}
+            style={{ ["--rx" as string]: info.color }}
+            onClick={() => onToggle(k)}
+            title={`${info.label}: ${names.join(", ")}`}
+            aria-label={`${info.label} from ${names.join(", ")}`}
+          >
+            <info.icon />
+            {who.length > 1 && <span>{who.length}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SeenList({ c, audience, reads }: { c: Comment; audience: string[]; reads: Record<string, string> }) {
+  const people = usePeople();
+  const seen = audience.filter((id) => reads[id] && reads[id] >= c.created_at);
+  const waiting = audience.filter((id) => !seen.includes(id));
+  return (
+    <div className="stack" style={{ gap: 14 }}>
+      <div className="muted small ellipsis">{snippet(c)}</div>
+      <div>
+        <div className="seen-head">Seen</div>
+        {seen.length === 0 && <div className="faint small">Nobody yet.</div>}
+        {seen.map((id) => (
+          <div className="seen-row" key={id}>
+            <Avatar person={people.get(id)} size={30} />
+            <span className="grow">{people.get(id)?.short_name ?? "Someone"}</span>
+            <span className="faint small">{fmtTime12(reads[id])}</span>
+          </div>
+        ))}
+      </div>
+      {waiting.length > 0 && (
+        <div>
+          <div className="seen-head">Not seen yet</div>
+          {waiting.map((id) => (
+            <div className="seen-row" key={id}>
+              <Avatar person={people.get(id)} size={30} />
+              <span className="grow">{people.get(id)?.short_name ?? "Someone"}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Composer({
+  scope,
+  mentionable,
+  placeholder,
+  replyTo,
+  replyName,
+  onClearReply,
+  onTyping,
+  onStopTyping,
+}: {
+  scope: Scope;
+  mentionable: Profile[];
+  placeholder: string;
+  replyTo: Comment | null;
+  replyName: string;
+  onClearReply: () => void;
+  onTyping: () => void;
+  onStopTyping: () => void;
+}) {
   const me = useMe();
   const people = usePeople();
   const toast = useToast();
@@ -230,6 +703,19 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
   const recording = recorder.state !== "idle";
   // Like WhatsApp: the microphone shows while the box is empty, the send arrow once you type.
   const showMic = canRecord() && !body.trim() && files.length === 0;
+  const conversationId = scope.kind === "conversation" ? scope.conversationId : null;
+
+  useEffect(() => {
+    if (replyTo) ref.current?.focus();
+  }, [replyTo]);
+
+  function where() {
+    return {
+      task_id: scope.kind === "task" ? scope.taskId : null,
+      project_id: scope.kind === "task" ? scope.projectId : scope.kind === "project" ? scope.projectId : null,
+      conversation_id: conversationId,
+    };
+  }
 
   async function startRecording() {
     try {
@@ -242,13 +728,13 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
   async function sendVoice(rec: Recording) {
     setSendingVoice(true);
     try {
-      const path = await uploadVoice(rec, me.id);
+      const path = await uploadVoice(rec, me.id, conversationId);
       const { error } = await supabase.from("comments").insert({
         body: voiceLabel(rec.seconds),
         mentions: [],
         author_id: me.id,
-        task_id: scope.kind === "task" ? scope.taskId : null,
-        project_id: scope.kind === "task" ? scope.projectId : scope.kind === "project" ? scope.projectId : null,
+        ...where(),
+        reply_to: replyTo?.id ?? null,
         voice_path: path,
         voice_seconds: Math.round(rec.seconds * 10) / 10,
         voice_peaks: rec.peaks,
@@ -257,7 +743,8 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
         await supabase.storage.from("files").remove([path]);
         throw error;
       }
-      invalidate("comments");
+      onClearReply();
+      invalidate("comments", "chats");
     } catch (e) {
       toast(`Voice note not sent: ${errorMessage(e)}`, "error");
     } finally {
@@ -266,21 +753,23 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
   }
 
   const options = useMemo(() => {
-    if (query === null) return [];
+    if (query === null || !mentionable.length) return [];
     const q = query.toLowerCase();
     // First names that start with what was typed come first, then other name matches.
     const rank = (p: Profile) =>
       p.short_name.toLowerCase().startsWith(q) ? 0 : p.full_name.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)) ? 1 : 2;
-    const list: { id: string; label: string; person?: Profile }[] = people.active
+    const list: { id: string; label: string; person?: Profile }[] = mentionable
       .filter((p) => p.id !== me.id && rank(p) < 2)
       .sort((a, b) => rank(a) - rank(b) || a.short_name.localeCompare(b.short_name))
       .map((p) => ({ id: p.id, label: p.short_name, person: p }));
     if ("all".startsWith(q)) list.push({ id: "all", label: "all" });
     return list.slice(0, 7);
-  }, [query, people.active, me.id]);
+  }, [query, mentionable, me.id]);
 
   function onChange(v: string) {
     setBody(v);
+    if (v.trim()) onTyping();
+    else onStopTyping();
     const el = ref.current;
     const caret = el?.selectionStart ?? v.length;
     const m = /(^|\s)@([\w-]*)$/.exec(v.slice(0, caret));
@@ -327,6 +816,10 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
         return;
       }
     }
+    if (e.key === "Escape" && replyTo) {
+      onClearReply();
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer: fine)").matches) {
       e.preventDefault();
       send();
@@ -337,36 +830,39 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
     const text = body.trim();
     if ((!text && !files.length) || sending) return;
     setSending(true);
+    onStopTyping();
     try {
-      const mentions = findMentions(text, people.active, me.id);
+      const mentions = findMentions(text, mentionable, me.id);
       const row = {
         body: text || (files.length === 1 ? `Shared ${files[0].name}` : `Shared ${files.length} files`),
         mentions,
         author_id: me.id,
-        task_id: scope.kind === "task" ? scope.taskId : null,
-        project_id: scope.kind === "task" ? scope.projectId : scope.kind === "project" ? scope.projectId : null,
+        reply_to: replyTo?.id ?? null,
+        ...where(),
       };
       const { data, error } = await supabase.from("comments").insert(row).select().single();
       if (error) throw error;
+      setBody("");
+      onClearReply();
+      if (ref.current) ref.current.style.height = "auto";
       for (const f of files) {
         setProgress(`Uploading ${f.name}...`);
         await uploadFile(f, {
           taskId: row.task_id,
           projectId: row.project_id,
+          conversationId,
           commentId: data.id,
           userId: me.id,
           onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });
       }
-      setBody("");
       setFiles([]);
-      if (ref.current) ref.current.style.height = "auto";
       // In chats everyone is notified anyway, so only confirm mentions on task comments.
       if (mentions.length && scope.kind === "task") {
         const names = mentions.map((id) => people.get(id)?.short_name).filter(Boolean);
         toast(names.length > 3 ? `Notified ${names.length} people` : `Notified ${names.join(", ")}`, "info");
       }
-      invalidate("comments", "attachments");
+      invalidate("comments", "attachments", "chats");
     } catch (e) {
       toast(errorMessage(e), "error");
     } finally {
@@ -376,10 +872,22 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
   }
 
   return (
-    <div className="stack" style={{ gap: 6 }}>
+    <div className="stack composer-wrap" style={{ gap: 6 }}>
       {progress && (
         <div className="muted small row" role="status" style={{ gap: 8 }}>
           <span className="vspin" style={{ color: "var(--accent)" }} /> {progress}
+        </div>
+      )}
+      {replyTo && (
+        <div className="reply-bar">
+          <CornerUpLeft />
+          <div className="grow">
+            <b>Replying to {replyName}</b>
+            <span className="ellipsis">{snippet(replyTo)}</span>
+          </div>
+          <button type="button" className="icon-btn small plain" onClick={onClearReply} aria-label="Cancel reply">
+            <X />
+          </button>
         </div>
       )}
       {files.length > 0 && (
@@ -401,12 +909,20 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
         {options.length > 0 && (
           <div className="mention-menu glass-strong" role="listbox">
             {options.map((o, i) => (
-              <button key={o.id} type="button" className={clsx(i === active && "active")} onMouseDown={(e) => { e.preventDefault(); pick(o.label); }}>
+              <button
+                key={o.id}
+                type="button"
+                className={clsx(i === active && "active")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(o.label);
+                }}
+              >
                 {o.person ? <Avatar person={o.person} size={26} /> : <span className="avatar" style={{ ["--size" as string]: "26px", background: "var(--accent)" }}>@</span>}
                 <span>
                   {o.person ? o.person.short_name : "Everyone"}
                   <span className="faint tiny" style={{ display: "block" }}>
-                    {o.person ? o.person.title : "Notify the whole team"}
+                    {o.person ? o.person.title : scope.kind === "conversation" ? "Notify everyone in this group" : "Notify the whole team"}
                   </span>
                 </span>
               </button>
@@ -421,29 +937,29 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
           </div>
         ) : (
           <>
-        <button className="icon-btn plain" type="button" onClick={() => fileRef.current?.click()} aria-label="Attach a file">
-          <Paperclip />
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          multiple
-          hidden
-          onChange={(e) => {
-            setFiles((xs) => [...xs, ...Array.from(e.target.files ?? [])]);
-            e.target.value = "";
-          }}
-        />
-        <textarea ref={ref} rows={1} value={body} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onKeyDown={onKey} aria-label={placeholder} />
-        {showMic ? (
-          <button className="icon-btn plain mic-btn" type="button" onClick={startRecording} aria-label="Record a voice note" title="Record a voice note">
-            <Mic />
-          </button>
-        ) : (
-          <button className="icon-btn" style={{ background: "var(--accent)", color: "#fff" }} type="button" onClick={send} disabled={sending} aria-label="Send">
-            <SendHorizontal />
-          </button>
-        )}
+            <button className="icon-btn plain" type="button" onClick={() => fileRef.current?.click()} aria-label="Attach a file">
+              <Paperclip />
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              hidden
+              onChange={(e) => {
+                setFiles((xs) => [...xs, ...Array.from(e.target.files ?? [])]);
+                e.target.value = "";
+              }}
+            />
+            <textarea ref={ref} rows={1} value={body} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onKeyDown={onKey} aria-label={placeholder} />
+            {showMic ? (
+              <button className="icon-btn plain mic-btn" type="button" onClick={startRecording} aria-label="Record a voice note" title="Record a voice note">
+                <Mic />
+              </button>
+            ) : (
+              <button className="icon-btn" style={{ background: "var(--accent)", color: "#fff" }} type="button" onClick={send} disabled={sending} aria-label="Send">
+                <SendHorizontal />
+              </button>
+            )}
           </>
         )}
       </div>

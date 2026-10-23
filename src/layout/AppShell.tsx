@@ -15,7 +15,8 @@ import {
   SquareCheckBig,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useUnreadCount } from "@/lib/api";
+import { usePeople, useUnreadCount } from "@/lib/api";
+import { useChats } from "@/lib/chats";
 import { useAuth, useMe } from "@/lib/auth";
 import { useRealtime } from "@/lib/realtime";
 import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/push";
@@ -74,7 +75,7 @@ export function PhotoBackground({ children }: { children: ReactNode }) {
   );
 }
 
-const TAB_ROOTS = ["/", "/my-tasks", "/projects", "/inbox", "/more"];
+const TAB_ROOTS = ["/", "/my-tasks", "/projects", "/chats", "/inbox", "/more"];
 
 export default function AppShell() {
   const me = useMe();
@@ -83,6 +84,8 @@ export default function AppShell() {
   const navigate = useNavigate();
   const unread = useUnreadCount(me.id).data ?? 0;
   const unacked = useUnackedCount(me.id).data ?? 0;
+  const people = usePeople();
+  const chatUnread = useChats(me.id, people).unread;
 
   useRealtime(me.id);
 
@@ -120,7 +123,7 @@ export default function AppShell() {
     { to: "/inbox", label: "Inbox", icon: Inbox, count: unread },
     { to: "/announcements", label: "Announcements", icon: Megaphone, count: unacked },
     { to: "/calendar", label: "Calendar", icon: CalendarDays },
-    { to: "/chat", label: "Team chat", icon: MessagesSquare },
+    { to: "/chats", label: "Chats", icon: MessagesSquare, count: chatUnread },
     // People who don't check in see "Attendance" (the team's board) if they manage, otherwise nothing.
     ...(!me.attendance_exempt
       ? [{ to: "/attendance", label: "Check in", icon: MapPin }]
@@ -149,7 +152,12 @@ export default function AppShell() {
         </Link>
         <nav className="nav">
           {nav.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end}>
+            <NavLink
+              key={n.to}
+              to={n.to}
+              end={n.end}
+              className={({ isActive }) => (isActive || (n.to === "/chats" && /^\/chats?(\/|$)/.test(location.pathname)) ? "active" : "")}
+            >
               <n.icon />
               {n.label}
               {!!n.count && <span className="count">{n.count > 99 ? "99+" : n.count}</span>}
@@ -218,12 +226,17 @@ export default function AppShell() {
           <FolderKanban />
           Projects
         </NavLink>
+        <NavLink to="/chats" className={() => (/^\/chats?(\/|$)/.test(location.pathname) ? "active" : "")}>
+          <MessagesSquare />
+          Chats
+          {!!chatUnread && <span className="dot">{chatUnread > 99 ? "99+" : chatUnread}</span>}
+        </NavLink>
         <NavLink to="/inbox">
           <Inbox />
           Inbox
           {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
         </NavLink>
-        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/chat", "/attendance", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
+        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
           <Ellipsis />
           More
           {!!unacked && <span className="dot">{unacked}</span>}
