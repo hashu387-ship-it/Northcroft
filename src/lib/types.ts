@@ -109,6 +109,8 @@ export interface RecurringTask {
   created_at: string;
 }
 
+export type TranscriptStatus = "pending" | "done" | "failed" | "off";
+
 export interface Comment {
   id: string;
   task_id: string | null;
@@ -118,6 +120,12 @@ export interface Comment {
   mentions: string[];
   created_at: string;
   edited_at: string | null;
+  /** Voice note (audio in the private files bucket) and its English text. */
+  voice_path: string | null;
+  voice_seconds: number | null;
+  voice_peaks: number[] | null;
+  transcript: string | null;
+  transcript_status: TranscriptStatus | null;
 }
 
 export interface Attachment {
@@ -156,6 +164,12 @@ export interface Announcement {
   pinned: boolean;
   nudged_at: string | null;
   created_at: string;
+  /** Voice note (audio in the private files bucket) and its English text. */
+  voice_path: string | null;
+  voice_seconds: number | null;
+  voice_peaks: number[] | null;
+  transcript: string | null;
+  transcript_status: TranscriptStatus | null;
 }
 
 export interface AnnouncementAck {

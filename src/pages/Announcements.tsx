@@ -3,13 +3,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { BellRing, ChevronDown, ChevronUp, CircleCheck, Clock, Megaphone, Pencil, Pin, PinOff, Plus, Trash2 } from "lucide-react";
+import { BellRing, ChevronDown, ChevronUp, CircleCheck, Clock, Megaphone, Mic, Pencil, Pin, PinOff, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, Empty, Field, Loading, Pill, Progress, ProjectSelect, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
 import { useInvalidate, usePeople, useProjectMap, useProjects } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { dateOf, diffDays, fmtDateTime, fmtDue, fmtTime12, timeAgo, todayISO } from "@/lib/time";
+import { canRecord, uploadVoice, useRecorder, type Recording } from "@/lib/voice";
+import { RecorderBar, VoiceNote, VoicePlayer } from "@/components/Voice";
 
 /** "today at 9:14 AM", "yesterday at 5:02 PM" or "on Sun 18 Oct at 8:40 AM". */
 function whenPhrase(ts: string) {
@@ -149,6 +151,7 @@ function AnnouncementItem({ a, highlight, onEdit }: { a: AnnouncementWithAcks; h
     const { error } = await supabase.from("announcements").delete().eq("id", a.id);
     if (error) toast(errorMessage(error), "error");
     else {
+      if (a.voice_path) await supabase.storage.from("files").remove([a.voice_path]);
       qc.setQueryData<Announcement[]>(["announcements", "list"], (old) => old?.filter((x) => x.id !== a.id));
       toast("Announcement deleted");
       invalidate("announcements", "announcement_acks");
@@ -193,7 +196,19 @@ function AnnouncementItem({ a, highlight, onEdit }: { a: AnnouncementWithAcks; h
         )}
       </div>
       <h2 style={{ marginTop: a.important || a.pinned ? 8 : 12 }}>{a.title}</h2>
-      <div className="ann-body">{a.body}</div>
+      {a.body.trim() && <div className="ann-body">{a.body}</div>}
+      {a.voice_path && (
+        <VoiceNote
+          kind="announcement"
+          id={a.id}
+          path={a.voice_path}
+          seconds={a.voice_seconds}
+          peaks={a.voice_peaks}
+          transcript={a.transcript}
+          status={a.transcript_status}
+          canEdit={canAssign}
+        />
+      )}
 
       <div className="ann-foot">
         {needsMyAck(a, me.id) ? (
@@ -273,6 +288,14 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
   const [pinned, setPinned] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Voice note: a fresh recording, or the one already on the announcement (when editing).
+  const [voice, setVoice] = useState<Recording | null>(null);
+  const [keepExisting, setKeepExisting] = useState(true);
+  const recorder = useRecorder({ onDone: (r) => setVoice(r) });
+  const voiceUrl = useMemo(() => (voice ? URL.createObjectURL(voice.blob) : null), [voice]);
+  useEffect(() => () => void (voiceUrl && URL.revokeObjectURL(voiceUrl)), [voiceUrl]);
+  const existingVoice = announcement?.voice_path && keepExisting ? announcement : null;
+  const hasVoice = !!voice || !!existingVoice;
 
   useEffect(() => {
     if (!open) return;
@@ -282,28 +305,60 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
     setRequiresAck(announcement?.requires_ack ?? true);
     setPinned(announcement?.pinned ?? false);
     setProjectId(announcement?.project_id ?? null);
+    setVoice(null);
+    setKeepExisting(true);
   }, [open, announcement]);
 
+  async function record() {
+    try {
+      setVoice(null);
+      await recorder.start();
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    }
+  }
+
+  function close() {
+    if (recorder.state !== "idle") recorder.cancel();
+    onClose();
+  }
+
   async function save() {
-    if (!title.trim() || !body.trim()) {
-      toast("Add a title and a message", "error");
+    if (!title.trim() || (!body.trim() && !hasVoice)) {
+      toast("Add a title, and a message or a voice note", "error");
+      return;
+    }
+    if (recorder.state !== "idle") {
+      toast("Stop the recording first", "error");
       return;
     }
     setSaving(true);
+    let uploaded: string | null = null;
     try {
-      const fields = { title: title.trim(), body: body.trim(), important, requires_ack: requiresAck, pinned, project_id: projectId };
+      const fields: Record<string, unknown> = { title: title.trim(), body: body.trim(), important, requires_ack: requiresAck, pinned, project_id: projectId };
+      const oldPath = announcement?.voice_path ?? null;
+      if (voice) {
+        uploaded = await uploadVoice(voice, me.id);
+        Object.assign(fields, { voice_path: uploaded, voice_seconds: Math.round(voice.seconds * 10) / 10, voice_peaks: voice.peaks });
+      } else if (announcement && oldPath && !keepExisting) {
+        fields.voice_path = null;
+      }
       if (announcement) {
         const { error } = await supabase.from("announcements").update(fields).eq("id", announcement.id);
         if (error) throw error;
+        // The old recording is no longer used once it's replaced or removed.
+        if (oldPath && (uploaded || !keepExisting)) await supabase.storage.from("files").remove([oldPath]);
         toast("Announcement updated");
       } else {
         const { error } = await supabase.from("announcements").insert({ ...fields, author_id: me.id });
         if (error) throw error;
         toast("Posted. The team has been notified.");
       }
+      uploaded = null;
       await invalidate("announcements");
       onClose();
     } catch (e) {
+      if (uploaded) await supabase.storage.from("files").remove([uploaded]);
       toast(errorMessage(e), "error");
     } finally {
       setSaving(false);
@@ -313,11 +368,11 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
   return (
     <Sheet
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={announcement ? "Edit announcement" : "New announcement"}
       footer={
         <>
-          <button className="btn" onClick={onClose}>
+          <button className="btn" onClick={close}>
             Cancel
           </button>
           <button className="btn primary" onClick={save} disabled={saving}>
@@ -330,9 +385,57 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
         <Field label="Title">
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Cost reports due Wednesday" autoFocus />
         </Field>
-        <Field label="Message">
-          <textarea className="textarea" style={{ minHeight: 160 }} value={body} onChange={(e) => setBody(e.target.value)} placeholder="What does the team need to know?" />
+        <Field label={hasVoice ? "Message (optional with a voice note)" : "Message"}>
+          <textarea className="textarea" style={{ minHeight: hasVoice ? 90 : 160 }} value={body} onChange={(e) => setBody(e.target.value)} placeholder="What does the team need to know?" />
         </Field>
+        {canRecord() && (
+          <div className="voice-field">
+            {recorder.state !== "idle" ? (
+              <RecorderBar
+                elapsed={recorder.elapsed}
+                maxSeconds={recorder.maxSeconds}
+                bars={recorder.bars}
+                onCancel={recorder.cancel}
+                onFinish={recorder.stop}
+                finishLabel="Stop recording"
+                finishIcon="stop"
+              />
+            ) : voice && voiceUrl ? (
+              <>
+                <VoicePlayer src={voiceUrl} seconds={voice.seconds} peaks={voice.peaks} seed="draft" />
+                <div className="row" style={{ gap: 6 }}>
+                  <span className="muted small grow">It's written out in English for everyone once you post.</span>
+                  <button type="button" className="btn small" onClick={record}>
+                    <RotateCcw /> Record again
+                  </button>
+                  <button type="button" className="btn small ghost" onClick={() => setVoice(null)} aria-label="Remove voice note">
+                    <Trash2 />
+                  </button>
+                </div>
+              </>
+            ) : existingVoice?.voice_path ? (
+              <>
+                <VoicePlayer path={existingVoice.voice_path} seconds={existingVoice.voice_seconds} peaks={existingVoice.voice_peaks} seed={existingVoice.id} />
+                <div className="row" style={{ gap: 6 }}>
+                  <span className="muted small grow">Voice note on this announcement</span>
+                  <button type="button" className="btn small" onClick={record}>
+                    <Mic /> Replace
+                  </button>
+                  <button type="button" className="btn small ghost" onClick={() => setKeepExisting(false)} aria-label="Remove voice note">
+                    <Trash2 />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="row" style={{ gap: 10 }}>
+                <button type="button" className="btn" onClick={record}>
+                  <Mic /> Record a voice note
+                </button>
+                <span className="muted small">Up to 3 minutes. Written out in English for everyone.</span>
+              </div>
+            )}
+          </div>
+        )}
         <Field label="Project (optional)">
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} emptyLabel="Whole team" />
         </Field>

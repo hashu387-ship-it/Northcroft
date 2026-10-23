@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { FileText, MessageCircle, Paperclip, SendHorizontal, Trash2, X } from "lucide-react";
+import { FileText, MessageCircle, Mic, Paperclip, SendHorizontal, Trash2, X } from "lucide-react";
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { isImage, signedUrl, signedUrls, uploadFile } from "@/lib/files";
@@ -12,6 +12,8 @@ import { fileSize } from "@/lib/format";
 import type { Attachment, Comment, Profile } from "@/lib/types";
 import { Avatar, Empty, Loading, useConfirm, useToast } from "./ui";
 import { PersonAvatar, openPersonCard } from "./People";
+import { RecorderBar, VoiceNote } from "./Voice";
+import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
 
 type Scope = { kind: "task"; taskId: string; projectId: string | null } | { kind: "project"; projectId: string } | { kind: "team" };
 
@@ -98,7 +100,10 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
     if (!ok) return;
     const { error } = await supabase.from("comments").delete().eq("id", c.id);
     if (error) toast(errorMessage(error), "error");
-    else invalidate("comments");
+    else {
+      if (c.voice_path) await supabase.storage.from("files").remove([c.voice_path]);
+      invalidate("comments");
+    }
   }
 
   async function open(a: Attachment) {
@@ -146,7 +151,20 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
                       {author?.short_name ?? "Someone"}
                     </button>
                   )}
-                  <div>{renderBody(c.body, people.active)}</div>
+                  {c.voice_path ? (
+                    <VoiceNote
+                      kind="comment"
+                      id={c.id}
+                      path={c.voice_path}
+                      seconds={c.voice_seconds}
+                      peaks={c.voice_peaks}
+                      transcript={c.transcript}
+                      status={c.transcript_status}
+                      canEdit={mine}
+                    />
+                  ) : (
+                    <div>{renderBody(c.body, people.active)}</div>
+                  )}
                   {atts.length > 0 && (
                     <div className="stack" style={{ gap: 6, marginTop: 8 }}>
                       {atts.map((a) =>
@@ -203,6 +221,45 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
   const [active, setActive] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [sendingVoice, setSendingVoice] = useState(false);
+  const recorder = useRecorder({ onDone: (r) => void sendVoice(r) });
+  const recording = recorder.state !== "idle";
+  // Like WhatsApp: the microphone shows while the box is empty, the send arrow once you type.
+  const showMic = canRecord() && !body.trim() && files.length === 0;
+
+  async function startRecording() {
+    try {
+      await recorder.start();
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    }
+  }
+
+  async function sendVoice(rec: Recording) {
+    setSendingVoice(true);
+    try {
+      const path = await uploadVoice(rec, me.id);
+      const { error } = await supabase.from("comments").insert({
+        body: voiceLabel(rec.seconds),
+        mentions: [],
+        author_id: me.id,
+        task_id: scope.kind === "task" ? scope.taskId : null,
+        project_id: scope.kind === "task" ? scope.projectId : scope.kind === "project" ? scope.projectId : null,
+        voice_path: path,
+        voice_seconds: Math.round(rec.seconds * 10) / 10,
+        voice_peaks: rec.peaks,
+      });
+      if (error) {
+        await supabase.storage.from("files").remove([path]);
+        throw error;
+      }
+      invalidate("comments");
+    } catch (e) {
+      toast(`Voice note not sent: ${errorMessage(e)}`, "error");
+    } finally {
+      setSendingVoice(false);
+    }
+  }
 
   const options = useMemo(() => {
     if (query === null) return [];
@@ -339,6 +396,14 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
             ))}
           </div>
         )}
+        {recording ? (
+          <RecorderBar elapsed={recorder.elapsed} maxSeconds={recorder.maxSeconds} bars={recorder.bars} onCancel={recorder.cancel} onFinish={recorder.stop} />
+        ) : sendingVoice ? (
+          <div className="rec-bar muted small" role="status">
+            <span className="vspin" style={{ color: "var(--accent)" }} /> Sending voice note...
+          </div>
+        ) : (
+          <>
         <button className="icon-btn plain" type="button" onClick={() => fileRef.current?.click()} aria-label="Attach a file">
           <Paperclip />
         </button>
@@ -353,9 +418,17 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
           }}
         />
         <textarea ref={ref} rows={1} value={body} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onKeyDown={onKey} aria-label={placeholder} />
-        <button className="icon-btn" style={{ background: "var(--accent)", color: "#fff" }} type="button" onClick={send} disabled={sending} aria-label="Send">
-          <SendHorizontal />
-        </button>
+        {showMic ? (
+          <button className="icon-btn plain mic-btn" type="button" onClick={startRecording} aria-label="Record a voice note" title="Record a voice note">
+            <Mic />
+          </button>
+        ) : (
+          <button className="icon-btn" style={{ background: "var(--accent)", color: "#fff" }} type="button" onClick={send} disabled={sending} aria-label="Send">
+            <SendHorizontal />
+          </button>
+        )}
+          </>
+        )}
       </div>
     </div>
   );

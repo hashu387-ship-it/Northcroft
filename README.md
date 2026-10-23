@@ -23,6 +23,9 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Managers get a team board with a map and a monthly CSV export.
 - **Workload**: open tasks per person per week, shown in red when someone has too much.
 - **Team chat** with @mentions and file sharing.
+- **Voice notes** in team chat, project chat, task comments and announcements:
+  - Tap the microphone, speak (up to 3 minutes), then send. Others get a play button with a waveform.
+  - Each note is written out in English a few seconds later, even if spoken in Arabic or Tamil. The sender can correct the text.
 - **Profiles and WhatsApp**:
   - Everyone adds a photo and a +966 mobile number the first time they sign in.
   - Tap anyone's photo to see their card, with WhatsApp, call and email buttons.
@@ -56,6 +59,7 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Edge Functions:
     - `send-push` sends Web Push messages, signed with VAPID keys kept in Supabase Vault.
     - `admin-users` lets the manager add people and reset passwords.
+    - `transcribe` writes voice notes out in English with Groq Whisper (`whisper-large-v3`). It needs a `GROQ_API_KEY` secret (Supabase dashboard > Edge Functions > Secrets). Without it, voice notes still work but show "Voice-to-text isn't switched on yet".
 - **Database**: the SQL is in `supabase/migrations/`, and the Edge Function source is in `supabase/functions/`.
 
 ## Running locally

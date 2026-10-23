@@ -21,6 +21,7 @@ import {
 import { InstallBanner } from "@/components/InstallBanner";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
+import { VoiceNote } from "@/components/Voice";
 import { Avatar, CountUp, Empty, Loading, Pill, useToast } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
@@ -447,12 +448,26 @@ function AnnouncementCard() {
           <Link to={`/announcements?id=${pick.id}`} style={{ color: "inherit" }}>
             <b style={{ fontSize: 16 }}>{pick.title}</b>
           </Link>
-          <p
-            className="muted small"
-            style={{ display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden", whiteSpace: "pre-wrap" }}
-          >
-            {pick.body}
-          </p>
+          {pick.body.trim() && (
+            <p
+              className="muted small"
+              style={{ display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden", whiteSpace: "pre-wrap" }}
+            >
+              {pick.body}
+            </p>
+          )}
+          {pick.voice_path && (
+            <VoiceNote
+              kind="announcement"
+              id={pick.id}
+              path={pick.voice_path}
+              seconds={pick.voice_seconds}
+              peaks={pick.voice_peaks}
+              transcript={pick.transcript}
+              status={pick.transcript_status}
+              canEdit={false}
+            />
+          )}
           <div className="row" style={{ gap: 8 }}>
             <Avatar person={people.get(pick.author_id)} size={24} />
             <span className="small muted ellipsis">
