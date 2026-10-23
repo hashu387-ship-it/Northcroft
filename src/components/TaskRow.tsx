@@ -4,7 +4,7 @@ import { ListChecks, RotateCcw, Users } from "lucide-react";
 import { usePeople, useProjectMap } from "@/lib/api";
 import { peopleOn } from "@/lib/people";
 import type { Task } from "@/lib/types";
-import { Avatar, AvatarStack, DueLabel, Pill, PriorityFlag, ProjectTag, StatusRing } from "./ui";
+import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing } from "./ui";
 
 export function TaskRow({
   task,
@@ -30,6 +30,7 @@ export function TaskRow({
           {showProject && <ProjectTag project={projects.get(task.project_id)} />}
           <DueLabel date={task.due_date} done={task.status === "done" || task.status === "in_review"} />
           <PriorityFlag priority={task.priority} />
+          <EarlyBadge task={task} />
           {checklist && checklist[1] > 0 && (
             <span className="row" style={{ gap: 3 }}>
               <ListChecks size={13} />

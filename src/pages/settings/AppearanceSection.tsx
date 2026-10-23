@@ -1,5 +1,6 @@
 import { useState } from "react";
 import clsx from "clsx";
+import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
@@ -25,6 +26,7 @@ function readSolid(): boolean {
 export function AppearanceSection() {
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [solid, setSolid] = useState(readSolid);
+  const [extras, setExtras] = useState(extrasOn);
 
   function applyTheme(t: Theme) {
     setTheme(t);
@@ -79,6 +81,23 @@ export function AppearanceSection() {
             <small>Replaces the see-through glass with solid panels. Turn this on if text over the coloured background is hard to read, or to save battery on older phones.</small>
           </div>
           <Switch checked={solid} onChange={applySolid} label="Solid surfaces" />
+        </div>
+      </Section>
+      <Section title="Celebrations">
+        <div className="setting-row">
+          <div className="grow">
+            <b>Sound and buzz</b>
+            <small>A short chime, and a small buzz on Android phones, with the confetti when work is approved or handed in early. iPhones stay quiet when on silent.</small>
+          </div>
+          <Switch
+            checked={extras}
+            onChange={(v) => {
+              setExtras(v);
+              setExtrasOn(v);
+              if (v) chime(false);
+            }}
+            label="Celebration sound and buzz"
+          />
         </div>
       </Section>
     </div>

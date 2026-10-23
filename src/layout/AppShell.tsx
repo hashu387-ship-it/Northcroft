@@ -27,6 +27,7 @@ import ChangePassword from "@/pages/ChangePassword";
 import ProfileSetup from "@/pages/ProfileSetup";
 import { LogoMark, Wordmark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
+import { CelebrationHost } from "@/components/Celebration";
 
 function useUnackedCount(userId: string) {
   return useQuery({
@@ -245,6 +246,7 @@ export default function AppShell() {
         </NavLink>
       </nav>
       <PersonCardHost />
+      <CelebrationHost />
       {appUpdate.ready && (
         <div className="update-bar" role="status">
           <span>A new version of the app is ready.</span>

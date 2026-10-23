@@ -11,11 +11,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
-import { Check, ChevronDown, ChevronsUp, ChevronUp, CircleAlert, CircleCheck, Clock, Info, Minus, X } from "lucide-react";
+import { Check, ChevronDown, ChevronsUp, ChevronUp, CircleAlert, CircleCheck, Clock, Info, Minus, Sparkles, X } from "lucide-react";
+import { daysText, earlyDays } from "@/lib/celebrate";
 import { initials } from "@/lib/format";
 import { dueState, fmtDue } from "@/lib/time";
 import { PRIORITY, PRIORITY_ORDER, TASK_STATUS } from "@/lib/constants";
-import type { Priority, Profile, Project, TaskStatus } from "@/lib/types";
+import type { Priority, Profile, Project, Task, TaskStatus } from "@/lib/types";
 import { artForIcon, Illustration, type ArtName } from "./Illustrations";
 
 /* ---------------------------------------------------------------- avatar */
@@ -159,6 +160,18 @@ export function PriorityFlag({ priority, size }: { priority: Priority; size?: "s
     <span className={clsx("prio", priority, size)} title={`${label} priority`}>
       <Icon strokeWidth={3} aria-hidden />
       {label}
+    </span>
+  );
+}
+
+/** Gold-on-navy "Finished early" badge for work handed in before its due date. */
+export function EarlyBadge({ task, size }: { task: Pick<Task, "status" | "submitted_at" | "due_date">; size?: "small" }) {
+  const n = earlyDays(task);
+  if (!n || (task.status !== "in_review" && task.status !== "done")) return null;
+  return (
+    <span className={clsx("early-badge", size)} title={`Handed in ${daysText(n)} before the due date`}>
+      <Sparkles aria-hidden />
+      Finished early
     </span>
   );
 }

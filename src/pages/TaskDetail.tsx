@@ -25,12 +25,13 @@ import { useMarkSeen } from "@/lib/seen";
 import { taskMessage } from "@/lib/phone";
 import { PersonLink, WhatsAppButton } from "@/components/People";
 import { errorMessage, supabase } from "@/lib/supabase";
-import { fmtDateTime, timeAgo } from "@/lib/time";
+import { diffDays, fmtDateTime, timeAgo, todayISO } from "@/lib/time";
+import { celebrate, daysText, earlyDays } from "@/lib/celebrate";
 import type { Task, TaskStatus } from "@/lib/types";
 import { Attachments } from "@/components/Attachments";
 import { CommentThread } from "@/components/CommentThread";
 import { TaskForm } from "@/components/TaskForm";
-import { DueLabel, Empty, Loading, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast } from "@/components/ui";
+import { DueLabel, EarlyBadge, Empty, Loading, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast } from "@/components/ui";
 import { ActivityFeed } from "./project/ActivityFeed";
 import { Checklist } from "./project/Checklist";
 import { useActivity, useWatchers } from "./project/api";
@@ -94,21 +95,38 @@ export default function TaskDetail() {
   const following = (watchers.data ?? []).some((w) => w.user_id === me.id);
   const changesRequested = !!t.changes_note && (t.status === "todo" || t.status === "in_progress");
 
-  async function update(fields: Partial<Task>, message: string) {
+  /** Saves the change; `message` is the toast (none when a celebration says it instead). */
+  async function update(fields: Partial<Task>, message: string | null): Promise<boolean> {
     setBusy(true);
     try {
       const { error } = await supabase.from("tasks").update(fields).eq("id", t.id);
       if (error) throw error;
-      toast(message);
+      if (message) toast(message);
       await invalidate("tasks", "activity");
+      return true;
     } catch (e) {
       toast(errorMessage(e), "error");
+      return false;
     } finally {
       setBusy(false);
     }
   }
 
   const setStatus = (status: TaskStatus, message: string) => update({ status }, message);
+
+  /** Approving (or marking done): the work is finished, so celebrate it with the people who did it. */
+  async function finish(approving: boolean) {
+    if (!(await update({ status: "done" }, null))) return;
+    const others = onIt.filter((x) => x !== me.id).map((x) => people.get(x)?.short_name ?? "someone");
+    const early = earlyDays(t);
+    celebrate({
+      kind: "approved",
+      headline: approving ? "Approved" : "Done",
+      line: others.length ? `Great work, ${nameList(others)}.` : "Great work.",
+      detail: t.title,
+      chip: early ? `Finished ${daysText(early)} early` : undefined,
+    });
+  }
 
   async function submitForReview() {
     setBusy(true);
@@ -121,7 +139,16 @@ export default function TaskDetail() {
           .insert({ task_id: t.id, project_id: t.project_id, author_id: me.id, body: `Submitted for review: ${note.trim()}`, mentions: [] });
         if (e2) throw e2;
       }
-      toast(`Sent to ${reviewer && reviewer.id !== me.id ? reviewer.short_name : "the reviewer"} for review`);
+      const sentTo = `Sent to ${reviewer && reviewer.id !== me.id ? reviewer.short_name : "the reviewer"} for review`;
+      // Handed in before the due date: a big "Great job". On the due day: a smaller cheer.
+      const ahead = t.due_date ? diffDays(t.due_date, todayISO()) : -1;
+      if (ahead >= 1) {
+        celebrate({ kind: "early", headline: `Great job, ${me.short_name}`, line: `Handed in ${daysText(ahead)} early. ${sentTo}.`, detail: t.title, chip: "Finished early" });
+      } else if (ahead === 0) {
+        celebrate({ kind: "on_time", headline: "Right on time", line: `${sentTo}.`, detail: t.title });
+      } else {
+        toast(sentTo);
+      }
       setSubmitOpen(false);
       setNote("");
       await invalidate("tasks", "activity", "comments");
@@ -187,7 +214,7 @@ export default function TaskDetail() {
   }
   if (t.status === "in_review" && canAssign) {
     actions.push(
-      <button key="approve" className="btn success grow-mobile" disabled={busy} onClick={() => setStatus("done", "Approved and marked done")}>
+      <button key="approve" className="btn success grow-mobile" disabled={busy} onClick={() => finish(true)}>
         <CircleCheck /> Approve
       </button>,
       <button key="changes" className="btn warn grow-mobile" disabled={busy} onClick={() => { setNote(""); setChangesOpen(true); }}>
@@ -204,7 +231,7 @@ export default function TaskDetail() {
   }
   if ((t.status === "todo" || t.status === "in_progress") && canAssign) {
     actions.push(
-      <button key="done" className="btn grow-mobile" disabled={busy} onClick={() => setStatus("done", "Marked done")}>
+      <button key="done" className="btn grow-mobile" disabled={busy} onClick={() => finish(false)}>
         <CircleCheck /> Mark done
       </button>,
     );
@@ -230,6 +257,7 @@ export default function TaskDetail() {
               <div className="row wrap" style={{ gap: 8, flex: 1, minWidth: 0 }}>
                 <StatusPill status={t.status} />
                 <PriorityFlag priority={t.priority} />
+                <EarlyBadge task={t} />
                 {project && (
                   <Link to={`/projects/${project.id}`} className="pill gray" style={{ color: "var(--text)" }}>
                     <i className="dot-swatch" style={{ background: project.color }} />
@@ -445,7 +473,10 @@ export default function TaskDetail() {
           </Row>
           {task.submitted_at && task.status !== "todo" && (
             <Row label="Submitted">
-              <span className="small">{fmtDateTime(task.submitted_at)}</span>
+              <span className="small">
+                {fmtDateTime(task.submitted_at)}
+                {earlyDays(task) > 0 && <b className="early-text"> · {daysText(earlyDays(task))} early</b>}
+              </span>
             </Row>
           )}
           {task.status === "done" && task.completed_at && (

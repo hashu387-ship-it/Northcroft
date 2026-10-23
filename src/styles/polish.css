@@ -272,3 +272,120 @@
   width: 11px;
   height: 11px;
 }
+
+/* ------------------------------------------------------------------ celebrations
+   Confetti and a glossy liquid-glass card when work is approved or handed in early.
+   Tap anywhere to close; it also fades by itself. */
+.celebrate {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  --celebrate-bg: rgba(255, 255, 255, 0.8);
+  background: radial-gradient(60% 50% at 50% 45%, rgba(11, 29, 70, 0.3), rgba(11, 29, 70, 0.14) 70%, transparent);
+  cursor: pointer;
+}
+:root[data-theme="dark"] .celebrate { --celebrate-bg: rgba(24, 28, 48, 0.82); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .celebrate { --celebrate-bg: rgba(24, 28, 48, 0.82); } }
+.celebrate.small { background: none; align-items: start; padding-top: calc(var(--safe-top) + 72px); }
+.celebrate .confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.celebrate-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: min(340px, calc(100vw - 48px));
+  padding: 26px 22px 22px;
+  border-radius: 28px;
+  text-align: center;
+  color: var(--text);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.16) 35%, rgba(255, 255, 255, 0) 60%),
+    var(--celebrate-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(255, 255, 255, 0.4), 0 24px 60px rgba(11, 29, 70, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  backdrop-filter: blur(30px) saturate(200%);
+  animation: celebrate-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.celebrate.small .celebrate-card { width: min(300px, calc(100vw - 48px)); padding: 16px 18px; border-radius: 22px; gap: 4px; }
+.celebrate-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 6px;
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 46%, rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, #ffd84d 0%, #e0a100 100%);
+  border: 1px solid rgba(160, 110, 0, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 6px 18px rgba(224, 161, 0, 0.45), 0 0 0 6px rgba(255, 216, 77, 0.18);
+  animation: celebrate-icon 0.7s 0.15s cubic-bezier(0.2, 1.6, 0.4, 1) backwards;
+}
+.celebrate-icon svg { width: 32px; height: 32px; filter: drop-shadow(0 1px 0 rgba(120, 70, 0, 0.45)); }
+.celebrate.early .celebrate-icon {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 46%, rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, #f35a62 0%, #b5121d 100%);
+  border-color: rgba(120, 6, 14, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 6px 18px rgba(232, 52, 62, 0.45), 0 0 0 6px rgba(243, 90, 98, 0.16);
+}
+.celebrate.small .celebrate-icon {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 2px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 46%, rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, #5fe08a 0%, #1d9a49 100%);
+  border-color: rgba(16, 110, 50, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 4px 12px rgba(29, 154, 73, 0.35);
+}
+.celebrate.small .celebrate-icon svg { width: 22px; height: 22px; }
+.celebrate-headline { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
+.celebrate.small .celebrate-headline { font-size: 18px; }
+.celebrate-line { font-size: 14.5px; color: var(--text-2); line-height: 1.4; }
+.celebrate-detail {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.celebrate-card .early-badge { margin-top: 8px; }
+@keyframes celebrate-pop { 0% { opacity: 0; transform: scale(0.7) translateY(14px); } 100% { opacity: 1; transform: none; } }
+@keyframes celebrate-icon { 0% { transform: scale(0.3) rotate(-25deg); } 100% { transform: none; } }
+
+/* "Finished early": gold on glossy navy, so it never looks like a priority badge. */
+.early-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px 0 6px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+  color: #ffd84d;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 46%, rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, #2a4a98 0%, #0b1d46 100%);
+  border: 1px solid rgba(255, 216, 77, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 2px rgba(15, 23, 42, 0.15), 0 3px 10px rgba(242, 183, 5, 0.22);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+.early-badge svg { width: 12px; height: 12px; flex: none; }
+.early-badge.small { height: 18px; font-size: 10.5px; padding: 0 6px 0 4px; }
+.early-text { color: #b58300; font-weight: 700; }
+:root[data-theme="dark"] .early-text { color: #ffd84d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .early-text { color: #ffd84d; } }

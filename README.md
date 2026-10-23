@@ -6,6 +6,12 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 
 - **Projects**: an overview, a task list and board, the variation (VO) register, BOQ package stages, project chat, files and a full history.
 - **Tasks**: you assign work with due dates, priorities and checklists, to one person or several. Everyone on a task sees it in My tasks and gets its notifications; any of them can start it, edit its details, steps and files, and submit it for review. Hassan or a senior approves it or sends it back with a note, and only managers and seniors change who's on a task. Tasks can also repeat daily, weekly or monthly.
+- **Celebrations**:
+  - When Hassan or a senior approves a task (or marks it done), confetti in navy, red and gold bursts across the screen with a glossy card: "Approved. Great work, Imthath and Najeefar."
+  - Everyone on that task sees it once too, the next time they open the app (or straight away if it's open): "Hassan approved your work. Great job, Najeefar." Several approvals at once show as one card.
+  - Handing work in a day or more before its due date gets a big "Great job, 2 days early". Handing it in on the due day gets a smaller "Right on time". Late work gets the normal message.
+  - Work handed in early keeps a gold-on-navy **Finished early** badge in lists and on the task, so it's easy to spot when reviewing.
+  - A short chime and, on Android, a small buzz go with it. Switch them off per phone in Settings > Appearance > Celebrations. iPhones stay quiet when on silent and don't buzz. With reduce-motion on, the card shows without confetti.
 - **Files on a new task**: *Add files* in the New task form attaches drawings, BOQs, PDFs and photos as the task goes out. The form shows each file's progress and opens the task once they're all up. If one fails, the task is still sent and it says which file to add again from the task's Files.
   - On a repeating task, the files come with every copy (marked *Every repeat*). They're stored once, and the copies already made keep them even if the repeating task is removed.
 - **Variations and BOQ packages** can have several owners too; all of them get the updates and reminders.
