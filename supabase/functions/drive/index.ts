@@ -281,6 +281,8 @@ type Target = {
   conversation_id?: string | null;
   /** This upload is an edited copy (new version) of that attachment. */
   version_of?: string | null;
+  /** A file set up with a repeating task: it comes with every copy of the task. */
+  recurring_id?: string | null;
 };
 
 async function checkTarget(t: Target, me: Me, req: Request): Promise<string | null> {
@@ -289,6 +291,10 @@ async function checkTarget(t: Target, me: Me, req: Request): Promise<string | nu
     const { data: task } = await admin.from("tasks").select("id, project_id").eq("id", t.task_id).maybeSingle();
     if (!task) throw new UserError("That task no longer exists.", 404);
     projectId = task.project_id;
+  } else if (t.recurring_id) {
+    const { data: rt } = await admin.from("recurring_tasks").select("id, project_id").eq("id", t.recurring_id).maybeSingle();
+    if (!rt) throw new UserError("That repeating task no longer exists.", 404);
+    projectId = rt.project_id;
   }
   let conversation = t.conversation_id ?? null;
   if (t.comment_id) {
@@ -371,6 +377,7 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Re
       comment_id: body.comment_id ?? null,
       conversation_id: body.conversation_id ?? null,
       version_of: body.version_of ?? null,
+      recurring_id: body.task_id ? null : body.recurring_id ?? null,
       uploaded_by: me.id,
     })
     .select()

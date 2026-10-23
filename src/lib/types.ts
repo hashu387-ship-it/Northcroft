@@ -84,6 +84,8 @@ export interface Task {
   completed_at: string | null;
   approved_by: string | null;
   recurring_id: string | null;
+  /** The repeating task it was made from; kept even if that repeating task is removed. */
+  repeat_of?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -170,6 +172,8 @@ export interface Attachment {
   version_of: string | null;
   /** 1 for the original, 2 for the first edited copy, and so on. */
   version: number;
+  /** Set for a file added with a repeating task: it shows on every copy of the task. */
+  recurring_id?: string | null;
   created_at: string;
 }
 

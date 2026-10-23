@@ -6,6 +6,8 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 
 - **Projects**: an overview, a task list and board, the variation (VO) register, BOQ package stages, project chat, files and a full history.
 - **Tasks**: you assign work with due dates, priorities and checklists, to one person or several. Everyone on a task sees it in My tasks and gets its notifications; any of them can start it, edit its details, steps and files, and submit it for review. Hassan or a senior approves it or sends it back with a note, and only managers and seniors change who's on a task. Tasks can also repeat daily, weekly or monthly.
+- **Files on a new task**: *Add files* in the New task form attaches drawings, BOQs, PDFs and photos as the task goes out. The form shows each file's progress and opens the task once they're all up. If one fails, the task is still sent and it says which file to add again from the task's Files.
+  - On a repeating task, the files come with every copy (marked *Every repeat*). They're stored once, and the copies already made keep them even if the repeating task is removed.
 - **Variations and BOQ packages** can have several owners too; all of them get the updates and reminders.
 - **Priority** on every task, VO and BOQ package, shown everywhere as a glossy badge:
   - **Urgent**: deep red with a soft glow (the glow stays still if the phone's reduce-motion setting is on).
@@ -56,6 +58,7 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Tap anyone's photo to see their card, with WhatsApp, call and email buttons.
   - WhatsApp buttons also sit on the Team list, the attendance board and task pages. On a task, the WhatsApp message starts with the task name and a link to it.
   - People's check-ins show on the attendance map as their photo.
+- **Updates load on their own**: phones keep the app open in the background, so it checks for a new version whenever it comes back to the front (and every 20 minutes). With nothing open it reloads straight away; if a form, a file or typed text is open, an *Update* bar shows instead, so nothing is lost.
 - **Liquid glass design**, light by default (Dark or Automatic in Settings > Appearance).
   - Glass is on for everyone. *Solid surfaces* in Settings > Appearance swaps it for solid panels on that phone, if someone finds text hard to read; it's off unless they turn it on, and the phone's own accessibility settings don't switch it on.
   - The light theme is see-through glass over a soft blue and red background, with a bright rim and a glossy shine across the top of each card.

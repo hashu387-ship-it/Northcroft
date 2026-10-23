@@ -20,6 +20,7 @@ import { useChats } from "@/lib/chats";
 import { useAuth, useMe } from "@/lib/auth";
 import { useRealtime } from "@/lib/realtime";
 import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/push";
+import { useAppUpdates } from "@/lib/updates";
 import { supabase } from "@/lib/supabase";
 import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
@@ -88,6 +89,7 @@ export default function AppShell() {
   const chatUnread = useChats(me.id, people).unread;
 
   useRealtime(me.id);
+  const appUpdate = useAppUpdates();
 
   useEffect(() => {
     registerServiceWorker().then(() => syncPushSubscription());
@@ -243,6 +245,14 @@ export default function AppShell() {
         </NavLink>
       </nav>
       <PersonCardHost />
+      {appUpdate.ready && (
+        <div className="update-bar" role="status">
+          <span>A new version of the app is ready.</span>
+          <button className="btn small primary" type="button" onClick={appUpdate.update}>
+            Update
+          </button>
+        </div>
+      )}
     </div>
   );
 }

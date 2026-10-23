@@ -292,7 +292,7 @@ export default function TaskDetail() {
                 <Paperclip /> Files
               </h3>
             </div>
-            <Attachments taskId={t.id} projectId={t.project_id} />
+            <Attachments taskId={t.id} projectId={t.project_id} repeatOf={t.repeat_of ?? t.recurring_id} />
           </div>
 
           <div className="glass card">

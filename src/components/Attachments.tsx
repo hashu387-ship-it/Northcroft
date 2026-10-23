@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileSpreadsheet, FileText, HardDrive, Paperclip, Trash2, Upload } from "lucide-react";
+import { FileSpreadsheet, FileText, HardDrive, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
@@ -16,8 +16,21 @@ function FileIcon({ a }: { a: Attachment }) {
   return <FileText />;
 }
 
-/** Files on a task (taskId) or every file in a project (projectId only). */
-export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: string | null; projectId?: string | null; canUpload?: boolean }) {
+/**
+ * Files on a task (taskId) or every file in a project (projectId only). For a copy of a repeating
+ * task, `repeatOf` also brings in the files that come with every copy.
+ */
+export function Attachments({
+  taskId,
+  projectId,
+  repeatOf,
+  canUpload = true,
+}: {
+  taskId?: string | null;
+  projectId?: string | null;
+  repeatOf?: string | null;
+  canUpload?: boolean;
+}) {
   const me = useMe();
   const { canAssign } = useAuth();
   const people = usePeople();
@@ -31,10 +44,11 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
   const driveOn = !!useSettings().data?.drive_connected_at;
 
   const q = useQuery({
-    queryKey: ["attachments", taskId ? "task" : "project", taskId ?? projectId],
+    queryKey: ["attachments", taskId ? "task" : "project", taskId ?? projectId, repeatOf ?? null],
     queryFn: async () => {
       let query = supabase.from("attachments").select("*");
-      query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
+      if (taskId && repeatOf) query = query.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
+      else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
       const rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(300));
       const urls = await previewUrls(rows);
       return { rows, urls };
@@ -68,7 +82,14 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
   const open = useOpenFile();
 
   async function remove(a: Attachment) {
-    if (!(await confirm({ title: `Delete ${a.name}?`, confirmLabel: "Delete", danger: true }))) return;
+    const everyCopy = !a.task_id && !!a.recurring_id;
+    const ok = await confirm({
+      title: `Delete ${a.name}?`,
+      message: everyCopy ? "This file comes with every copy of this repeating task. Deleting it takes it off all of them." : undefined,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteAttachment(a);
       invalidate("attachments");
@@ -110,6 +131,14 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
                       <>
                         <span className="drive-tag">
                           <HardDrive size={11} /> Drive
+                        </span>
+                        {" · "}
+                      </>
+                    )}
+                    {!a.task_id && a.recurring_id && (
+                      <>
+                        <span className="drive-tag repeat-tag" title="Comes with every copy of this repeating task">
+                          <Repeat size={11} /> Every repeat
                         </span>
                         {" · "}
                       </>

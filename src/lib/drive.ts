@@ -50,6 +50,7 @@ export interface DriveTarget {
   commentId?: string | null;
   conversationId?: string | null;
   versionOf?: string | null;
+  recurringId?: string | null;
 }
 
 /**
@@ -63,6 +64,7 @@ export async function uploadToDrive(file: File, target: DriveTarget, onProgress?
     comment_id: target.commentId ?? null,
     conversation_id: target.conversationId ?? null,
     version_of: target.versionOf ?? null,
+    recurring_id: target.recurringId ?? null,
   };
   const { upload_url } = await driveCall<{ upload_url: string }>("start_upload", {
     ...ids,

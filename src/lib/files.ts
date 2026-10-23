@@ -30,6 +30,8 @@ export interface UploadTarget {
   conversationId?: string | null;
   /** This file is an edited copy (new version) of that attachment. */
   versionOf?: string | null;
+  /** A file set up with a repeating task: it comes with every copy of the task. */
+  recurringId?: string | null;
   userId: string;
   onProgress?: (fraction: number) => void;
 }
@@ -53,7 +55,7 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
   // Private chat files live under c/<chat id>/, which only the people in that chat can read.
   const path = opts.conversationId
     ? `c/${opts.conversationId}/${crypto.randomUUID()}-${safeName(file.name)}`
-    : `${opts.projectId ?? "general"}/${opts.taskId ?? "project"}/${crypto.randomUUID()}-${safeName(file.name)}`;
+    : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
@@ -71,6 +73,7 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
       comment_id: opts.commentId ?? null,
       conversation_id: opts.conversationId ?? null,
       version_of: opts.versionOf ?? null,
+      recurring_id: opts.taskId ? null : opts.recurringId ?? null,
       uploaded_by: opts.userId,
     })
     .select()
@@ -214,7 +217,13 @@ export async function saveNewVersion(
 ): Promise<Attachment> {
   const name = versionName(original.name, opts.nextVersion, opts.extension);
   const file = new File([data], name, { type: data.type || original.mime || "application/octet-stream" });
-  let where = { taskId: original.task_id, projectId: original.project_id, conversationId: original.conversation_id };
+  // An edited copy of a file that comes with a repeating task comes with every copy too.
+  let where: { taskId: string | null; projectId: string | null; conversationId: string | null; recurringId?: string | null } = {
+    taskId: original.task_id,
+    projectId: original.project_id,
+    conversationId: original.conversation_id,
+    recurringId: original.recurring_id ?? null,
+  };
   let commentId: string | null = null;
 
   if (original.comment_id) {

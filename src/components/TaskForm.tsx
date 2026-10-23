@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Repeat, Trash2 } from "lucide-react";
-import { useInvalidate, usePeople, useProjects } from "@/lib/api";
+import { FileSpreadsheet, FileText, Image as ImageIcon, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
+import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
+import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
+import { fileSize } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { DOW_LONG, addDays, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Task } from "@/lib/types";
@@ -59,6 +61,11 @@ export function TaskForm({
   const [monthDay, setMonthDay] = useState(1);
   const [offset, setOffset] = useState(2);
   const [saving, setSaving] = useState(false);
+  // Files picked in the form; they go up once the task (or repeating task) exists.
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadNote, setUploadNote] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const driveOn = !!useSettings().data?.drive_connected_at;
 
   useEffect(() => {
     if (!open) return;
@@ -83,10 +90,54 @@ export function TaskForm({
     setWeekday(0);
     setMonthDay(Math.min(28, Number(todayISO().slice(8, 10))));
     setOffset(2);
+    setFiles([]);
+    setUploadNote(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, task, defaults?.projectId, defaults?.assigneeId, defaults?.assigneeIds?.join(","), defaults?.dueDate, defaults?.title, defaults?.description, defaults?.priority, defaults?.steps?.join("\n"), me.id]);
 
   const cleanSteps = steps.map((s) => s.trim()).filter(Boolean);
+
+  function pickFiles(list: FileList | null) {
+    if (!list?.length) return;
+    const picked = Array.from(list);
+    // Without Google Drive, the app's own storage takes files up to 50 MB.
+    const tooBig = driveOn ? [] : picked.filter((f) => f.size > STORAGE_MAX_BYTES);
+    if (tooBig.length) {
+      toast(`${tooBig.map((f) => f.name).join(", ")} ${tooBig.length === 1 ? "is" : "are"} over 50 MB. Bigger files need Google Drive, which a manager connects in Settings > Google Drive.`, "error");
+    }
+    const ok = picked.filter((f) => !tooBig.includes(f));
+    setFiles((xs) => [...xs, ...ok.filter((f) => !xs.some((x) => x.name === f.name && x.size === f.size))]);
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
+  /** Upload the picked files one by one. Returns the names that didn't make it, and why. */
+  async function uploadPicked(target: { taskId?: string; recurringId?: string; projectId: string | null }) {
+    const failed: string[] = [];
+    let reason = "";
+    for (const [i, f] of files.entries()) {
+      const of = files.length > 1 ? ` (${i + 1} of ${files.length})` : "";
+      setUploadNote(`Uploading ${f.name}${of}`);
+      try {
+        await uploadFile(f, {
+          taskId: target.taskId ?? null,
+          recurringId: target.recurringId ?? null,
+          projectId: target.projectId,
+          userId: me.id,
+          onProgress: (x) => setUploadNote(`Uploading ${f.name}, ${Math.round(x * 100)}%${of}`),
+        });
+      } catch (e) {
+        failed.push(f.name);
+        reason ||= errorMessage(e);
+      }
+    }
+    setUploadNote(null);
+    return { failed, reason };
+  }
+
+  function reportFailed({ failed, reason }: { failed: string[]; reason: string }, where: string) {
+    if (!failed.length) return;
+    toast(`${failed.join(", ")} didn't upload (${reason}). Add ${failed.length === 1 ? "it" : "them"} again from ${where}.`, "error");
+  }
 
   async function save() {
     if (!title.trim()) {
@@ -124,6 +175,8 @@ export function TaskForm({
           .select()
           .single();
         if (error) throw error;
+        // Files set up here come with every copy of the task.
+        const result = files.length ? await uploadPicked({ recurringId: data.id, projectId }) : { failed: [], reason: "" };
         await supabase.rpc("run_recurring");
         const { data: fresh } = await supabase.from("recurring_tasks").select("next_run, last_run").eq("id", data.id).single();
         toast(
@@ -131,7 +184,8 @@ export function TaskForm({
             ? `Repeating task set up. The first one is ready now, the next on ${fmtDue(fresh.next_run)}.`
             : `Repeating task set up. The first one appears on ${fmtDue(fresh?.next_run ?? data.next_run)}.`,
         );
-        await invalidate("recurring_tasks");
+        await invalidate("recurring_tasks", "attachments");
+        reportFailed(result, "a copy of the task's Files");
       } else {
         const { data, error } = await supabase
           .from("tasks")
@@ -145,10 +199,13 @@ export function TaskForm({
             .insert(cleanSteps.map((text, i) => ({ task_id: data.id, text, position: i + 1 })));
           if (e2) throw e2;
         }
+        // The task is out; now its files go up, with progress, before the task opens.
+        const result = files.length ? await uploadPicked({ taskId: data.id, projectId }) : { failed: [], reason: "" };
         const others = assignees.filter((id) => id !== me.id).map((id) => people.get(id)?.short_name).filter(Boolean);
         toast(others.length ? `Task sent to ${others.length > 3 ? `${others.length} people` : others.join(", ")}` : "Task created");
+        reportFailed(result, "the task's Files");
         onClose();
-        await invalidate("tasks", "task_checklist");
+        await invalidate("tasks", "task_checklist", "attachments");
         navigate(`/tasks/${data.id}`);
         return;
       }
@@ -169,11 +226,11 @@ export function TaskForm({
       wide
       footer={
         <>
-          <button className="btn" onClick={onClose} type="button">
+          <button className="btn" onClick={onClose} type="button" disabled={!!uploadNote}>
             Cancel
           </button>
           <button className="btn primary" onClick={save} disabled={saving} type="button">
-            {saving ? "Saving..." : editing ? "Save changes" : repeat !== "none" ? "Set up repeating task" : "Assign task"}
+            {uploadNote ? "Uploading files..." : saving ? "Saving..." : editing ? "Save changes" : repeat !== "none" ? "Set up repeating task" : "Assign task"}
           </button>
         </>
       }
@@ -216,6 +273,46 @@ export function TaskForm({
         <Field label="Details" className="full">
           <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What needs doing, drawings to use, anything to watch for" />
         </Field>
+        {!editing && (
+          <Field
+            label="Files"
+            className="full"
+            group
+            hint={
+              uploadNote ??
+              (repeat !== "none"
+                ? "These come with every copy of the task."
+                : driveOn
+                  ? "Drawings, BOQs, PDFs, photos. Saved to the team's Google Drive."
+                  : "Drawings, BOQs, PDFs, photos. Up to 50 MB each.")
+            }
+          >
+            <div className="tf-files">
+              {files.map((f) => (
+                <span className="tf-file" key={f.name + f.size}>
+                  <span className="tf-file-icon">
+                    {f.type.startsWith("image/") ? <ImageIcon /> : /\.(xlsx?|xlsm|csv)$/i.test(f.name) ? <FileSpreadsheet /> : <FileText />}
+                  </span>
+                  <span className="tf-file-name ellipsis">{f.name}</span>
+                  <span className="faint tiny">{fileSize(f.size)}</span>
+                  <button
+                    type="button"
+                    className="icon-btn small plain"
+                    onClick={() => setFiles((xs) => xs.filter((x) => x !== f))}
+                    aria-label={`Take ${f.name} off`}
+                    disabled={saving}
+                  >
+                    <X />
+                  </button>
+                </span>
+              ))}
+              <button className="btn small" type="button" onClick={() => fileInput.current?.click()} disabled={saving}>
+                <Paperclip /> {files.length ? "Add more files" : "Add files"}
+              </button>
+              <input ref={fileInput} type="file" multiple hidden aria-label="Choose files" onChange={(e) => pickFiles(e.target.files)} />
+            </div>
+          </Field>
+        )}
 
         {!editing && (
           <div className="full stack" style={{ gap: 8 }}>
