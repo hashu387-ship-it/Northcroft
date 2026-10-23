@@ -155,7 +155,7 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
                 className="input"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Add a note, e.g. Client meeting at the site office"
+                placeholder="Add a note"
                 maxLength={500}
               />
             ) : (

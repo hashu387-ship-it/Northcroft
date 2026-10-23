@@ -9,7 +9,6 @@ import { Attachments } from "@/components/Attachments";
 import { CommentThread } from "@/components/CommentThread";
 import { Empty, Loading, Pill } from "@/components/ui";
 import { ProjectCover } from "@/components/ProjectCover";
-import { ClaudeIcon, StatusReportSheet } from "@/components/Assist";
 import { ActivityFeed } from "./project/ActivityFeed";
 import { Boq } from "./project/Boq";
 import { Overview } from "./project/Overview";
@@ -44,7 +43,6 @@ export default function ProjectDetail() {
   const { canAssign } = useAuth();
   const projects = useProjectMap();
   const [editOpen, setEditOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
   const tabsRef = useRef<HTMLElement>(null);
   const project = projects.get(id);
 
@@ -83,16 +81,11 @@ export default function ProjectDetail() {
             </div>
             <h1>{project.name}</h1>
           </div>
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn small claude" onClick={() => setReportOpen(true)} title="Claude writes a status report for this project">
-              <ClaudeIcon size={15} /> Report
+          {canAssign && (
+            <button className="btn small" onClick={() => setEditOpen(true)}>
+              <Pencil /> Edit
             </button>
-            {canAssign && (
-              <button className="btn small" onClick={() => setEditOpen(true)}>
-                <Pencil /> Edit
-              </button>
-            )}
-          </div>
+          )}
         </div>
         <div className="facts">
           {project.client && (
@@ -146,7 +139,6 @@ export default function ProjectDetail() {
       {!TABS.some((t) => t.key === tab) && <Empty title="That section doesn't exist" />}
 
       <ProjectForm open={editOpen} onClose={() => setEditOpen(false)} project={project} />
-      <StatusReportSheet open={reportOpen} onClose={() => setReportOpen(false)} projectId={project.id} />
     </div>
   );
 }

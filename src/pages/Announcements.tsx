@@ -12,8 +12,6 @@ import { errorMessage, supabase } from "@/lib/supabase";
 import { dateOf, diffDays, fmtDateTime, fmtDue, fmtTime12, timeAgo, todayISO } from "@/lib/time";
 import { canRecord, uploadVoice, useRecorder, type Recording } from "@/lib/voice";
 import { RecorderBar, VoiceNote, VoicePlayer } from "@/components/Voice";
-import { ClaudeIcon } from "@/components/Assist";
-import { assist, type AnnouncementDraft } from "@/lib/assist";
 
 /** "today at 9:14 AM", "yesterday at 5:02 PM" or "on Sun 18 Oct at 8:40 AM". */
 function whenPhrase(ts: string) {
@@ -298,12 +296,6 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
   useEffect(() => () => void (voiceUrl && URL.revokeObjectURL(voiceUrl)), [voiceUrl]);
   const existingVoice = announcement?.voice_path && keepExisting ? announcement : null;
   const hasVoice = !!voice || !!existingVoice;
-  // Claude's write-up: the text before it (for Undo), what it heard in the voice note, and the
-  // recording it uploaded to listen to (reused when posting, deleted if the form is discarded).
-  const [drafting, setDrafting] = useState(false);
-  const [before, setBefore] = useState<{ title: string; body: string } | null>(null);
-  const [heard, setHeard] = useState<string | null>(null);
-  const [draftUpload, setDraftUpload] = useState<{ rec: Recording; path: string } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -315,48 +307,7 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
     setProjectId(announcement?.project_id ?? null);
     setVoice(null);
     setKeepExisting(true);
-    setBefore(null);
-    setHeard(null);
-    setDraftUpload(null);
   }, [open, announcement]);
-
-  // A new or removed recording makes the one Claude listened to out of date.
-  useEffect(() => {
-    if (draftUpload && draftUpload.rec !== voice) {
-      void supabase.storage.from("files").remove([draftUpload.path]);
-      setDraftUpload(null);
-      setHeard(null);
-    }
-  }, [voice, draftUpload]);
-
-  async function writeUp() {
-    if (recorder.state !== "idle") {
-      toast("Stop the recording first", "error");
-      return;
-    }
-    const mineExisting = existingVoice?.voice_path && existingVoice.author_id === me.id ? existingVoice.voice_path : null;
-    if (!body.trim() && !voice && !mineExisting) {
-      toast("Type a few rough notes or record a voice note first", "error");
-      return;
-    }
-    setDrafting(true);
-    try {
-      let voicePath = mineExisting;
-      if (voice) {
-        voicePath = draftUpload?.rec === voice ? draftUpload.path : await uploadVoice(voice, me.id);
-        if (draftUpload?.rec !== voice) setDraftUpload({ rec: voice, path: voicePath });
-      }
-      const d = await assist<AnnouncementDraft>("announcement_draft", { title, notes: body, voice_path: voicePath });
-      setBefore({ title, body });
-      setTitle(d.title);
-      setBody(d.body);
-      setHeard(d.transcript);
-    } catch (e) {
-      toast(errorMessage(e), "error");
-    } finally {
-      setDrafting(false);
-    }
-  }
 
   async function record() {
     try {
@@ -369,9 +320,6 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
 
   function close() {
     if (recorder.state !== "idle") recorder.cancel();
-    // Discarded: the recording Claude listened to isn't needed.
-    if (draftUpload) void supabase.storage.from("files").remove([draftUpload.path]);
-    setDraftUpload(null);
     onClose();
   }
 
@@ -390,9 +338,8 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
       const fields: Record<string, unknown> = { title: title.trim(), body: body.trim(), important, requires_ack: requiresAck, pinned, project_id: projectId };
       const oldPath = announcement?.voice_path ?? null;
       if (voice) {
-        // Reuse the copy uploaded for Claude's write-up, if it's this recording.
-        const path = draftUpload?.rec === voice ? draftUpload.path : (uploaded = await uploadVoice(voice, me.id));
-        Object.assign(fields, { voice_path: path, voice_seconds: Math.round(voice.seconds * 10) / 10, voice_peaks: voice.peaks });
+        uploaded = await uploadVoice(voice, me.id);
+        Object.assign(fields, { voice_path: uploaded, voice_seconds: Math.round(voice.seconds * 10) / 10, voice_peaks: voice.peaks });
       } else if (announcement && oldPath && !keepExisting) {
         fields.voice_path = null;
       }
@@ -408,7 +355,6 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
         toast("Posted. The team has been notified.");
       }
       uploaded = null;
-      setDraftUpload(null);
       await invalidate("announcements");
       onClose();
     } catch (e) {
@@ -437,7 +383,7 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
     >
       <div className="stack" style={{ gap: 14 }}>
         <Field label="Title">
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Cost reports due Wednesday" autoFocus />
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
         </Field>
         <Field label={hasVoice ? "Message (optional with a voice note)" : "Message"}>
           <textarea className="textarea" style={{ minHeight: hasVoice ? 90 : 160 }} value={body} onChange={(e) => setBody(e.target.value)} placeholder="What does the team need to know?" />
@@ -490,39 +436,6 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
             )}
           </div>
         )}
-        <div className="stack" style={{ gap: 8 }}>
-          <div className="assist-row">
-            <button type="button" className="btn claude" onClick={writeUp} disabled={drafting || recorder.state !== "idle" || (!body.trim() && !hasVoice)}>
-              {drafting ? <span className="vspin" /> : <ClaudeIcon />} {drafting ? "Writing..." : before ? "Write it up again" : "Write it up with Claude"}
-            </button>
-            {before ? (
-              <span className="muted small grow">
-                Claude rewrote the title and message. Check them before posting.{" "}
-                <button
-                  type="button"
-                  className="link-btn"
-                  onClick={() => {
-                    setTitle(before.title);
-                    setBody(before.body);
-                    setBefore(null);
-                  }}
-                >
-                  Undo
-                </button>
-              </span>
-            ) : (
-              <span className="muted small grow">Type rough notes or record a voice note, in English, Arabic or Tamil. Claude turns it into a clear announcement.</span>
-            )}
-          </div>
-          {heard && (
-            <details>
-              <summary className="muted small">What Claude heard in the voice note</summary>
-              <div className="assist-heard" dir="auto">
-                {heard}
-              </div>
-            </details>
-          )}
-        </div>
         <Field label="Project (optional)">
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} emptyLabel="Whole team" />
         </Field>

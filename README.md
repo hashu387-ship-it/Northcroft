@@ -31,17 +31,14 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Bigger files go straight from the phone or computer to a **Northcroft** folder in Google Drive, with a subfolder per project (plus General). A progress figure shows while they upload.
   - Drive files stay private. Only signed-in team members can open them, through the app (PDFs, photos and videos open in the browser; other files download). Deleting one in the app moves it to the Drive bin for 30 days.
   - A manager connects Google Drive once in **Settings > Google Drive**, which has the step-by-step set-up. The app can only see the files and folders it creates, nothing else in that Drive.
-- **Claude helpers** (the red sparkle buttons):
-  - **Status report** (Projects page, and Report on each project). Claude writes the team report in Hassan's usual format: project, then each person with their email and what they did. Choose all projects or one, and today, 3 days, a week or 2 weeks. It flags overdue work, anything waiting for review and changes requested, and adds "Completion status needs confirmation" where progress was reported but nothing submitted. You can edit it, then copy it or send it to WhatsApp.
-  - **Catch me up** (top of every chat and task thread). A short summary of the last day, 3 days or week: decisions, who's doing what, open questions, and anything asked of you. Voice notes are included.
-  - **Make a task** (under each message, for Hassan and the seniors). Claude reads the message or voice note and fills in the New task form: title, who, project, due date (it understands "by Sunday" and "end of the week"), priority and checklist steps. You check it, then press Assign.
-  - **Write it up with Claude** (New announcement). Type rough notes or record a voice note in English, Arabic or Tamil, and Claude writes a clear announcement. Undo puts your own text back.
 - **Profiles and WhatsApp**:
   - Everyone adds a photo and a +966 mobile number the first time they sign in.
   - Tap anyone's photo to see their card, with WhatsApp, call and email buttons.
   - WhatsApp buttons also sit on the Team list, the attendance board and task pages. On a task, the WhatsApp message starts with the task name and a link to it.
   - People's check-ins show on the attendance map as their photo.
-- **Liquid glass design** in light and dark mode, with a *Solid surfaces* option for easier reading.
+- **Liquid glass design**, light by default (Dark or Automatic in Settings > Appearance), with a *Solid surfaces* option for easier reading.
+  - Every page opens with a navy glass header with the Northcroft tower behind it; the side menu, top bar and tab bar are navy glass too.
+  - Main buttons are glossy Northcroft red; other buttons are frosted glass.
   - Navy is the main colour; Northcroft red marks counts, urgent items, the active tab and New task.
   - Home opens with a banner of the Northcroft tower, a greeting and a one-line summary of your day.
   - Projects can have a cover photo (Hassan and seniors add it on the project page).
@@ -78,7 +75,7 @@ Work flows down: Fawaz gives tasks to Hassan, and Hassan gives tasks to the team
       1. Groq Whisper (`whisper-large-v3`) writes down what was said, in the language it was spoken, and reports the language. This needs a `GROQ_API_KEY` secret. Without it, voice notes still work but show "Voice-to-text isn't switched on yet".
       2. Claude (`claude-opus-5-5`, low effort) finishes it. English is tidied (misheard names, projects and QS terms, punctuation). Arabic, Tamil or any other language is translated into English, keeping names, dates and times exactly; this is much more accurate than Whisper's own translation. This step turns on with an `ANTHROPIC_API_KEY` secret. Without Claude, English is kept as Whisper wrote it and other languages use Whisper's translation.
     - `drive` handles Google Drive for files over 50 MB: connecting (Google sign-in with the `drive.file` permission only), starting uploads that the browser sends straight to Google in 8 MB pieces, attaching them, and streaming them back to signed-in team members through 1-hour signed links. The Google client, refresh token and link-signing key are kept in Supabase Vault.
-    - `assist` runs the Claude helpers (status report, catch-up, make a task, announcement writer) for a signed-in team member. It uses `claude-opus-5-5` with Anthropic's automatic fallback, so if Claude declines a request it's retried on Anthropic's recommended fallback model. It needs `ANTHROPIC_API_KEY` (and `GROQ_API_KEY` for voice notes in the announcement writer). Without the key, the buttons say "Claude isn't switched on yet".
+    - `assist` is retired (it answers "no longer available").
   - Where the Claude and Groq keys live: Supabase Vault, as `anthropic_api_key` and `groq_api_key` (encrypted at rest; read only by the Edge Functions through `get_ai_keys()`). An Edge Function secret with the same name in capitals (`ANTHROPIC_API_KEY`, `GROQ_API_KEY`) takes priority if you add one. The keys are never stored in this repository.
   - To replace a key, run this in the Supabase SQL editor (a changed key is picked up within 5 minutes):
     `select vault.update_secret((select id from vault.secrets where name = 'anthropic_api_key'), '<new key>');`

@@ -187,7 +187,7 @@ export function DriveSection() {
                 className="input"
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
-                placeholder={connected ? "Leave empty to keep the current one" : "123456789-abc.apps.googleusercontent.com"}
+                placeholder={connected ? "Leave empty to keep the current one" : undefined}
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -198,7 +198,7 @@ export function DriveSection() {
                 type="password"
                 value={clientSecret}
                 onChange={(e) => setClientSecret(e.target.value)}
-                placeholder={connected ? "Leave empty to keep the current one" : "GOCSPX-..."}
+                placeholder={connected ? "Leave empty to keep the current one" : undefined}
                 autoComplete="off"
                 spellCheck={false}
               />

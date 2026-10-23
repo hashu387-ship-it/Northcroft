@@ -348,7 +348,7 @@ export default function TaskDetail() {
           </p>
           <label className="field">
             <span>Note for the reviewer (optional)</span>
-            <textarea className="textarea" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Rates checked against tender BOQ. File attached." />
+            <textarea className="textarea" value={note} onChange={(e) => setNote(e.target.value)} />
           </label>
         </div>
       </Sheet>
@@ -374,7 +374,7 @@ export default function TaskDetail() {
           </p>
           <label className="field">
             <span>What needs changing</span>
-            <textarea className="textarea" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Use the revised drawing rev D for L18 and recheck the partition lengths." autoFocus />
+            <textarea className="textarea" value={note} onChange={(e) => setNote(e.target.value)} autoFocus />
           </label>
         </div>
       </Sheet>

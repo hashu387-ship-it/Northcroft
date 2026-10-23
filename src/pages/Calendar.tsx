@@ -537,7 +537,7 @@ function EventForm({
     >
       <div className="form-grid">
         <Field label="Title" className="full">
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Site visit, plot 31" autoFocus={!event} />
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus={!event} />
         </Field>
         <Field label="Type">
           <select className="select" value={kind} onChange={(e) => setKind(e.target.value as EventKind)}>

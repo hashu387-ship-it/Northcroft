@@ -203,7 +203,7 @@ function BoqSheet({ open, onClose, project, pkg, position }: { open: boolean; on
     >
       <div className="form-grid">
         <Field label="Package" className="full">
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Plumbing and drainage" />
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Trade">
           <select className="select" value={trade} onChange={(e) => setTrade(e.target.value)}>

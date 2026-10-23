@@ -1,15 +1,16 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Building2, FolderKanban, MapPin, Plus } from "lucide-react";
-import { useProjects, useTasks } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
+import { Building2, FolderKanban, MapPin, Plus, Trash2 } from "lucide-react";
+import { useInvalidate, useProjects, useTasks } from "@/lib/api";
+import { useAuth, useMe } from "@/lib/auth";
+import { SAMPLE_PROJECT_IDS, removeSampleData } from "@/lib/sampleData";
+import { errorMessage } from "@/lib/supabase";
 import { sar } from "@/lib/format";
 import { todayISO } from "@/lib/time";
 import type { Project } from "@/lib/types";
 import { PageHead } from "@/components/PageHead";
-import { Empty, Loading, Pill, Progress, Segmented } from "@/components/ui";
+import { Empty, Loading, Pill, Progress, Segmented, useConfirm, useToast } from "@/components/ui";
 import { ProjectCover } from "@/components/ProjectCover";
-import { ClaudeIcon, StatusReportSheet } from "@/components/Assist";
 import { ProjectForm } from "./project/ProjectForm";
 import { useVariations, voTotals } from "./project/api";
 import "@/styles/tasks.css";
@@ -23,7 +24,33 @@ export default function Projects() {
   const vos = useVariations().data ?? [];
   const [filter, setFilter] = useState<Filter>("active");
   const [formOpen, setFormOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
+  const me = useMe();
+  const { isManager } = useAuth();
+  const confirm = useConfirm();
+  const toast = useToast();
+  const invalidate = useInvalidate();
+  const [clearing, setClearing] = useState(false);
+  const samples = projects.filter((p) => SAMPLE_PROJECT_IDS.includes(p.id));
+
+  async function clearSamples() {
+    const ok = await confirm({
+      title: "Remove the sample data?",
+      message: `This deletes ${samples.map((p) => p.name).join(", ")} with their tasks, VOs, BOQs and chats, plus the test tasks, sample announcements and test check-ins from before your real projects were added. Capella, HOAS, Babawa and everything since are not touched. This can't be undone.`,
+      confirmLabel: "Remove sample data",
+      danger: true,
+    });
+    if (!ok) return;
+    setClearing(true);
+    try {
+      const n = await removeSampleData(me.id);
+      toast(`Sample data removed (${n} ${n === 1 ? "project" : "projects"} and the test items).`);
+      await invalidate("projects", "tasks", "variations", "boq_packages", "announcements", "events", "comments", "attendance", "notifications", "recurring_tasks", "activity");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setClearing(false);
+    }
+  }
   const today = todayISO();
 
   const stats = useMemo(() => {
@@ -55,19 +82,25 @@ export default function Projects() {
         title="Projects"
         sub={`${counts.active} active ${counts.active === 1 ? "project" : "projects"}`}
         actions={
-          <>
-            <button className="btn claude" onClick={() => setReportOpen(true)}>
-              <ClaudeIcon /> Status report
+          canAssign && (
+            <button className="btn primary" onClick={() => setFormOpen(true)}>
+              <Plus /> New project
             </button>
-            {canAssign && (
-              <button className="btn primary" onClick={() => setFormOpen(true)}>
-                <Plus /> New project
-              </button>
-            )}
-          </>
+          )
         }
       />
-      <StatusReportSheet open={reportOpen} onClose={() => setReportOpen(false)} />
+      {isManager && samples.length > 0 && (
+        <div className="banner glass" style={{ marginBottom: 16 }}>
+          <FolderKanban />
+          <div className="grow small">
+            <b>{samples.length} sample {samples.length === 1 ? "project is" : "projects are"} still here from set-up</b>
+            <div className="muted">Remove them and the test items so only your real work is left. Only managers see this.</div>
+          </div>
+          <button className="btn small danger" type="button" onClick={clearSamples} disabled={clearing}>
+            <Trash2 /> {clearing ? "Removing..." : "Remove sample data"}
+          </button>
+        </div>
+      )}
       <div style={{ marginBottom: 16 }}>
         <Segmented<Filter>
           value={filter}

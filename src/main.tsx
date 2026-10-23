@@ -7,14 +7,18 @@ import { ConfirmProvider, ToastProvider } from "@/components/ui";
 import App from "./App";
 import "./styles/index.css";
 import "./styles/polish.css";
+import "./styles/liquid.css";
 
-// Appearance preferences are per device.
+// Appearance preferences are per device. Light is the default; Dark or Automatic (follow the phone)
+// only when someone chooses it in Settings > Appearance.
 try {
   const theme = localStorage.getItem("nc-theme");
-  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  if (theme === "dark") document.documentElement.dataset.theme = "dark";
+  else if (theme !== "system") document.documentElement.dataset.theme = "light";
   if (localStorage.getItem("nc-solid") === "true") document.documentElement.dataset.solid = "true";
 } catch {
-  /* storage can be blocked; defaults still work */
+  /* storage can be blocked; the light default still applies */
+  document.documentElement.dataset.theme = "light";
 }
 
 const queryClient = new QueryClient({

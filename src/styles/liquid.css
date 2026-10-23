@@ -1,0 +1,257 @@
+/* Liquid glass layer, loaded last (after index.css and polish.css).
+   Spreads the Home banner look across the app:
+     - navy glass page headers with the tower photo, like the Home banner
+     - navy glass side menu, top bar and tab bar
+     - glossy red main buttons and frosted glass secondary buttons
+     - clearer, more see-through frosted cards on a light background
+   Light is the default (see main.tsx). Dark and "Solid surfaces" still work. */
+
+/* ------------------------------------------------------------------ tokens */
+:root {
+  --navy-glass: rgba(5, 22, 66, 0.92);
+  --navy-solid: #0b1d46;
+  --on-navy: #ffffff;
+  --on-navy-2: rgba(255, 255, 255, 0.74);
+  --on-navy-3: rgba(255, 255, 255, 0.46);
+  --on-navy-fill: rgba(255, 255, 255, 0.1);
+  --on-navy-active: rgba(255, 255, 255, 0.17);
+
+  /* A touch more colour behind the glass, so it reads as glass. */
+  --blob-1: #b9cbee;
+  --blob-2: #9db6e4;
+  --blob-3: #d3ddf0;
+  --blob-4: #f3d3d6;
+  --blob-5: #aebfe0;
+
+  /* Liquid glass: more see-through, brighter edge, soft shine. */
+  --glass: rgba(255, 255, 255, 0.5);
+  --glass-strong: rgba(255, 255, 255, 0.66);
+  --glass-border: rgba(255, 255, 255, 0.78);
+  --glass-edge: rgba(255, 255, 255, 1);
+  --glass-shadow: 0 1px 1px rgba(15, 23, 42, 0.04), 0 10px 30px rgba(30, 45, 90, 0.1);
+  --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.1) 32%, rgba(255, 255, 255, 0) 55%);
+
+  /* Frosted buttons */
+  --btn-glass: rgba(255, 255, 255, 0.62);
+  --btn-glass-hover: rgba(255, 255, 255, 0.85);
+  --btn-glass-border: rgba(255, 255, 255, 0.9);
+  --btn-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(30, 45, 90, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --navy-glass: rgba(8, 20, 52, 0.82);
+    --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 45%);
+    --btn-glass: rgba(255, 255, 255, 0.08);
+    --btn-glass-hover: rgba(255, 255, 255, 0.14);
+    --btn-glass-border: rgba(255, 255, 255, 0.14);
+    --btn-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+}
+:root[data-theme="dark"] {
+  --navy-glass: rgba(8, 20, 52, 0.82);
+  --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 45%);
+  --btn-glass: rgba(255, 255, 255, 0.08);
+  --btn-glass-hover: rgba(255, 255, 255, 0.14);
+  --btn-glass-border: rgba(255, 255, 255, 0.14);
+  --btn-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* ------------------------------------------------------------------ liquid glass cards */
+.wallpaper .blob { opacity: 0.62; }
+.glass,
+.glass-strong {
+  background-color: var(--glass-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 0 0 0.5px rgba(255, 255, 255, 0.35), var(--glass-shadow);
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass {
+    background-color: var(--glass);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+  }
+  .glass-strong {
+    background-color: var(--glass-strong);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    backdrop-filter: blur(32px) saturate(180%);
+  }
+}
+/* The shine now sits in the background, under the text, instead of over it. */
+.glass::before,
+.glass-strong::before { display: none; }
+
+/* ------------------------------------------------------------------ buttons */
+.btn,
+.btn.glassy {
+  background: var(--btn-glass);
+  border-color: var(--btn-glass-border);
+  box-shadow: var(--btn-glass-shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  backdrop-filter: blur(14px) saturate(170%);
+}
+.btn:hover,
+.btn.glassy:hover { background: var(--btn-glass-hover); }
+
+/* Main buttons: glossy Northcroft red, like New task on Home. */
+.btn.primary,
+.btn.brand {
+  background: linear-gradient(180deg, #f35a62 0%, #e8343e 50%, #d0262f 100%);
+  color: #fff;
+  border-color: rgba(160, 20, 28, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), inset 0 -1px 0 rgba(0, 0, 0, 0.12), 0 1px 2px rgba(15, 23, 42, 0.12), 0 6px 16px rgba(232, 52, 62, 0.3);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+}
+.btn.primary:hover,
+.btn.brand:hover {
+  background: linear-gradient(180deg, #f6686f 0%, #ec3f48 50%, #d62c35 100%);
+}
+.btn.success {
+  background: linear-gradient(180deg, #3cc25e 0%, #28a745 55%, #208c3a 100%);
+  border-color: rgba(20, 100, 40, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 1px 2px rgba(15, 23, 42, 0.12), 0 6px 16px rgba(40, 167, 69, 0.26);
+}
+.btn.danger,
+.btn.warn {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.btn.danger { background: var(--red-soft); border-color: transparent; }
+.btn.warn { background: var(--orange-soft); border-color: transparent; }
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.btn.ghost:hover { background: var(--fill); }
+.btn.on-dark {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.26);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.btn.on-dark:hover { background: rgba(255, 255, 255, 0.22); }
+
+/* ------------------------------------------------------------------ navy glass page headers */
+.page-head {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  align-items: flex-end;
+  min-height: 108px;
+  padding: 20px 24px;
+  margin: 4px 0 16px;
+  border-radius: var(--r-lg);
+  color: var(--on-navy);
+  background: var(--navy-solid);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(1, 32, 97, 0.2);
+}
+/* The tower photo, mirrored so it sits on the right, away from the title. */
+.page-head::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: url("/brand/tower.jpg") left 40% / cover no-repeat;
+  transform: scaleX(-1);
+}
+.page-head::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(1, 20, 60, 0.97) 0%, rgba(1, 32, 97, 0.9) 40%, rgba(1, 32, 97, 0.5) 72%, rgba(1, 32, 97, 0.22) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 45%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+/* The red bar above the title, as on Home. */
+.page-head > div:first-child::before {
+  content: "";
+  display: block;
+  width: 18px;
+  height: 3px;
+  margin-bottom: 10px;
+  border-radius: 2px;
+  background: var(--brand-red);
+}
+.page-head h1 { color: var(--on-navy); }
+.page-head .sub { color: var(--on-navy-2); }
+/* Frosted glass buttons on the navy header, like My tasks on Home. */
+.page-head .btn:not(.primary):not(.brand):not(.danger) {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.26);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.page-head .btn:not(.primary):not(.brand):not(.danger):hover { background: rgba(255, 255, 255, 0.22); }
+.page-head .icon-btn { background: rgba(255, 255, 255, 0.13); color: #fff; }
+
+/* ------------------------------------------------------------------ navy glass menu */
+.sidebar.glass,
+.topbar.glass,
+.tabbar.glass-strong {
+  color: var(--on-navy);
+  background-color: var(--navy-glass);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 32%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 32px rgba(1, 20, 60, 0.26);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+}
+:root[data-solid="true"] .sidebar.glass,
+:root[data-solid="true"] .topbar.glass,
+:root[data-solid="true"] .tabbar.glass-strong {
+  background: var(--navy-solid);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .sidebar.glass,
+  .topbar.glass,
+  .tabbar.glass-strong { background: var(--navy-solid); }
+}
+
+.sidebar .brand-word,
+.topbar .brand-word { color: var(--on-navy); }
+.sidebar .brand small { color: var(--on-navy-3); }
+.sidebar .brand .brand-tile,
+.topbar .side img,
+.topbar .side svg[role="img"] { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 4px 14px rgba(0, 0, 0, 0.25); }
+.sidebar .nav a { color: rgba(255, 255, 255, 0.86); }
+.sidebar .nav a svg { color: var(--on-navy-2); }
+.sidebar .nav a:hover { background: var(--on-navy-fill); }
+.sidebar .nav a.active {
+  background: var(--on-navy-active);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.sidebar .nav a.active svg { color: #fff; }
+.sidebar .nav-label { color: var(--on-navy-3); }
+.sidebar .sidebar-user { background: var(--on-navy-fill); color: #fff; }
+.sidebar .sidebar-user .meta span { color: var(--on-navy-3); }
+
+.topbar .icon-btn { color: #fff; }
+.topbar .icon-btn.plain:hover { background: var(--on-navy-fill); }
+
+.tabbar a { color: var(--on-navy-2); }
+.tabbar a.active {
+  color: #fff;
+  background: var(--on-navy-active);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.tabbar .dot { border-color: var(--navy-solid); }
+
+/* ------------------------------------------------------------------ phones */
+@media (max-width: 899px) {
+  .page-head {
+    min-height: 92px;
+    padding: 16px 18px;
+    margin-top: 2px;
+  }
+  .page-head::after {
+    background: linear-gradient(90deg, rgba(1, 20, 60, 0.96) 0%, rgba(1, 32, 97, 0.82) 58%, rgba(1, 32, 97, 0.45) 100%);
+  }
+}

@@ -128,10 +128,10 @@ export function ProjectForm({ open, onClose, project }: { open: boolean; onClose
     >
       <div className="form-grid">
         <Field label="Project name" className="full">
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Olaya Business Tower Fit-out" autoFocus={!editing} />
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus={!editing} />
         </Field>
         <Field label="Project code">
-          <input className="input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. NC-104" />
+          <input className="input" value={code} onChange={(e) => setCode(e.target.value)} />
         </Field>
         <Field label="Status">
           <select className="select" value={status} onChange={(e) => setStatus(e.target.value as Project["status"])}>
@@ -144,10 +144,10 @@ export function ProjectForm({ open, onClose, project }: { open: boolean; onClose
           <input className="input" value={client} onChange={(e) => setClient(e.target.value)} />
         </Field>
         <Field label="City">
-          <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Riyadh" />
+          <input className="input" value={city} onChange={(e) => setCity(e.target.value)} />
         </Field>
         <Field label="Contract value (SAR)">
-          <input className="input" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} placeholder="e.g. 48,500,000" />
+          <input className="input" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} />
         </Field>
         <div className="field">
           <span>Colour</span>

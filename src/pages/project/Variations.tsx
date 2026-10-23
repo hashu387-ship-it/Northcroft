@@ -372,7 +372,7 @@ function VoSheet({
           </select>
         </Field>
         <Field label="Short description" className="full">
-          <input className="input" value={f.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Additional glass partitions on L18" />
+          <input className="input" value={f.title} onChange={(e) => set("title", e.target.value)} />
         </Field>
         <Field label="Raised by">
           <select className="select" value={f.initiated_by} onChange={(e) => set("initiated_by", e.target.value)}>

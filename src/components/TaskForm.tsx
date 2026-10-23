@@ -14,7 +14,7 @@ export interface TaskDefaults {
   projectId?: string | null;
   assigneeId?: string | null;
   dueDate?: string | null;
-  /** Filled in when Claude drafts the task from a chat message or voice note. */
+  /** Optional starting values for a new task. */
   title?: string;
   description?: string;
   priority?: Priority;
@@ -167,7 +167,7 @@ export function TaskForm({
     >
       <div className="form-grid">
         <Field label="Task" className="full">
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Price HVAC BOQ for L14" autoFocus />
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
         </Field>
         <Field label="Project">
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} />

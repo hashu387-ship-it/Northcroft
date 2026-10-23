@@ -8,9 +8,9 @@ type Theme = "system" | "light" | "dark";
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "light" || t === "dark" ? t : "system";
+    return t === "dark" || t === "system" ? t : "light";
   } catch {
-    return "system";
+    return "light";
   }
 }
 
@@ -30,13 +30,11 @@ export function AppearanceSection() {
     setTheme(t);
     const root = document.documentElement;
     try {
-      if (t === "system") {
-        delete root.dataset.theme;
-        localStorage.removeItem("nc-theme");
-      } else {
-        root.dataset.theme = t;
-        localStorage.setItem("nc-theme", t);
-      }
+      if (t === "system") delete root.dataset.theme;
+      else root.dataset.theme = t;
+      // Light is the default, so only Dark and Automatic need remembering.
+      if (t === "light") localStorage.removeItem("nc-theme");
+      else localStorage.setItem("nc-theme", t);
     } catch {
       if (t !== "system") root.dataset.theme = t;
     }
@@ -56,9 +54,9 @@ export function AppearanceSection() {
   }
 
   const options: { value: Theme; label: string }[] = [
-    { value: "system", label: "Automatic" },
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
+    { value: "system", label: "Automatic" },
   ];
 
   return (
@@ -72,7 +70,7 @@ export function AppearanceSection() {
             </button>
           ))}
         </div>
-        <div className="muted small">Automatic follows your phone or computer, switching to dark at night if you've set it up that way.</div>
+        <div className="muted small">Light is the default. Automatic follows your phone or computer, switching to dark at night if you've set it up that way.</div>
       </Section>
       <Section title="Easier reading">
         <div className="setting-row">

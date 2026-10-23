@@ -412,10 +412,10 @@ function AddPerson({ open, onClose }: { open: boolean; onClose: () => void }) {
       ) : (
         <div className="form-grid">
           <Field label="Full name">
-            <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Mohamed Rimash" autoFocus />
+            <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus />
           </Field>
           <Field label="Short name" hint="Used for @mentions">
-            <input className="input" value={shortName} onChange={(e) => setShortName(e.target.value.replace(/\s+/g, ""))} placeholder="e.g. Rimash" />
+            <input className="input" value={shortName} onChange={(e) => setShortName(e.target.value.replace(/\s+/g, ""))} />
           </Field>
           <Field label="Work email" className="full">
             <input className="input" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@northcroftme.com" />

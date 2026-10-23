@@ -205,7 +205,7 @@ function PlaceEditor({ place, onClose }: { place: Place | "new" | null; onClose:
         <div className="muted tiny">Tap the map to drop the pin exactly where the entrance is.</div>
         <div className="form-grid">
           <Field label="Name">
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "office" ? "Northcroft office" : "e.g. Olaya Tower site"} />
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "office" ? "Northcroft office" : undefined} />
           </Field>
           {kind === "site" ? (
             <Field label="Project">
