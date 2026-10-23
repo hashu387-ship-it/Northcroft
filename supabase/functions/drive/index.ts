@@ -1,6 +1,6 @@
-// Google Drive for files over 50 MB.
+// Google Drive for every file the team attaches (tasks, projects, chats), whoever uploads it.
 //
-// Files go to the manager's Drive, in a "Northcroft" folder with a subfolder per project (plus
+// Files go to the one connected Drive, in a "Northcroft" folder with a subfolder per project (plus
 // "General"). They stay private: team members open them through this function, which checks a
 // short-lived signed link and streams the file from Drive. Nothing is shared publicly.
 //
@@ -13,6 +13,7 @@
 //   start_upload    start a resumable upload; the browser then sends the file straight to Google
 //   finish_upload   check the upload in Drive and add it to the task, project or chat
 //   link            a 1-hour link that opens a Drive file through this function
+//   links           the same for up to 100 files at once (photo previews)
 //   delete          remove the attachment and move the file to the Drive bin
 // GET /drive/callback   Google sends the manager back here after they allow access
 // GET ?f=<id>&e=<expiry>&s=<signature>[&d=1]   stream the file (d=1 downloads instead of opening)
@@ -358,6 +359,20 @@ async function link(body: { attachment_id?: string; download?: boolean }) {
   return { url: `${SELF_URL}?f=${a.id}&e=${e}&d=${d}&s=${s}` };
 }
 
+/** Links for several files at once (photo previews in chats and file lists). */
+async function links(body: { attachment_ids?: string[] }) {
+  const ids = (body.attachment_ids ?? []).filter((x) => typeof x === "string").slice(0, 100);
+  if (!ids.length) return { urls: {} };
+  const { data } = await admin.from("attachments").select("id, path, drive_file_id").in("id", ids);
+  const e = Math.floor(Date.now() / 1000) + LINK_HOURS * 3600;
+  const urls: Record<string, string> = {};
+  for (const a of data ?? []) {
+    if (!a.drive_file_id) continue;
+    urls[a.path] = `${SELF_URL}?f=${a.id}&e=${e}&d=0&s=${await hmac(`open:${a.id}:${e}:0`)}`;
+  }
+  return { urls };
+}
+
 async function stream(req: Request, url: URL): Promise<Response> {
   const id = url.searchParams.get("f") ?? "";
   const e = Number(url.searchParams.get("e"));
@@ -441,6 +456,8 @@ Deno.serve(async (req) => {
         return json(await finishUpload(body, me));
       case "link":
         return json(await link(body));
+      case "links":
+        return json(await links(body));
       case "delete":
         return json(await remove(body, req));
       default:

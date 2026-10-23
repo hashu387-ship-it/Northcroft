@@ -27,10 +27,10 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Tap the microphone, speak (up to 3 minutes), then send. Others get a play button with a waveform.
   - Each note is written out in English a few seconds later, even if spoken in Arabic or Tamil. The sender can correct the text.
 - **Files and Google Drive**: attach drawings, BOQs, PDFs and photos to tasks, projects and chats.
-  - Files up to 50 MB stay in the app's storage.
-  - Bigger files go straight from the phone or computer to a **Northcroft** folder in Google Drive, with a subfolder per project (plus General). A progress figure shows while they upload.
-  - Drive files stay private. Only signed-in team members can open them, through the app (PDFs, photos and videos open in the browser; other files download). Deleting one in the app moves it to the Drive bin for 30 days.
+  - Every file anyone attaches is saved straight to the team's Google Drive (the one a manager connects), in a **Northcroft** folder with a subfolder per project (plus General). Files of any size; a progress figure shows while they upload.
+  - Drive files stay private. Only signed-in team members can open them, through the app (PDFs, photos and videos open in the browser; other files download). Photos show as previews in chats and file lists. Deleting one in the app moves it to the Drive bin for 30 days.
   - A manager connects Google Drive once in **Settings > Google Drive**, which has the step-by-step set-up. The app can only see the files and folders it creates, nothing else in that Drive.
+  - Until Drive is connected, files up to 50 MB are kept in the app's own storage. Voice notes, profile photos and project covers always stay in the app's storage.
 - **Profiles and WhatsApp**:
   - Everyone adds a photo and a +966 mobile number the first time they sign in.
   - Tap anyone's photo to see their card, with WhatsApp, call and email buttons.
@@ -74,7 +74,7 @@ Work flows down: Fawaz gives tasks to Hassan, and Hassan gives tasks to the team
     - `transcribe` writes voice notes out in English in two steps:
       1. Groq Whisper (`whisper-large-v3`) writes down what was said, in the language it was spoken, and reports the language. This needs a `GROQ_API_KEY` secret. Without it, voice notes still work but show "Voice-to-text isn't switched on yet".
       2. Claude (`claude-opus-5-5`, low effort) finishes it. English is tidied (misheard names, projects and QS terms, punctuation). Arabic, Tamil or any other language is translated into English, keeping names, dates and times exactly; this is much more accurate than Whisper's own translation. This step turns on with an `ANTHROPIC_API_KEY` secret. Without Claude, English is kept as Whisper wrote it and other languages use Whisper's translation.
-    - `drive` handles Google Drive for files over 50 MB: connecting (Google sign-in with the `drive.file` permission only), starting uploads that the browser sends straight to Google in 8 MB pieces, attaching them, and streaming them back to signed-in team members through 1-hour signed links. The Google client, refresh token and link-signing key are kept in Supabase Vault.
+    - `drive` handles Google Drive for every attachment: connecting (Google sign-in with the `drive.file` permission only), starting uploads that the browser sends straight to Google in 8 MB pieces, attaching them, and streaming them back to signed-in team members through 1-hour signed links. The Google client, refresh token and link-signing key are kept in Supabase Vault.
     - `assist` is retired (it answers "no longer available").
   - Where the Claude and Groq keys live: Supabase Vault, as `anthropic_api_key` and `groq_api_key` (encrypted at rest; read only by the Edge Functions through `get_ai_keys()`). An Edge Function secret with the same name in capitals (`ANTHROPIC_API_KEY`, `GROQ_API_KEY`) takes priority if you add one. The keys are never stored in this repository.
   - To replace a key, run this in the Supabase SQL editor (a changed key is picked up within 5 minutes):

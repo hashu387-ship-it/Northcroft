@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { FileText, MessageCircle, Mic, Paperclip, SendHorizontal, Trash2, X } from "lucide-react";
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
-import { STORAGE_MAX_BYTES, isImage, isOnDrive, openAttachment, signedUrls, uploadFile } from "@/lib/files";
+import { isImage, isOnDrive, openAttachment, previewUrls, uploadFile } from "@/lib/files";
 import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
@@ -76,7 +76,7 @@ export function CommentThread({ scope, placeholder, height }: { scope: Scope; pl
     enabled: ids.length > 0,
     queryFn: async () => {
       const rows = await unwrap<Attachment[]>(supabase.from("attachments").select("*").in("comment_id", ids));
-      const urls = await signedUrls(rows.filter((r) => isImage(r) && !isOnDrive(r)).map((r) => r.path));
+      const urls = await previewUrls(rows);
       return { rows, urls };
     },
   });
@@ -349,14 +349,13 @@ function Composer({ scope, placeholder }: { scope: Scope; placeholder: string })
       const { data, error } = await supabase.from("comments").insert(row).select().single();
       if (error) throw error;
       for (const f of files) {
-        const big = f.size > STORAGE_MAX_BYTES;
-        setProgress(big ? `Uploading ${f.name} to Google Drive...` : null);
+        setProgress(`Uploading ${f.name}...`);
         await uploadFile(f, {
           taskId: row.task_id,
           projectId: row.project_id,
           commentId: data.id,
           userId: me.id,
-          onProgress: big ? (x) => setProgress(`Uploading ${f.name} to Google Drive, ${Math.round(x * 100)}%`) : undefined,
+          onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });
       }
       setBody("");

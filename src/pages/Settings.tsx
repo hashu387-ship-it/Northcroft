@@ -33,7 +33,7 @@ const SECTIONS: SectionDef[] = [
   { id: "team", label: "Team", hint: "People, access and passwords", icon: Users, color: "#1B3570" },
   { id: "hours", label: "Working hours", hint: "Start, finish and working days", icon: Clock, color: "#1B3570" },
   { id: "places", label: "Office and sites", hint: "Where check-ins are matched", icon: MapPin, color: "#1B3570" },
-  { id: "drive", label: "Google Drive", hint: "Files over 50 MB", icon: HardDrive, color: "#1B3570" },
+  { id: "drive", label: "Google Drive", hint: "Where attachments are saved", icon: HardDrive, color: "#1B3570" },
   { id: "about", label: "Install and about", hint: "Phone install guide, sign out", icon: Info, color: "#1B3570" },
 ];
 

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { FileSpreadsheet, FileText, HardDrive, Paperclip, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
-import { STORAGE_MAX_BYTES, deleteAttachment, isImage, isOnDrive, openAttachment, signedUrls, uploadFile } from "@/lib/files";
+import { deleteAttachment, isImage, isOnDrive, openAttachment, previewUrls, uploadFile } from "@/lib/files";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fileSize } from "@/lib/format";
 import { timeAgo } from "@/lib/time";
@@ -35,7 +35,7 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
       let query = supabase.from("attachments").select("*");
       query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
       const rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(300));
-      const urls = await signedUrls(rows.filter((r) => isImage(r) && !isOnDrive(r)).map((r) => r.path));
+      const urls = await previewUrls(rows);
       return { rows, urls };
     },
   });
@@ -45,13 +45,12 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
     setBusy(true);
     try {
       for (const f of Array.from(list)) {
-        const big = f.size > STORAGE_MAX_BYTES;
-        setProgress(big ? `Uploading ${f.name} to Google Drive...` : null);
+        setProgress(`Uploading ${f.name}...`);
         await uploadFile(f, {
           taskId: taskId ?? null,
           projectId: projectId ?? null,
           userId: me.id,
-          onProgress: big ? (x) => setProgress(`Uploading ${f.name} to Google Drive, ${Math.round(x * 100)}%`) : undefined,
+          onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });
       }
       toast(list.length === 1 ? "File added" : `${list.length} files added`);
@@ -92,7 +91,7 @@ export function Attachments({ taskId, projectId, canUpload = true }: { taskId?: 
             <Upload /> {busy ? "Uploading..." : "Add files"}
           </button>
           <span className="faint tiny">
-            {progress ?? (driveOn ? "Drawings, BOQs, PDFs, photos. Files over 50 MB go to Google Drive." : "Drawings, BOQs, PDFs, photos. Up to 50 MB each.")}
+            {progress ?? (driveOn ? "Drawings, BOQs, PDFs, photos. Saved to the team's Google Drive." : "Drawings, BOQs, PDFs, photos. Up to 50 MB each.")}
           </span>
           <input ref={inputRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
         </div>

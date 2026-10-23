@@ -91,6 +91,13 @@ export async function driveLink(a: Pick<Attachment, "id">, download = false): Pr
   return url;
 }
 
+/** Links for several Drive files at once, keyed by attachment path (for photo previews). */
+export async function driveLinks(rows: Pick<Attachment, "id">[]): Promise<Record<string, string>> {
+  if (!rows.length) return {};
+  const { urls } = await driveCall<{ urls: Record<string, string> }>("links", { attachment_ids: rows.map((r) => r.id) });
+  return urls;
+}
+
 export async function deleteDriveAttachment(a: Pick<Attachment, "id">) {
   await driveCall("delete", { attachment_id: a.id });
 }

@@ -42,7 +42,7 @@ export function DriveSection() {
     const result = params.get("drive");
     if (!result) return;
     if (result === "connected") {
-      toast("Google Drive connected. Files over 50 MB now go to your Drive.");
+      toast("Google Drive connected. Every file the team attaches now goes to this Drive.");
       void invalidate("app_settings");
     } else {
       toast(REASONS[params.get("reason") ?? ""] ?? `Google Drive didn't connect (${params.get("reason") ?? "unknown reason"}). Try again.`, "error");
@@ -67,7 +67,7 @@ export function DriveSection() {
   async function disconnect() {
     const ok = await confirm({
       title: "Disconnect Google Drive?",
-      message: "Files already in Drive stay there, but the team can't open or add Drive files until it's connected again. Files under 50 MB aren't affected.",
+      message: "Files already in Drive stay there, but the team can't open them until it's connected again. Meanwhile new files up to 50 MB are kept in the app.",
       confirmLabel: "Disconnect",
       danger: true,
     });
@@ -91,7 +91,7 @@ export function DriveSection() {
   return (
     <Section
       title="Google Drive"
-      sub="Files up to 50 MB stay in the app. Anything bigger goes straight to a Northcroft folder in Google Drive, with a folder for each project."
+      sub="Every file the team attaches, whoever uploads it, is saved straight to a Northcroft folder in this Google Drive, with a folder for each project."
     >
       <div className="solid stack" style={{ padding: 16, gap: 10, borderRadius: 12 }}>
         <div className="row" style={{ gap: 12 }}>
@@ -107,8 +107,8 @@ export function DriveSection() {
               {connected
                 ? `${s?.drive_account ?? "Google Drive"} · since ${fmtDateTime(s!.drive_connected_at!)}`
                 : isManager
-                  ? "Set it up once below, then big files just work for everyone."
-                  : "Files over 50 MB can't be added until a manager connects Google Drive."}
+                  ? "Set it up once below, then every attachment is saved to Drive for everyone."
+                  : "Until a manager connects it, files up to 50 MB are kept in the app."}
             </div>
           </div>
           {connected && <Pill tone="green">On</Pill>}
