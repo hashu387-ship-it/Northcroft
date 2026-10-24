@@ -393,3 +393,56 @@ export interface Attendance {
   note: string | null;
   created_at: string;
 }
+
+/* ---------------------------------------------------------------- leave requests (migration 0023) */
+export type LeaveKind = "annual" | "sick" | "emergency" | "unpaid" | "other";
+export type LeaveStatus = "pending" | "approved" | "declined" | "cancelled";
+
+export interface LeaveRequest {
+  id: string;
+  user_id: string;
+  kind: LeaveKind;
+  start_date: string;
+  end_date: string;
+  /** Working days in the request (counted by the database from the work days in Settings). */
+  days: number;
+  note: string | null;
+  status: LeaveStatus;
+  /** Whose turn it is while pending: the first check or the final OK. */
+  stage: "first" | "final" | null;
+  first_ok_by: string | null;
+  first_ok_at: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  cancelled_by: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** One person's annual leave for a year (leave_balances). */
+export interface LeaveBalance {
+  user_id: string;
+  allowance: number;
+  used: number;
+  pending: number;
+  remaining: number;
+}
+
+/** Someone away between two dates (team_leave): approved requests and Leave entries on the Calendar.
+ *  `kind` is null when the viewer isn't allowed to see the reason. */
+export interface TeamLeave {
+  id: string;
+  user_id: string;
+  start_date: string;
+  end_date: string;
+  days: number;
+  kind: LeaveKind | null;
+  source: "request" | "event";
+}
+
+// Each person's yearly annual leave allowance (set by a manager in Settings > Team).
+export interface Profile {
+  annual_leave_days?: number;
+}

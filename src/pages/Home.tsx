@@ -23,6 +23,7 @@ import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
 import { OngoingTasksCard } from "@/components/TeamTasks";
 import { TeamTodayPresence } from "./attendance/Presence";
+import { LeaveToApproveCard } from "./attendance/Leave";
 import { VoiceNote } from "@/components/Voice";
 import { Avatar, CountUp, Empty, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
@@ -176,6 +177,7 @@ export default function Home() {
           {!me.attendance_exempt && <CheckInCard />}
           {!givesOnly && <FocusCard tasks={myOpen} loading={mine.isLoading} />}
           {canAssign && <ReviewCard tasks={toReview} loading={allOpen.isLoading} finalOk={signoff.on && signoff.final?.id === me.id} />}
+          {canAssign && <LeaveToApproveCard />}
           {isManager && <OngoingTasksCard tasks={teamOpen} loading={allOpen.isLoading} linkTo={givesOnly ? "/my-tasks" : "/my-tasks?view=team"} />}
           {canAssign && (me.attendance_times === false ? <TeamTodayPresence /> : <TeamSnapshot />)}
         </div>

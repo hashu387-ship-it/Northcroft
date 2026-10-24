@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { usePeople, useSettings } from "@/lib/api";
 import { addDays, fmtDuration, fmtLongDate, fmtTime12, isWorkday, todayISO } from "@/lib/time";
 import { initials } from "@/lib/format";
-import type { Attendance, Profile } from "@/lib/types";
+import type { Attendance, Profile, TeamLeave } from "@/lib/types";
+import { leaveByDay, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 import { PersonAvatar, WhatsAppButton } from "@/components/People";
 import { Empty, Loading, Pill } from "@/components/ui";
 import { MapBox, PlacePill, isOffsite, useAttendanceRange } from "./shared";
@@ -17,11 +18,14 @@ export function TeamBoard() {
   const working = settings ? isWorkday(date, settings.work_days) : true;
 
   const byUser = useMemo(() => new Map(rows.map((r) => [r.user_id, r])), [rows]);
+  // Approved leave and Leave entries on the Calendar for this day.
+  const away = useTeamLeave(date, date);
+  const leave = useMemo(() => leaveByDay(away.data ?? [], date, date, settings?.work_days), [away.data, date, settings?.work_days]);
   // Only people who check in (the Commercial Manager doesn't).
   const list = people.attenders;
   const inNow = rows.filter((r) => !r.check_out_at).length;
   const out = rows.filter((r) => r.check_out_at).length;
-  const missing = list.filter((p) => !byUser.has(p.id)).length;
+  const missing = list.filter((p) => !byUser.has(p.id) && !leave.has(`${p.id}|${date}`)).length;
   const offsite = rows.filter(isOffsite).length;
   const late = rows.filter((r) => r.late_minutes > 0).length;
 
@@ -84,7 +88,7 @@ export function TeamBoard() {
         <div className="list">
           {list.map((p) => {
             const r = byUser.get(p.id);
-            return <TeamRow key={p.id} person={p} r={r} working={working} isToday={isToday} />;
+            return <TeamRow key={p.id} person={p} r={r} working={working} isToday={isToday} leave={leave.get(`${p.id}|${date}`)} />;
           })}
         </div>
       )}
@@ -116,11 +120,13 @@ function TeamRow({
   r,
   working,
   isToday,
+  leave,
 }: {
   person: Profile;
   r: Attendance | undefined;
   working: boolean;
   isToday: boolean;
+  leave?: TeamLeave;
 }) {
   return (
     <div className="list-item" style={{ alignItems: "flex-start" }}>
@@ -158,6 +164,8 @@ function TeamRow({
           ) : (
             <Pill tone="gray">No check-out</Pill>
           )
+        ) : leave ? (
+          <Pill tone="teal">{leave.kind ? leaveKindLabel(leave.kind) : "On leave"}</Pill>
         ) : (
           <Pill tone={working ? "red" : "gray"}>{isToday ? "Not in yet" : "No record"}</Pill>
         )}

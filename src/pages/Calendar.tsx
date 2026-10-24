@@ -24,6 +24,7 @@ import {
 } from "@/lib/time";
 import type { CalendarEvent, EventKind, Priority } from "@/lib/types";
 import { useBoqBetween, useEventsBetween, useVosBetween } from "./home/data";
+import { fmtLeaveDates, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 import { nameList, ownersOf, peopleOn } from "@/lib/people";
 
 type View = "month" | "agenda";
@@ -32,7 +33,7 @@ type Scope = "all" | "mine";
 interface Item {
   id: string;
   date: string;
-  kind: "event" | "task" | "boq" | "vo";
+  kind: "event" | "task" | "boq" | "vo" | "leave";
   title: string;
   sub: string;
   color: string;
@@ -43,7 +44,7 @@ interface Item {
   sort: string;
 }
 
-const KIND_RANK = { event: "0", task: "1", vo: "2", boq: "3" } as const;
+const KIND_RANK = { event: "0", leave: "0", task: "1", vo: "2", boq: "3" } as const;
 const TASK_COLOR = "#0A84FF";
 const BOQ_COLOR = "#30B0C7";
 const VO_COLOR = "#BF5AF2";
@@ -85,6 +86,7 @@ export default function Calendar() {
   const events = useEventsBetween(from, to);
   const boqs = useBoqBetween(from, to);
   const vos = useVosBetween(from, to);
+  const away = useTeamLeave(from, to);
   const loading = tasks.isLoading || events.isLoading || boqs.isLoading || vos.isLoading;
 
   const items = useMemo(() => {
@@ -149,8 +151,27 @@ export default function Calendar() {
         sort: `${KIND_RANK.boq}${b.name}`,
       });
     }
+    // Approved leave requests, on each working day they cover (Leave entries are events already).
+    for (const l of away.data ?? []) {
+      if (l.source !== "request") continue;
+      const p = people.get(l.user_id);
+      for (let d = l.start_date > from ? l.start_date : from; d <= l.end_date && d <= to; d = addDays(d, 1)) {
+        if (!isWorkday(d, settings?.work_days)) continue;
+        out.push({
+          id: `l-${l.id}-${d}`,
+          date: d,
+          kind: "leave",
+          title: l.user_id === me.id ? "You're on leave" : `${p?.short_name ?? "Someone"} on leave`,
+          sub: [leaveKindLabel(l.kind), l.start_date === l.end_date ? null : fmtLeaveDates(l.start_date, l.end_date)].filter(Boolean).join(" · "),
+          color: EVENT_KIND.leave.color,
+          link: l.kind ? `/attendance?leave=${l.id}` : undefined,
+          mine: l.user_id === me.id,
+          sort: `${KIND_RANK.leave}${p?.short_name ?? ""}`,
+        });
+      }
+    }
     return out.filter((i) => scope === "all" || i.mine).sort((a, b) => a.sort.localeCompare(b.sort));
-  }, [events.data, tasks.data, vos.data, boqs.data, from, to, scope, me.id, people, projects]);
+  }, [events.data, tasks.data, vos.data, boqs.data, away.data, from, to, scope, me.id, people, projects, settings?.work_days]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, Item[]>();
@@ -347,6 +368,8 @@ function DayItem({ item, onEvent }: { item: Item; onEvent: (e: CalendarEvent) =>
       </button>
     );
   }
+  // Someone else's leave: who and when, nothing to open.
+  if (!item.link) return <div className="day-item">{body}</div>;
   return (
     <Link to={item.link ?? "#"} className="day-item">
       {body}

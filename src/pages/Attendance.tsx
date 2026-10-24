@@ -8,6 +8,7 @@ import { MyHistory } from "./attendance/MyHistory";
 import { TeamBoard } from "./attendance/TeamBoard";
 import { MonthlyReport } from "./attendance/MonthlyReport";
 import { PresenceBoard, PresenceMonthly } from "./attendance/Presence";
+import { LeaveFromLink, LeaveToApproveCard, MyLeaveCard, TeamLeaveCard } from "./attendance/Leave";
 import { useMyAttendance, usePlaces } from "./attendance/shared";
 import "@/styles/admin.css";
 
@@ -20,14 +21,19 @@ export default function Attendance() {
   const noOffice = isManager && places.data && !places.data.some((p) => p.kind === "office" && p.active);
   // Some managers see who is present, absent or on leave, but not times or places.
   const presenceOnly = canAssign && me.attendance_times === false;
+  // Leave waiting on me sits at the top of the team side; everyone's leave below the day board.
   const team = presenceOnly ? (
     <>
+      <LeaveToApproveCard />
       <PresenceBoard />
+      <TeamLeaveCard />
       <PresenceMonthly />
     </>
   ) : (
     <>
+      <LeaveToApproveCard />
       <TeamBoard />
+      <TeamLeaveCard />
       <MonthlyReport />
     </>
   );
@@ -42,11 +48,12 @@ export default function Attendance() {
             !canAssign
               ? "You don't need to check in."
               : presenceOnly
-                ? "Who's in, absent or on leave each day, and the monthly summary. You don't need to check in."
-                : "The team's day and the monthly report. You don't need to check in."
+                ? "Who's in, absent or on leave each day, leave requests and the monthly summary. You don't need to check in."
+                : "The team's day, leave requests and the monthly report. You don't need to check in."
           }
         />
         {canAssign && <div className="attendance-grid">{team}</div>}
+        <LeaveFromLink />
       </div>
     );
   }
@@ -57,10 +64,10 @@ export default function Attendance() {
         title="Check in"
         sub={
           !canAssign
-            ? "Record when and where you start and finish work."
+            ? "Record when and where you start and finish work, and ask for leave."
             : presenceOnly
-              ? "Your attendance, plus who's in, absent or on leave each day."
-              : "Your attendance, plus the whole team's day and monthly report."
+              ? "Your attendance and leave, plus who's in, absent or on leave each day."
+              : "Your attendance and leave, plus the whole team's day, leave and monthly report."
         }
       />
 
@@ -78,6 +85,7 @@ export default function Attendance() {
       <div className="attendance-grid">
         <div className="stack" style={{ gap: 16 }}>
           <CheckInCard today={today} />
+          <MyLeaveCard />
           <MyHistory rows={mine.data ?? []} loading={mine.isLoading} />
         </div>
         {canAssign && (
@@ -86,6 +94,7 @@ export default function Attendance() {
           </div>
         )}
       </div>
+      <LeaveFromLink />
     </div>
   );
 }
