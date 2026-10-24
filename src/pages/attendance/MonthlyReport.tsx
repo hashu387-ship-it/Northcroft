@@ -6,6 +6,7 @@ import type { Attendance, Profile } from "@/lib/types";
 import { Avatar, Loading, useToast } from "@/components/ui";
 import { hhmm, hoursWorked, isOffsite, useAttendanceRange, useTrackingStart } from "./shared";
 import { leaveByDay, leaveKindLabel, useTeamLeave } from "@/lib/leave";
+import { sentLaterText } from "./SentLater";
 
 interface Summary {
   person: Profile;
@@ -73,7 +74,7 @@ export function MonthlyReport() {
   }, [people.attenders, rows, absenceDays, workdays, leave]);
 
   function download() {
-    const header = ["Date", "Name", "Check in", "In place", "In address", "Check out", "Out place", "Out address", "Hours", "Late minutes", "Early minutes", "Note"];
+    const header = ["Date", "Name", "Check in", "In place", "In address", "Check out", "Out place", "Out address", "Hours", "Late minutes", "Early minutes", "Note", "Check in sent later", "Check out sent later"];
     const lines = [header.join(",")];
     const byKey = new Map<string, Attendance>(rows.map((r) => [`${r.work_date}|${r.user_id}`, r]));
     const leaveDays = [...leave.keys()].map((k) => k.split("|")[1]).filter((d) => d <= to);
@@ -84,8 +85,8 @@ export function MonthlyReport() {
         const r = byKey.get(`${d}|${p.id}`);
         if (!r) {
           const off = leave.get(`${p.id}|${d}`);
-          if (off) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", off.kind ? leaveKindLabel(off.kind) : "On leave"].map(csvCell).join(","));
-          else if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent"].map(csvCell).join(","));
+          if (off) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", off.kind ? leaveKindLabel(off.kind) : "On leave", "", ""].map(csvCell).join(","));
+          else if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent", "", ""].map(csvCell).join(","));
           continue;
         }
         const h = hoursWorked(r);
@@ -103,6 +104,8 @@ export function MonthlyReport() {
             r.late_minutes,
             r.early_minutes,
             r.note,
+            sentLaterText(r.in_sent_later, r.in_received_at),
+            sentLaterText(r.out_sent_later, r.out_received_at),
           ]
             .map(csvCell)
             .join(","),

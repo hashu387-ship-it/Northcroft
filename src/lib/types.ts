@@ -465,3 +465,13 @@ export interface TeamLeave {
 export interface Profile {
   annual_leave_days?: number;
 }
+
+/* ---------------------------------------------------------------- Working without signal (0025) */
+
+/** Check-ins and check-outs made with no signal: recorded at the phone's time, flagged, with when they arrived. */
+export interface Attendance {
+  in_sent_later?: boolean;
+  in_received_at?: string | null;
+  out_sent_later?: boolean;
+  out_received_at?: string | null;
+}

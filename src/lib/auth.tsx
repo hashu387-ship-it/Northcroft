@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { forgetUser, rememberUser } from "./offline";
+import { clearOutbox } from "./outbox";
 import type { Profile } from "./types";
 
 interface AuthValue {
@@ -45,6 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      // The phone keeps a copy of this person's screens for when there's no signal; nobody else's.
+      if (s?.user.id) void rememberUser(s.user.id);
+      else if (event === "SIGNED_OUT") void forgetUser();
       if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "SIGNED_OUT") {
         // Defer so we never call Supabase inside the auth callback itself.
         setTimeout(() => loadProfile(s?.user.id), 0);
@@ -69,8 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await loadProfile(data.user?.id);
       },
       signOut: async () => {
+        // Anything still waiting to send, and the saved copy of their screens, leave with them.
+        const id = session?.user.id;
         await supabase.auth.signOut();
         setProfile(null);
+        if (id) await clearOutbox(id).catch(() => {});
+        await forgetUser();
       },
       refreshProfile: () => loadProfile(session?.user.id),
     }),

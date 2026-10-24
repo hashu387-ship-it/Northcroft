@@ -31,6 +31,7 @@ import { PersonCardHost } from "@/components/People";
 import { CelebrationHost } from "@/components/Celebration";
 import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
 import { openSearch } from "@/lib/search";
+import { OfflineBar, OutboxRunner } from "@/components/Offline";
 
 function useUnackedCount(userId: string) {
   return useQuery({
@@ -235,6 +236,9 @@ export default function AppShell() {
           </Link>
         </div>
       </header>
+
+      <OfflineBar />
+      <OutboxRunner userId={me.id} />
 
       <main className="main" ref={mainRef}>
         <Suspense fallback={<div className="center-screen"><Loading /></div>}>

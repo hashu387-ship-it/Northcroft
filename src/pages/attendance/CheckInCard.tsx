@@ -1,12 +1,15 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CircleCheck, Clock, LocateFixed, LogIn, LogOut, MapPinOff, Navigation } from "lucide-react";
+import { CircleAlert, CircleCheck, Clock, Clock3, LocateFixed, LogIn, LogOut, MapPinOff, Navigation, RotateCcw, Trash2 } from "lucide-react";
 import { useInvalidate, useSettings } from "@/lib/api";
+import { useMe } from "@/lib/auth";
 import { getPosition, mapsLink, reverseGeocode } from "@/lib/geo";
-import { errorMessage, supabase } from "@/lib/supabase";
+import { queueAttendance, removeItem, retryItem, usePendingAttendance, type OutboxAttendance } from "@/lib/outbox";
+import { errorMessage, isNetworkError, supabase } from "@/lib/supabase";
 import { DOW_LONG, fmtClock, fmtDuration, fmtLongDate, fmtTime12, isWorkday, todayISO } from "@/lib/time";
 import type { Attendance } from "@/lib/types";
 import { Pill, useToast } from "@/components/ui";
 import { MapBox, PlacePill, clockParts, useNow } from "./shared";
+import { SentLater } from "./SentLater";
 
 type Phase = "idle" | "locating" | "saving";
 
@@ -31,13 +34,23 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
   const [note, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
 
+  const me = useMe();
   const clock = clockParts(now);
   const date = todayISO();
   const working = settings ? isWorkday(date, settings.work_days) : true;
-  const mode: "in" | "out" | "done" = !today ? "in" : today.check_out_at ? "done" : "out";
+  // Check-ins and check-outs made with no signal, still waiting on this phone.
+  const pending = usePendingAttendance(me.id);
+  const pendingIn = pending.find((p) => p.workDate === date && p.entry === "in" && p.status !== "failed");
+  const pendingOut = pending.find((p) => p.workDate === date && p.entry === "out" && p.status !== "failed");
+  const inAt = today?.check_in_at ?? pendingIn?.at ?? null;
+  const outAt = today?.check_out_at ?? pendingOut?.at ?? null;
+  const mode: "in" | "out" | "done" = !inAt ? "in" : outAt ? "done" : "out";
 
   async function record(withLocation: boolean) {
     setLocError(null);
+    // With no signal, this is the time that's recorded.
+    const tappedAt = new Date().toISOString();
+    const offline = navigator.onLine === false;
     let fix: { lat: number; lng: number; accuracy: number } | null = null;
     let address: string | null = null;
     if (withLocation) {
@@ -50,11 +63,12 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
         return;
       }
       setPhase("saving");
-      address = await withTimeout(reverseGeocode(fix.lat, fix.lng), 4500, null);
+      if (!offline) address = await withTimeout(reverseGeocode(fix.lat, fix.lng), 4500, null);
     } else {
       setPhase("saving");
     }
     try {
+      if (offline) throw new TypeError("Failed to fetch");
       const fn = mode === "in" ? "check_in" : "check_out";
       const { data, error } = await supabase.rpc(fn, {
         p_lat: fix?.lat ?? null,
@@ -71,7 +85,27 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
       setShowNote(false);
       await invalidate("attendance");
     } catch (e) {
-      toast(errorMessage(e), "error");
+      if (isNetworkError(e)) {
+        // No signal: keep the time and place on the phone; it's sent, marked "sent later", once back online.
+        try {
+          await queueAttendance({
+            userId: me.id,
+            entry: mode === "in" ? "in" : "out",
+            at: tappedAt,
+            workDate: date,
+            lat: fix?.lat ?? null,
+            lng: fix?.lng ?? null,
+            accuracy: fix?.accuracy ?? null,
+            address,
+            note: note.trim() || null,
+          });
+          toast(`${mode === "in" ? "Checked in" : "Checked out"} at ${fmtTime12(tappedAt)}. There's no signal, so it's saved on this phone and goes out when you're back online.`);
+          setNote("");
+          setShowNote(false);
+        } catch {
+          toast("There's no signal and this phone couldn't save it. Try again when you're back online.", "error");
+        }
+      } else toast(errorMessage(e), "error");
     } finally {
       setPhase("idle");
     }
@@ -117,12 +151,12 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
             {mode === "in" && <Pill tone="gray" lg>Not checked in yet</Pill>}
             {mode === "out" && (
               <Pill tone="green" lg>
-                <Clock /> In since {fmtTime12(today!.check_in_at)} · {fmtDuration(today!.check_in_at, null)}
+                <Clock /> In since {fmtTime12(inAt!)} · {fmtDuration(inAt!, null)}
               </Pill>
             )}
             {mode === "done" && (
               <Pill tone="blue" lg>
-                <CircleCheck /> Done for today · {fmtDuration(today!.check_in_at, today!.check_out_at)}
+                <CircleCheck /> Done for today · {fmtDuration(inAt!, outAt)}
               </Pill>
             )}
           </div>
@@ -188,9 +222,10 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
           </div>
         ) : (
           <div className="muted small" style={{ textAlign: "center" }}>
-            Checked out at {fmtTime12(today!.check_out_at)}. See you tomorrow.
+            Checked out at {fmtTime12(outAt!)}. See you tomorrow.
           </div>
         )}
+        {pending.length > 0 && <WaitingToSend items={pending} />}
       </div>
 
       {today && (
@@ -209,6 +244,7 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
               accuracy={today.in_accuracy}
               lat={today.in_lat}
               lng={today.in_lng}
+              extra={today.in_sent_later ? <SentLater receivedAt={today.in_received_at} /> : null}
             />
             {today.check_out_at ? (
               <RecordSide
@@ -220,7 +256,12 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
                 accuracy={today.out_accuracy}
                 lat={today.out_lat}
                 lng={today.out_lng}
-                extra={today.early_minutes > 0 ? <Pill tone="orange">Left {today.early_minutes} min early</Pill> : null}
+                extra={
+                  <>
+                    {today.early_minutes > 0 && <Pill tone="orange">Left {today.early_minutes} min early</Pill>}
+                    {today.out_sent_later && <SentLater receivedAt={today.out_received_at} />}
+                  </>
+                }
               />
             ) : (
               <div className="solid record-side" style={{ display: "grid", placeItems: "center", color: "var(--text-2)" }}>
@@ -237,6 +278,56 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
           {points.length > 0 && <MapBox points={points} />}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Check-ins and check-outs made with no signal: waiting to go, or refused when they arrived. */
+function WaitingToSend({ items }: { items: OutboxAttendance[] }) {
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      {items.map((p) => {
+        const what = p.entry === "in" ? "check-in" : "check-out";
+        const day = p.workDate === todayISO() ? "" : ` on ${fmtLongDate(p.workDate)}`;
+        if (p.status === "failed") {
+          return (
+            <div key={p.id} className="solid stack waiting-att failed" style={{ gap: 10 }} role="alert">
+              <div className="row" style={{ alignItems: "flex-start" }}>
+                <CircleAlert size={18} className="danger-text" style={{ flexShrink: 0, marginTop: 1 }} />
+                <div className="small">
+                  <b>
+                    Your {what} at {fmtTime12(p.at)}
+                    {day} wasn't sent.
+                  </b>
+                  <div className="muted">{p.error}</div>
+                </div>
+              </div>
+              <div className="row wrap">
+                <button className="btn small" type="button" onClick={() => void retryItem(p.id)}>
+                  <RotateCcw /> Try again
+                </button>
+                <button className="btn small ghost" type="button" onClick={() => void removeItem(p.id)}>
+                  <Trash2 /> Remove
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div key={p.id} className="solid row waiting-att" style={{ alignItems: "flex-start" }} role="status">
+            <Clock3 size={18} style={{ flexShrink: 0, marginTop: 1, color: "var(--accent)" }} />
+            <div className="small">
+              <b>
+                Your {what} at {fmtTime12(p.at)}
+                {day} is saved on this phone.
+              </b>
+              <div className="muted">
+                {p.status === "sending" ? "Sending now..." : "It goes out by itself when you're back online, marked as sent later."}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

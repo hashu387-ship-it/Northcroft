@@ -8,6 +8,7 @@ import { leaveByDay, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 import { PersonAvatar, WhatsAppButton } from "@/components/People";
 import { Empty, Loading, Pill } from "@/components/ui";
 import { MapBox, PlacePill, isOffsite, useAttendanceRange } from "./shared";
+import { SentLater } from "./SentLater";
 
 export function TeamBoard() {
   const people = usePeople();
@@ -142,12 +143,14 @@ function TeamRow({
               <span className="small bold num">In {fmtTime12(r.check_in_at)}</span>
               <PlacePill kind={r.in_place_kind} name={r.in_place_name} />
               {r.late_minutes > 0 && <Pill tone="orange">Late {r.late_minutes} min</Pill>}
+              {r.in_sent_later && <SentLater receivedAt={r.in_received_at} />}
             </div>
             {r.check_out_at && (
               <div className="row wrap" style={{ gap: 6 }}>
                 <span className="small bold num">Out {fmtTime12(r.check_out_at)}</span>
                 <PlacePill kind={r.out_place_kind} name={r.out_place_name} />
                 {r.early_minutes > 0 && <Pill tone="orange">Left {r.early_minutes} min early</Pill>}
+                {r.out_sent_later && <SentLater receivedAt={r.out_received_at} />}
               </div>
             )}
             {r.in_address && <div className="tiny faint">{r.in_address}</div>}

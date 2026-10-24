@@ -4,6 +4,7 @@ import { BarChart3, CalendarDays, LogOut, MapPin, Megaphone, MessagesSquare, Set
 import { PageHead } from "@/components/PageHead";
 import { Avatar, useConfirm } from "@/components/ui";
 import { useAuth, useMe } from "@/lib/auth";
+import { signOutWarning } from "@/lib/outbox";
 import { needsMyAck, useAnnouncementsWithAcks } from "./home/data";
 
 interface Tile {
@@ -36,7 +37,8 @@ export default function More() {
   ];
 
   async function out() {
-    if (await confirm({ title: "Sign out?", message: "You'll stop getting notifications on this device until you sign in again.", confirmLabel: "Sign out" })) {
+    const waiting = await signOutWarning(me.id);
+    if (await confirm({ title: "Sign out?", message: `${waiting}You'll stop getting notifications on this device until you sign in again.`, confirmLabel: "Sign out", danger: !!waiting })) {
       await signOut();
     }
   }

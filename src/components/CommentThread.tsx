@@ -27,7 +27,9 @@ import { REACTIONS, reactionInfo, setReaction, typingLine, useChatReads, useKeep
 import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
 import { addDriveLinks, useMessageDriveLinks, type LinkInfo } from "@/lib/drivelinks";
 import { useMarkSeen } from "@/lib/seen";
-import { errorMessage, supabase } from "@/lib/supabase";
+import { errorMessage, isNetworkError, supabase } from "@/lib/supabase";
+import { keepFiles, queueMessage } from "@/lib/outbox";
+import { PendingMessages, outboxChat } from "./Offline";
 import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
 import { fileSize } from "@/lib/format";
 import type { Attachment, Comment, Profile, ReactionKind } from "@/lib/types";
@@ -446,6 +448,8 @@ export function CommentThread({
             </Fragment>
           );
         })}
+        {/* Sent with no signal: waiting on the phone, with a clock instead of the tick. */}
+        <PendingMessages userId={me.id} chat={outboxChat(scope)} hide={ids} />
       </div>
 
       {isChat && !atBottom && (
@@ -760,9 +764,14 @@ function Composer({
 
   async function sendVoice(rec: Recording) {
     setSendingVoice(true);
+    // Given an id here, so a voice note interrupted by the signal is finished later, never posted twice.
+    const id = crypto.randomUUID();
+    let path: string | null = null;
     try {
-      const path = await uploadVoice(rec, me.id, conversationId);
+      if (navigator.onLine === false) throw new TypeError("Failed to fetch");
+      path = await uploadVoice(rec, me.id, conversationId);
       const { error } = await supabase.from("comments").insert({
+        id,
         body: voiceLabel(rec.seconds),
         mentions: [],
         author_id: me.id,
@@ -773,13 +782,23 @@ function Composer({
         voice_peaks: rec.peaks,
       });
       if (error) {
-        await supabase.storage.from("files").remove([path]);
+        if (!isNetworkError(error)) await supabase.storage.from("files").remove([path]);
         throw error;
       }
       onClearReply();
       invalidate("comments", "chats");
     } catch (e) {
-      toast(`Voice note not sent: ${errorMessage(e)}`, "error");
+      if (isNetworkError(e)) {
+        // No signal: kept on the phone, shown with a clock, and sent by itself when the signal is back.
+        await queueMessage({
+          id,
+          userId: me.id,
+          chat: outboxChat(scope),
+          row: { body: voiceLabel(rec.seconds), mentions: [], author_id: me.id, reply_to: replyTo?.id ?? null, ...where() },
+          voice: { blob: rec.blob, mime: rec.mime, seconds: rec.seconds, peaks: rec.peaks, path: path ?? undefined },
+        }).catch(() => toast("Voice note not sent: no signal, and it couldn't be saved on this phone.", "error"));
+        onClearReply();
+      } else toast(`Voice note not sent: ${errorMessage(e)}`, "error");
     } finally {
       setSendingVoice(false);
     }
@@ -864,22 +883,28 @@ function Composer({
     if ((!text && !files.length && !links.length) || sending) return;
     setSending(true);
     onStopTyping();
+    const mentions = findMentions(text, mentionable, me.id);
+    const row = {
+      body: text || sharedText(files, links),
+      mentions,
+      author_id: me.id,
+      reply_to: replyTo?.id ?? null,
+      ...where(),
+    };
+    // Given an id here, so a message interrupted by the signal is finished later, never posted twice.
+    const id = crypto.randomUUID();
+    const done = { posted: false, links: false, files: 0 };
     try {
-      const mentions = findMentions(text, mentionable, me.id);
-      const row = {
-        body: text || sharedText(files, links),
-        mentions,
-        author_id: me.id,
-        reply_to: replyTo?.id ?? null,
-        ...where(),
-      };
-      const { data, error } = await supabase.from("comments").insert(row).select().single();
+      if (navigator.onLine === false) throw new TypeError("Failed to fetch");
+      const { data, error } = await supabase.from("comments").insert({ id, ...row }).select().single();
       if (error) throw error;
+      done.posted = true;
       setBody("");
       onClearReply();
       if (ref.current) ref.current.style.height = "auto";
       if (links.length) {
         await addDriveLinks(links, { projectId: null, commentId: data.id });
+        done.links = true;
         setLinks([]);
       }
       for (const f of files) {
@@ -892,6 +917,7 @@ function Composer({
           userId: me.id,
           onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });
+        done.files++;
       }
       setFiles([]);
       // In chats everyone is notified anyway, so only confirm mentions on task comments.
@@ -901,7 +927,29 @@ function Composer({
       }
       invalidate("comments", "attachments", "chats", "drive_links");
     } catch (e) {
-      toast(errorMessage(e), "error");
+      if (isNetworkError(e)) {
+        // No signal: kept on the phone, shown with a clock, and sent by itself when the signal is back.
+        try {
+          await queueMessage({
+            id,
+            userId: me.id,
+            chat: outboxChat(scope),
+            row,
+            inserted: done.posted,
+            links: done.links ? [] : links,
+            linksDone: done.links,
+            files: keepFiles(files.slice(done.files)),
+          });
+          setBody("");
+          onClearReply();
+          setLinks([]);
+          setFiles([]);
+          if (ref.current) ref.current.style.height = "auto";
+          if (done.posted) invalidate("comments", "attachments", "chats", "drive_links");
+        } catch {
+          toast("No signal, and the message couldn't be saved on this phone. Try again when you're back online.", "error");
+        }
+      } else toast(errorMessage(e), "error");
     } finally {
       setSending(false);
       setProgress(null);

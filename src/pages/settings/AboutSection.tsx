@@ -1,11 +1,13 @@
 import { LogOut, Share, SquarePlus, EllipsisVertical } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { useAuth, useMe } from "@/lib/auth";
+import { signOutWarning } from "@/lib/outbox";
 import { isStandalone } from "@/lib/push";
 import { useConfirm } from "@/components/ui";
 import { Section } from "./common";
 
 export function AboutSection() {
   const { signOut } = useAuth();
+  const me = useMe();
   const confirm = useConfirm();
   return (
     <div className="stack" style={{ gap: 16 }}>
@@ -56,7 +58,8 @@ export function AboutSection() {
           className="btn danger"
           style={{ alignSelf: "flex-start" }}
           onClick={async () => {
-            if (await confirm({ title: "Sign out?", message: "You'll need your email and password to sign back in.", confirmLabel: "Sign out", danger: true })) signOut();
+            const waiting = await signOutWarning(me.id);
+            if (await confirm({ title: "Sign out?", message: `${waiting}You'll need your email and password to sign back in.`, confirmLabel: "Sign out", danger: true })) signOut();
           }}
           type="button"
         >
