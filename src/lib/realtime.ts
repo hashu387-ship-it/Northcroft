@@ -6,6 +6,7 @@ const TABLES = [
   "tasks", "task_checklist", "comments", "announcements", "announcement_acks", "attendance",
   "variations", "boq_packages", "events", "projects", "attachments", "profiles",
   "conversations", "conversation_members", "chat_reads", "comment_reactions", "drive_links", "event_actions",
+  "leave_requests",
 ];
 // Tables whose changes also move the Chats list (last message, unread counts, who's in a group).
 const CHAT_LIST = new Set(["comments", "conversations", "conversation_members", "chat_reads"]);
@@ -26,6 +27,8 @@ export function useRealtime(userId: string | undefined) {
           if (CHAT_LIST.has(table)) qc.invalidateQueries({ queryKey: ["chats"] });
           if (table === "conversation_members") qc.invalidateQueries({ queryKey: ["conversations"] });
           if (table === "tasks" || table === "variations" || table === "boq_packages") qc.invalidateQueries({ queryKey: ["activity"] });
+          // Leave entries on the Calendar are part of who's away.
+          if (table === "events") qc.invalidateQueries({ queryKey: ["leave_requests", "away"] });
         }, 150),
       );
     };

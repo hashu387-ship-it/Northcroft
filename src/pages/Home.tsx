@@ -23,6 +23,8 @@ import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
 import { OngoingTasksCard } from "@/components/TeamTasks";
 import { TeamTodayPresence } from "./attendance/Presence";
+import { LeaveToApproveCard } from "./attendance/Leave";
+import { leaveByDay, useTeamLeave } from "@/lib/leave";
 import { VoiceNote } from "@/components/Voice";
 import { Avatar, CountUp, Empty, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
@@ -176,6 +178,7 @@ export default function Home() {
           {!me.attendance_exempt && <CheckInCard />}
           {!givesOnly && <FocusCard tasks={myOpen} loading={mine.isLoading} />}
           {canAssign && <ReviewCard tasks={toReview} loading={allOpen.isLoading} finalOk={signoff.on && signoff.final?.id === me.id} />}
+          {canAssign && <LeaveToApproveCard />}
           {isManager && <OngoingTasksCard tasks={teamOpen} loading={allOpen.isLoading} linkTo={givesOnly ? "/my-tasks" : "/my-tasks?view=team"} />}
           {canAssign && (me.attendance_times === false ? <TeamTodayPresence /> : <TeamSnapshot />)}
         </div>
@@ -368,6 +371,9 @@ function TeamSnapshot() {
   const rows = new Map((q.data ?? []).map((r) => [r.user_id, r]));
   const workday = isWorkday(today, settings?.work_days);
   const inCount = (q.data ?? []).filter((r) => !r.check_out_at).length;
+  // People on approved leave (or a Leave entry) today show as on leave, not "Not in yet".
+  const away = useTeamLeave(today, today);
+  const onLeave = useMemo(() => leaveByDay(away.data ?? [], today, today, settings?.work_days), [away.data, today, settings?.work_days]);
 
   return (
     <div className="glass card">
@@ -385,7 +391,7 @@ function TeamSnapshot() {
       ) : (
         <div className="team-snap">
           {people.attenders.map((p) => (
-            <TeamPerson key={p.id} person={p} row={rows.get(p.id)} />
+            <TeamPerson key={p.id} person={p} row={rows.get(p.id)} onLeave={onLeave.has(`${p.id}|${today}`)} />
           ))}
         </div>
       )}
@@ -393,9 +399,9 @@ function TeamSnapshot() {
   );
 }
 
-function TeamPerson({ person, row }: { person: Profile; row?: Attendance }) {
+function TeamPerson({ person, row, onLeave }: { person: Profile; row?: Attendance; onLeave?: boolean }) {
   let dot = "";
-  let line = "Not in yet";
+  let line = onLeave ? "On leave" : "Not in yet";
   if (row && !row.check_out_at) {
     dot = row.late_minutes > 0 ? "late" : "in";
     line = `In ${fmtTime12(row.check_in_at)} · ${row.in_place_kind === "elsewhere" ? "Off-site" : row.in_place_name ?? ""}`;

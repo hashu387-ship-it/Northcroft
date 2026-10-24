@@ -26,6 +26,7 @@ import {
   RotateCcw,
   Send,
   SquareCheckBig,
+  TreePalm,
   TriangleAlert,
   type LucideIcon,
   LogIn,
@@ -70,6 +71,11 @@ const TYPE_META: Record<string, { icon: LucideIcon; color: string; label: string
   boq_due: { icon: Layers, color: "#FF3B30", label: "BOQ" },
   checkin_reminder: { icon: LogIn, color: "#0A84FF", label: "Check in" },
   checkout_reminder: { icon: LogOut, color: "#FF9F0A", label: "Check out" },
+  leave_request: { icon: TreePalm, color: "#BF5AF2", label: "Leave to approve" },
+  leave_update: { icon: TreePalm, color: "#30B0C7", label: "Leave" },
+  leave_approved: { icon: TreePalm, color: "#30D158", label: "Leave approved" },
+  leave_declined: { icon: TreePalm, color: "#FF3B30", label: "Leave declined" },
+  leave_cancelled: { icon: TreePalm, color: "#8E8E93", label: "Leave cancelled" },
   test: { icon: Bell, color: "#8E8E93", label: "Test" },
 };
 const ASSIGNED = new Set(["task_assigned", "checklist_assigned", "vo_assigned", "boq_assigned"]);

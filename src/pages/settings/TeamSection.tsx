@@ -174,6 +174,10 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
   const invalidate = useInvalidate();
   const [title, setTitle] = useState(person.title);
   const [phone, setPhone] = useState(person.phone ? localDigits(person.phone) : "");
+  const [leaveDays, setLeaveDays] = useState(String(person.annual_leave_days ?? 21));
+  useEffect(() => setLeaveDays(String(person.annual_leave_days ?? 21)), [person.annual_leave_days]);
+  const leaveNum = /^\d{1,3}$/.test(leaveDays.trim()) ? Number(leaveDays.trim()) : NaN;
+  const leaveOk = Number.isInteger(leaveNum) && leaveNum >= 0 && leaveNum <= 365;
   const [resetOpen, setResetOpen] = useState(false);
   const [password, setPassword] = useState(randomPassword());
   const [newCreds, setNewCreds] = useState<string | null>(null);
@@ -288,6 +292,29 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
               label="Checks in and out"
             />
           </div>
+          {!person.attendance_exempt && (
+            <div className="setting-row" style={{ flexWrap: "wrap" }}>
+              <Field label="Annual leave days a year" className="grow" hint="Working days. 21 for most people, 30 after five years.">
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  value={leaveDays}
+                  onChange={(e) => setLeaveDays(e.target.value.replace(/[^\d]/g, "").slice(0, 3))}
+                  aria-invalid={!leaveOk}
+                  style={{ maxWidth: 140 }}
+                />
+              </Field>
+              <button
+                className="btn small"
+                disabled={busy || !leaveOk || leaveNum === (person.annual_leave_days ?? 21)}
+                onClick={() => update({ annual_leave_days: leaveNum }, `${person.short_name} now has ${leaveNum} annual leave days a year`)}
+                type="button"
+                style={{ alignSelf: "flex-end", marginBottom: 4 }}
+              >
+                Save days
+              </button>
+            </div>
+          )}
           {(isManagerRow || person.can_assign) && (
             <div className="setting-row">
               <div className="grow">

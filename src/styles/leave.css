@@ -1,0 +1,120 @@
+/* Leave: the balance strip, request rows, the type picker and the request form. */
+
+.leave-card { min-width: 0; }
+
+.leave-balance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.leave-balance > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--fill);
+  min-width: 0;
+}
+.leave-balance .label {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.leave-balance .value { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; color: var(--teal); }
+.leave-balance > div:nth-child(2) .value { color: var(--text); }
+.leave-balance > div:nth-child(3) .value { color: var(--orange); }
+.leave-balance .value.neg { color: var(--red); }
+.leave-balance .hint { font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.leave-row { align-items: center; }
+.leave-row .pill { flex-shrink: 0; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leave-date {
+  width: 40px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  border-radius: 8px;
+  background: var(--teal-soft);
+  color: var(--teal);
+  line-height: 1.1;
+}
+.leave-date b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.leave-date small { font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.04em; }
+.leave-date.off { background: var(--fill); color: var(--text-3); }
+.leave-more { align-self: center; margin-top: 6px; }
+
+.leave-kinds { display: flex; flex-wrap: wrap; gap: 8px; }
+.leave-kind {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-2);
+  background: var(--btn-glass, var(--fill));
+  border: 1px solid var(--btn-glass-border, var(--separator));
+  box-shadow: var(--btn-glass-shadow, none);
+  transition: transform 0.15s var(--ease), background 0.2s, color 0.2s;
+}
+.leave-kind:hover { background: var(--btn-glass-hover, var(--fill-2)); }
+.leave-kind:active { transform: scale(0.96); }
+.leave-kind:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.leave-kind.on {
+  color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--teal) 88%, #fff), var(--teal));
+  border-color: color-mix(in srgb, var(--teal) 70%, #000);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 4px 12px color-mix(in srgb, var(--teal) 35%, transparent);
+}
+@media (max-width: 599px) {
+  .leave-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .leave-kind { padding: 0 6px; font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .leave-kind { transition: none; }
+  .leave-kind:active { transform: none; }
+}
+
+.leave-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.leave-dates .input { min-width: 0; width: 100%; }
+
+.leave-summary { padding: 12px 14px; border-radius: 10px; display: block; }
+.leave-summary.warn { color: var(--red); }
+.leave-summary > div { margin-top: 4px; }
+.leave-over { color: var(--red); }
+
+.leave-note {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--fill);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.leave-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.leave-steps li { position: relative; padding-left: 16px; }
+.leave-steps li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.55em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+.leave-steps li.muted::before { background: var(--text-3); }
+
+.leave-year { gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.leave-year .grow { min-width: 160px; }
+.leave-table { min-width: 420px; }

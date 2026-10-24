@@ -5,6 +5,7 @@ import { addDays, addMonths, fmtMonth, isWorkday, monthStart, todayISO } from "@
 import type { Attendance, Profile } from "@/lib/types";
 import { Avatar, Loading, useToast } from "@/components/ui";
 import { hhmm, hoursWorked, isOffsite, useAttendanceRange, useTrackingStart } from "./shared";
+import { leaveByDay, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 
 interface Summary {
   person: Profile;
@@ -15,6 +16,7 @@ interface Summary {
   offsite: number;
   avgHours: number | null;
   absent: number;
+  leave: number;
 }
 
 function csvCell(v: string | number | null | undefined) {
@@ -32,6 +34,9 @@ export function MonthlyReport() {
   const to = lastDay < todayISO() ? lastDay : todayISO();
   const { data: rows = [], isLoading } = useAttendanceRange(from, lastDay);
   const { data: trackingStart } = useTrackingStart();
+  // Days on leave (approved requests and Leave entries) aren't absences.
+  const away = useTeamLeave(from, lastDay);
+  const leave = useMemo(() => leaveByDay(away.data ?? [], from, lastDay, settings?.work_days), [away.data, from, lastDay, settings?.work_days]);
 
   // Working days so far this month (shown in the subtitle).
   const workdays = useMemo(() => {
@@ -61,22 +66,26 @@ export function MonthlyReport() {
         early: mine.filter((r) => r.early_minutes > 0).length,
         offsite: mine.filter(isOffsite).length,
         avgHours: hrs.length ? hrs.reduce((a, b) => a + b, 0) / hrs.length : null,
-        absent: absenceDays.filter((d) => !presentDays.has(d)).length,
+        absent: absenceDays.filter((d) => !presentDays.has(d) && !leave.has(`${person.id}|${d}`)).length,
+        leave: workdays.filter((d) => !presentDays.has(d) && leave.has(`${person.id}|${d}`)).length,
       };
     });
-  }, [people.attenders, rows, absenceDays]);
+  }, [people.attenders, rows, absenceDays, workdays, leave]);
 
   function download() {
     const header = ["Date", "Name", "Check in", "In place", "In address", "Check out", "Out place", "Out address", "Hours", "Late minutes", "Early minutes", "Note"];
     const lines = [header.join(",")];
     const byKey = new Map<string, Attendance>(rows.map((r) => [`${r.work_date}|${r.user_id}`, r]));
-    const allDays = new Set<string>([...absenceDays, ...rows.map((r) => r.work_date)]);
+    const leaveDays = [...leave.keys()].map((k) => k.split("|")[1]).filter((d) => d <= to);
+    const allDays = new Set<string>([...absenceDays, ...rows.map((r) => r.work_date), ...leaveDays]);
     const days = [...allDays].sort();
     for (const d of days) {
       for (const p of people.attenders) {
         const r = byKey.get(`${d}|${p.id}`);
         if (!r) {
-          if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent"].map(csvCell).join(","));
+          const off = leave.get(`${p.id}|${d}`);
+          if (off) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", off.kind ? leaveKindLabel(off.kind) : "On leave"].map(csvCell).join(","));
+          else if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent"].map(csvCell).join(","));
           continue;
         }
         const h = hoursWorked(r);
@@ -135,7 +144,7 @@ export function MonthlyReport() {
       </div>
       <div className="muted small" style={{ marginTop: -6 }}>
         {fmtMonth(from)} · {workdays.length} working {workdays.length === 1 ? "day" : "days"} so far
-        {monthStart(todayISO()) === from ? " this month" : ""}. Absences count from the first day anyone checked in. The CSV has one row per person per day and opens in Excel.
+        {monthStart(todayISO()) === from ? " this month" : ""}. Absences count from the first day anyone checked in; days on approved leave count as leave, not absences. The CSV has one row per person per day and opens in Excel.
       </div>
       {isLoading ? (
         <Loading />
@@ -147,6 +156,7 @@ export function MonthlyReport() {
                 <th>Person</th>
                 <th className="r">Days in</th>
                 <th className="r">Absent</th>
+                <th className="r">Leave</th>
                 <th className="r">Late</th>
                 <th className="r">Late min</th>
                 <th className="r">Early</th>
@@ -166,6 +176,9 @@ export function MonthlyReport() {
                   <td className="r num">{s.days}</td>
                   <td className="r num" style={{ color: s.absent ? "var(--red)" : undefined }}>
                     {s.absent}
+                  </td>
+                  <td className="r num" style={{ color: s.leave ? "var(--teal)" : undefined }}>
+                    {s.leave}
                   </td>
                   <td className="r num" style={{ color: s.late ? "var(--orange)" : undefined }}>
                     {s.late}
