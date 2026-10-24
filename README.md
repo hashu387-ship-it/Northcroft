@@ -40,7 +40,22 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - 8:30 am: "Good morning Imthath. It's 8:30 and you haven't checked in yet. Tap to check in." Not sent to anyone with a Leave entry on the Calendar that day.
   - 5:30 pm: "Remember to check out when you leave", and at 6:30 pm "you're still checked in" for anyone who still hasn't.
   - Each goes out once a day. Checking in or out marks that day's reminder as read. The times follow the working hours in Settings > Working hours.
+- **Search everything**: the Search button in the side menu (or the magnifying glass at the top on a phone), or Ctrl K (⌘K on a Mac) or "/" on a computer.
+  - Finds tasks and their steps, chat messages and voice note text, files, projects, variations, BOQ packages, people, announcements and calendar entries. Every word you type has to match, in any order.
+  - Results are grouped, with the words you typed marked. The chips at the top search just one kind (up to 50 results). Arrow keys and Enter work on a computer, and recent searches are remembered on each phone.
+  - A message opens its chat (or task) and scrolls to it; a person opens their profile card; a variation opens its VO; a calendar entry opens on the Calendar.
+  - It searches as the person signed in, so private chats only show up for the people in them.
 - **Calendar**: task due dates, VO action dates, BOQ deadlines, site visits and meetings.
+  - **Action points**: open a meeting (or any calendar entry) and note what was agreed, who does it and by when. Whoever made the entry, anyone invited to it, and managers and seniors can add points, tick them off or take them off; they save as they're added.
+  - Managers and seniors tap *Make task* on a point (or *Make N tasks* for all of them). Each becomes a task for that person, due when it says, in the meeting's project, and the task shows a *From meeting* link back to it.
+- **Leave requests**, on the Check in page:
+  - Tap *Request leave* and choose Annual, Sick, Emergency, Unpaid or Other, from one day to another. The form counts the working days and, for annual leave, shows how many days you have left this year and what this request leaves. You can still ask for more than you have left; it shows in red, and the approvers see it too.
+  - Approval works like task sign-off: Hassan approves first, then Fawaz gives the final OK. Hassan's own leave goes straight to Fawaz. Either of them can decline with a note.
+  - Requests waiting on you show on Home and at the top of the Attendance page. Each step sends a notification that opens the request.
+  - You can cancel a request that's waiting, or approved leave that hasn't started; whoever approved it is told. A manager can cancel approved leave at any time, for example if someone comes back early.
+  - Everyone has 21 annual leave days a year unless a manager changes it in Settings > Team. Approved annual leave counts against it by working days; sick, emergency, unpaid and other leave don't.
+  - Approved leave counts like a Leave entry on the Calendar: it shows on the Calendar, the attendance board and Home show "On leave" instead of "Not in yet", the monthly report counts it as leave rather than absence, and the check-in and check-out reminders skip those days.
+  - Managers and seniors see *Team leave*: who's away or asking from today on, and everyone's balance for the year. Other team members see on the Calendar who is away, but not the type of leave or any notes.
 - **Check in and check out** with location:
   - Each check-in is labelled Office, a project site or Elsewhere.
   - Late arrivals and early finishes are flagged against 8:30 am to 5:30 pm.
@@ -74,6 +89,13 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Tap anyone's photo to see their card, with WhatsApp, call and email buttons.
   - WhatsApp buttons also sit on the Team list, the attendance board and task pages. On a task, the WhatsApp message starts with the task name and a link to it.
   - People's check-ins show on the attendance map as their photo.
+- **Works without signal** (on site, in a basement, on a plane):
+  - The app opens with no signal, and screens show what they last loaded: Home, My tasks, task pages, projects, chats, announcements, calendar and check-in. Every screen's code is fetched once per version, so even screens you haven't opened yet work. A navy bar says "No signal. You're seeing what was saved, and anything you send goes out when you're back online." When the signal returns, "Back online" shows for a moment and screens refresh.
+  - Messages, voice notes, files and Drive links sent with no signal (or when the signal drops mid-send) show straight away with a small clock instead of the tick. They go out by themselves, in order, when the signal is back, and a message is never posted twice. If the server refuses one, it shows "Not sent" with the reason, and Try again or Remove.
+  - Check in and check out work with no signal. The phone keeps the time and location of the tap and sends them when it's back online. It's recorded at the time it happened, so late and early minutes count from then, and it's marked **Sent later** because a phone's clock can be changed; tap or hover the mark to see when it arrived. It shows on the attendance board, in history and on today's record, and the monthly CSV has "Check in sent later" and "Check out sent later" columns. The server refuses a time in the future, anything more than 24 hours old, a date that doesn't match the time, or a check-out before the check-in.
+  - Photos, voice notes and files you've already opened (up to 25 MB) keep working offline. Google Drive files and links need signal.
+  - The saved copy is per person. Signing out removes it, along with anything still waiting (you're warned first). If someone else signs in on the same phone, the previous person's copy is removed.
+- **Share into the app** (Android and computers): once installed, Northcroft appears in the Share sheet. Share a PDF, photo, spreadsheet, Word file, recording or link from WhatsApp, email or Files, pick a chat or one of your open tasks, add a message if you like, and send. Files go to Google Drive like any other attachment, and a Google Drive link becomes a Drive link on the message. With no signal it waits and goes out when you're back online. iPhone doesn't let web apps appear in the Share sheet, so on iPhone use the paperclip as before.
 - **Updates load on their own**: phones keep the app open in the background, so it checks for a new version whenever it comes back to the front (and every 20 minutes). With nothing open it reloads straight away; if a form, a file or typed text is open, an *Update* bar shows instead, so nothing is lost.
 - **Liquid glass design**, light by default (Dark or Automatic in Settings > Appearance).
   - Glass is on for everyone. *Solid surfaces* in Settings > Appearance swaps it for solid panels on that phone, if someone finds text hard to read; it's off unless they turn it on, and the phone's own accessibility settings don't switch it on.
@@ -97,6 +119,9 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 | Change who's on a task, delete tasks | Yes | Yes | No |
 | Edit a task's details, steps and files, and submit it | Yes | Yes | When they're on the task |
 | Update VOs and BOQ packages, comment, chat, upload files | Yes | Yes | Yes |
+| Ask for leave | Yes (Hassan; Fawaz doesn't check in) | Yes | Yes |
+| Approve leave | Hassan first, then Fawaz | No | No |
+| Turn meeting action points into tasks | Yes | Yes | No (they can add and tick points on meetings they're in) |
 
 Work flows down: Fawaz gives tasks to Hassan, and Hassan gives tasks to the team. Two switches in Settings > Team control this for anyone:
 
