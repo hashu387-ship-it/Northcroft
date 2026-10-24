@@ -5,6 +5,7 @@ import { addDays, addMonths, fmtMonth, isWorkday, monthStart, todayISO } from "@
 import type { Attendance, Profile } from "@/lib/types";
 import { Avatar, Loading, useToast } from "@/components/ui";
 import { hhmm, hoursWorked, isOffsite, useAttendanceRange, useTrackingStart } from "./shared";
+import { sentLaterText } from "./SentLater";
 
 interface Summary {
   person: Profile;
@@ -67,7 +68,7 @@ export function MonthlyReport() {
   }, [people.attenders, rows, absenceDays]);
 
   function download() {
-    const header = ["Date", "Name", "Check in", "In place", "In address", "Check out", "Out place", "Out address", "Hours", "Late minutes", "Early minutes", "Note"];
+    const header = ["Date", "Name", "Check in", "In place", "In address", "Check out", "Out place", "Out address", "Hours", "Late minutes", "Early minutes", "Note", "Check in sent later", "Check out sent later"];
     const lines = [header.join(",")];
     const byKey = new Map<string, Attendance>(rows.map((r) => [`${r.work_date}|${r.user_id}`, r]));
     const allDays = new Set<string>([...absenceDays, ...rows.map((r) => r.work_date)]);
@@ -76,7 +77,7 @@ export function MonthlyReport() {
       for (const p of people.attenders) {
         const r = byKey.get(`${d}|${p.id}`);
         if (!r) {
-          if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent"].map(csvCell).join(","));
+          if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent", "", ""].map(csvCell).join(","));
           continue;
         }
         const h = hoursWorked(r);
@@ -94,6 +95,8 @@ export function MonthlyReport() {
             r.late_minutes,
             r.early_minutes,
             r.note,
+            sentLaterText(r.in_sent_later, r.in_received_at),
+            sentLaterText(r.out_sent_later, r.out_received_at),
           ]
             .map(csvCell)
             .join(","),

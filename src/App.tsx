@@ -19,6 +19,7 @@ const Workload = lazy(() => import("@/pages/Workload"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const More = lazy(() => import("@/pages/More"));
 const FileView = lazy(() => import("@/pages/FileView"));
+const Share = lazy(() => import("@/pages/Share"));
 
 function Gate() {
   const { session, profile, loading } = useAuth();
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="settings/:section" element={<Settings />} />
           <Route path="more" element={<More />} />
           <Route path="files/:id" element={<FileView />} />
+          <Route path="share" element={<Share />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

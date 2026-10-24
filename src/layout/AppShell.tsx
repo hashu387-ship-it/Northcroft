@@ -28,6 +28,7 @@ import ProfileSetup from "@/pages/ProfileSetup";
 import { LogoMark, Wordmark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CelebrationHost } from "@/components/Celebration";
+import { OfflineBar, OutboxRunner } from "@/components/Offline";
 
 function useUnackedCount(userId: string) {
   return useQuery({
@@ -224,6 +225,9 @@ export default function AppShell() {
           </Link>
         </div>
       </header>
+
+      <OfflineBar />
+      <OutboxRunner userId={me.id} />
 
       <main className="main" ref={mainRef}>
         <Suspense fallback={<div className="center-screen"><Loading /></div>}>

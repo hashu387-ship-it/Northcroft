@@ -3,6 +3,7 @@ import { fmtDate, fmtDuration, fmtTime12, todayISO } from "@/lib/time";
 import type { Attendance } from "@/lib/types";
 import { Empty, Loading, Pill } from "@/components/ui";
 import { PlacePill } from "./shared";
+import { SentLater } from "./SentLater";
 
 export function MyHistory({ rows, loading }: { rows: Attendance[]; loading: boolean }) {
   const past = rows.filter((r) => r.work_date !== todayISO()).slice(0, 30);
@@ -39,6 +40,7 @@ export function MyHistory({ rows, loading }: { rows: Attendance[]; loading: bool
                   <span className="num small bold">{fmtTime12(r.check_in_at)}</span>
                   <PlacePill kind={r.in_place_kind} name={r.in_place_name} />
                   {r.late_minutes > 0 && <Pill tone="orange">Late {r.late_minutes} min</Pill>}
+                  {r.in_sent_later && <SentLater receivedAt={r.in_received_at} />}
                 </div>
                 <div className="row wrap" style={{ gap: 6 }}>
                   {r.check_out_at ? (
@@ -46,6 +48,7 @@ export function MyHistory({ rows, loading }: { rows: Attendance[]; loading: bool
                       <span className="num small bold">{fmtTime12(r.check_out_at)}</span>
                       <PlacePill kind={r.out_place_kind} name={r.out_place_name} />
                       {r.early_minutes > 0 && <Pill tone="orange">Left {r.early_minutes} min early</Pill>}
+                      {r.out_sent_later && <SentLater receivedAt={r.out_received_at} />}
                     </>
                   ) : (
                     <span className="small faint">No check-out recorded</span>
