@@ -1,4 +1,4 @@
-import { Suspense, useEffect, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -110,8 +110,22 @@ export default function AppShell() {
     document.title = unread ? `(${unread}) Northcroft` : "Northcroft";
   }, [unread]);
 
+  // On phones the content scrolls inside the app frame rather than the whole page. iPhones on
+  // iOS 26 can let the tab bar, the + button and the background slide up with a scrolling page;
+  // with the page itself still, they stay put. (Desktop keeps normal page scrolling.)
+  // Only while the app's own screens show (not the first-time password and profile set-up pages).
+  const shellShown = !me.must_change_password && !!me.avatar_url && !!me.phone;
+  useEffect(() => {
+    if (!shellShown) return;
+    const root = document.documentElement;
+    root.classList.add("shell-scroll");
+    return () => root.classList.remove("shell-scroll");
+  }, [shellShown]);
+
+  const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    mainRef.current?.scrollTo({ top: 0 });
   }, [location.pathname]);
 
   if (me.must_change_password) return <ChangePassword forced />;
@@ -210,7 +224,7 @@ export default function AppShell() {
         </div>
       </header>
 
-      <main className="main">
+      <main className="main" ref={mainRef}>
         <Suspense fallback={<div className="center-screen"><Loading /></div>}>
           <Outlet />
         </Suspense>
