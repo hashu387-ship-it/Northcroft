@@ -24,6 +24,7 @@ import {
 } from "@/lib/time";
 import type { CalendarEvent, EventKind, Priority } from "@/lib/types";
 import { useBoqBetween, useEventsBetween, useVosBetween } from "./home/data";
+import { ActionPoints } from "./calendar/ActionPoints";
 import { nameList, ownersOf, peopleOn } from "@/lib/people";
 
 type View = "month" | "agenda";
@@ -86,6 +87,18 @@ export default function Calendar() {
   const boqs = useBoqBetween(from, to);
   const vos = useVosBetween(from, to);
   const loading = tasks.isLoading || events.isLoading || boqs.isLoading || vos.isLoading;
+
+  // Opened from search or a link (?event=<id>): show that entry once it has loaded.
+  const eventParam = params.get("event");
+  useEffect(() => {
+    if (!eventParam || !events.data) return;
+    const e = events.data.find((x) => x.id === eventParam);
+    if (e) setEventSheet({ event: e, date: e.event_date });
+    const next = new URLSearchParams(params);
+    next.delete("event");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventParam, events.data]);
 
   const items = useMemo(() => {
     const out: Item[] = [];
@@ -516,6 +529,7 @@ function EventForm({
           {event.notes && <p style={{ whiteSpace: "pre-wrap" }}>{event.notes}</p>}
           <p className="faint small">Added by {people.get(event.created_by)?.short_name ?? "someone"}. Only they or a senior can change it.</p>
         </div>
+        <ActionPoints event={event} />
       </Sheet>
     );
   }
@@ -595,6 +609,13 @@ function EventForm({
           <textarea className="textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Agenda, what to bring, contact on site" />
         </Field>
       </div>
+      {event ? (
+        <ActionPoints event={event} />
+      ) : (
+        <p className="faint tiny" style={{ marginTop: 12 }}>
+          After the meeting, open it here to note the action points and turn them into tasks.
+        </p>
+      )}
     </Sheet>
   );
 }

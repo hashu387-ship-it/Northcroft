@@ -393,3 +393,22 @@ export interface Attendance {
   note: string | null;
   created_at: string;
 }
+
+/* ---------------------------------------------------------------- meeting action points (0026) */
+
+export interface EventAction {
+  id: string;
+  event_id: string;
+  body: string;
+  assignee_id: string | null;
+  due_date: string | null;
+  position: number;
+  task_id: string | null;
+  done_at: string | null;
+  done_by: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  removed_at: string | null;
+  removed_by: string | null;
+}

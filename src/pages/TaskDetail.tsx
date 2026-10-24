@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Bell,
   BellRing,
+  CalendarDays,
   ChevronLeft,
   CircleCheck,
   Clock,
@@ -37,7 +38,9 @@ import { DueLabel, EarlyBadge, Empty, Loading, PriorityFlag, ProjectTag, Sheet, 
 import { ActivityFeed } from "./project/ActivityFeed";
 import { Checklist } from "./project/Checklist";
 import { useActivity, useWatchers } from "./project/api";
+import { useTaskMeeting } from "./calendar/ActionPoints";
 import "@/styles/tasks.css";
+import "@/styles/meeting.css";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -62,6 +65,7 @@ export default function TaskDetail() {
   const activity = useActivity({ taskId: id, limit: 60 });
   const watchers = useWatchers(id);
   const signoff = useSignoff();
+  const meeting = useTaskMeeting(id).data;
   // Opening the task reads its notifications, here and on the phone.
   useMarkSeen(id ? { taskId: id } : null);
 
@@ -538,6 +542,14 @@ export default function TaskDetail() {
           <Row label="Project">
             <ProjectTag project={projects.get(task.project_id)} />
           </Row>
+          {meeting && (
+            <Row label="From meeting">
+              <Link className="from-meeting" to={`/calendar?date=${meeting.event_date}&event=${meeting.id}`}>
+                <CalendarDays size={15} />
+                <span>{meeting.title}</span>
+              </Link>
+            </Row>
+          )}
           {task.estimate_hours != null && <Row label="Estimate">{task.estimate_hours} h</Row>}
           <Row label="Created">
             <span className="row" style={{ gap: 8, minWidth: 0 }}>

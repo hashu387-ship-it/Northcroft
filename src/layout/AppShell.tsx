@@ -11,6 +11,7 @@ import {
   Megaphone,
   MessagesSquare,
   Ellipsis,
+  Search,
   Settings,
   SquareCheckBig,
 } from "lucide-react";
@@ -28,6 +29,8 @@ import ProfileSetup from "@/pages/ProfileSetup";
 import { LogoMark, Wordmark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CelebrationHost } from "@/components/Celebration";
+import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
+import { openSearch } from "@/lib/search";
 
 function useUnackedCount(userId: string) {
   return useQuery({
@@ -168,6 +171,11 @@ export default function AppShell() {
             <small>QS workspace</small>
           </span>
         </Link>
+        <button type="button" className="nav-search" onClick={openSearch} aria-label="Search">
+          <Search />
+          <span>Search</span>
+          <kbd>{SEARCH_SHORTCUT}</kbd>
+        </button>
         <nav className="nav">
           {nav.map((n) => (
             <NavLink
@@ -214,6 +222,9 @@ export default function AppShell() {
           <Wordmark height={15} />
         </div>
         <div className="side right">
+          <button type="button" className="icon-btn plain" onClick={openSearch} aria-label="Search">
+            <Search />
+          </button>
           {!me.attendance_exempt && (
             <Link to="/attendance" className="icon-btn plain" aria-label="Check in">
               <MapPin />
@@ -262,6 +273,7 @@ export default function AppShell() {
       </nav>
       <PersonCardHost />
       <CelebrationHost />
+      <SearchHost />
       {appUpdate.ready && (
         <div className="update-bar" role="status">
           <span>A new version of the app is ready.</span>

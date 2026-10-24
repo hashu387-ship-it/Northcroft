@@ -1,6 +1,7 @@
 import "@/styles/chats.css";
 import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import clsx from "clsx";
 import {
   ArrowDown,
@@ -220,6 +221,21 @@ export function CommentThread({
     if (el && isChat) el.scrollTop = el.scrollHeight;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comments.isSuccess, chatKey]);
+
+  // Opened from search (?m=<message>): go to that message once the thread is on screen.
+  const [urlParams, setUrlParams] = useSearchParams();
+  const jumpParam = urlParams.get("m");
+  useEffect(() => {
+    if (!jumpParam || !comments.isSuccess) return;
+    const t = window.setTimeout(() => {
+      jumpTo(jumpParam);
+      const next = new URLSearchParams(urlParams);
+      next.delete("m");
+      setUrlParams(next, { replace: true });
+    }, 350);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jumpParam, comments.isSuccess]);
 
   function onScroll() {
     const el = listRef.current;
