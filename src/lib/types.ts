@@ -43,6 +43,8 @@ export interface AppSettings {
   drive_root_id: string | null;
   drive_general_id: string | null;
   drive_connected_at: string | null;
+  /** When a manager added the Google key for shared Drive links (the key itself stays private). */
+  drive_key_added_at?: string | null;
   updated_at: string;
 }
 

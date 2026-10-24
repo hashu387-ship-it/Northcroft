@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, Copy, ExternalLink, HardDrive, RefreshCw, Unplug } from "lucide-react";
+import { CheckCircle2, Copy, ExternalLink, HardDrive, KeyRound, Link2, RefreshCw, Trash2, Unplug } from "lucide-react";
 import { useInvalidate, useSettings } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { SUPABASE_URL } from "@/lib/config";
@@ -36,6 +36,46 @@ export function DriveSection() {
   const [busy, setBusy] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
   const connected = !!s?.drive_connected_at;
+  // The Google key that reads shared Drive links pasted on tasks and projects.
+  const keySet = !!s?.drive_key_added_at;
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [keyBusy, setKeyBusy] = useState(false);
+
+  async function saveKey() {
+    setKeyBusy(true);
+    try {
+      await driveCall("save_api_key", { key: apiKey.trim() });
+      setApiKey("");
+      setShowKey(false);
+      await invalidate("app_settings");
+      toast("Google key saved. Drive links on tasks and projects now show their files.");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setKeyBusy(false);
+    }
+  }
+
+  async function removeKey() {
+    const ok = await confirm({
+      title: "Remove the Google key?",
+      message: "Drive links stay on tasks and projects, but their files won't show in the app until a key is added again.",
+      confirmLabel: "Remove key",
+      danger: true,
+    });
+    if (!ok) return;
+    setKeyBusy(true);
+    try {
+      await driveCall("save_api_key", { key: "" });
+      await invalidate("app_settings");
+      toast("Google key removed", "info");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setKeyBusy(false);
+    }
+  }
 
   // Back from Google: say how it went.
   useEffect(() => {
@@ -136,6 +176,89 @@ export function DriveSection() {
         )}
       </div>
 
+      <div className="solid stack" style={{ padding: 16, gap: 10, borderRadius: 12 }}>
+        <div className="row" style={{ gap: 12 }}>
+          <span className="settings-icon" style={{ background: keySet ? "var(--green)" : "var(--gray)" }}>
+            <Link2 />
+          </span>
+          <div className="grow" style={{ minWidth: 0 }}>
+            <div className="bold row" style={{ gap: 8 }}>
+              Shared Drive links
+              {keySet && <CheckCircle2 size={16} style={{ color: "var(--green)" }} />}
+            </div>
+            <div className="muted small">
+              {keySet
+                ? `Ready · Google key added ${fmtDateTime(s!.drive_key_added_at!)}. Paste a Drive folder link on any task or project to show its files.`
+                : isManager
+                  ? "Add a Google key once, and anyone can paste a Google Drive folder or file link on a task or project and see its files there, ready to open or download."
+                  : "A manager adds a one-time Google key here, then Drive links on tasks and projects show their files."}
+            </div>
+          </div>
+          {keySet && <Pill tone="green">On</Pill>}
+        </div>
+        {isManager && keySet && !showKey && (
+          <div className="row wrap" style={{ gap: 8 }}>
+            <button className="btn small ghost" type="button" onClick={() => setShowKey(true)} disabled={keyBusy}>
+              <KeyRound /> Change key
+            </button>
+            <button className="btn small ghost" type="button" onClick={removeKey} disabled={keyBusy}>
+              <Trash2 /> Remove key
+            </button>
+          </div>
+        )}
+        {isManager && (!keySet || showKey) && (
+          <div className="stack" style={{ gap: 12 }}>
+            <h3 style={{ margin: 0, fontSize: 15 }}>Get a Google key (about 5 minutes, on a computer)</h3>
+            <ol className="steps small">
+              <li>
+                Open{" "}
+                <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener noreferrer">
+                  Google Drive API
+                </a>{" "}
+                in Google Cloud and press <b>Enable</b> (if it says Manage, it's already on). Any Google account works; the Northcroft project from the Drive set-up
+                above is fine. If Google asks, create a project called <b>Northcroft</b>.
+              </li>
+              <li>
+                Open{" "}
+                <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">
+                  Credentials
+                </a>
+                , press <b>Create credentials</b>, then <b>API key</b>. Google shows the new key.
+              </li>
+              <li>
+                Press <b>Edit API key</b>. Under <b>API restrictions</b> choose <b>Restrict key</b>, tick <b>Google Drive API</b> and press <b>Save</b>.
+              </li>
+              <li>
+                Copy the key (it starts with <b>AIza</b>), paste it here and press <b>Save key</b>.
+              </li>
+            </ol>
+            <p className="faint tiny" style={{ margin: 0 }}>
+              The key can only read folders and files shared as "Anyone with the link". It's stored encrypted and never shown again.
+            </p>
+            <div className="row wrap" style={{ gap: 10 }}>
+              <input
+                className="input"
+                style={{ flex: "1 1 260px" }}
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="AIza..."
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Google API key"
+              />
+              <button className="btn primary" type="button" onClick={saveKey} disabled={keyBusy || !apiKey.trim()}>
+                <KeyRound /> {keyBusy ? "Checking..." : "Save key"}
+              </button>
+              {showKey && (
+                <button className="btn ghost" type="button" onClick={() => setShowKey(false)} disabled={keyBusy}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
       {isManager && (!connected || showSetup) && (
         <div className="stack" style={{ gap: 14 }}>
           <h3 style={{ margin: 0, fontSize: 16 }}>One-time set-up (about 10 minutes, on a computer)</h3>
@@ -212,6 +335,7 @@ export function DriveSection() {
           </div>
         </div>
       )}
+
     </Section>
   );
 }

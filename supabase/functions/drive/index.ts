@@ -16,8 +16,14 @@
 //                   person can see: private chat files are for the people in that chat)
 //   links           the same for up to 100 files at once (photo previews)
 //   delete          remove the attachment and move the file to the Drive bin
+//   save_api_key    manager: save (or clear) the Google key used to read shared Drive links
+//   link_info       check a pasted Drive link (shared as "Anyone with the link") and name it
+//   link_list       the files in a linked Drive folder (or the one linked file)
+//   link_file       one file from a linked folder, for the app's file screen
+//   link_open       a 1-hour link that opens or downloads a file from a linked folder
 // GET /drive/callback   Google sends the manager back here after they allow access
 // GET ?f=<id>&e=<expiry>&s=<signature>[&d=1]   stream the file (d=1 downloads instead of opening)
+// GET ?g=<drive file>&k=<resource key>&e=&s=[&d=1]   stream a file from a linked (shared) folder
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -49,7 +55,7 @@ class UserError extends Error {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 type Me = { id: string; short_name: string; role: string; can_assign: boolean; active: boolean };
-type Config = { drive_client_id?: string; drive_client_secret?: string; drive_refresh_token?: string; drive_link_secret?: string };
+type Config = { drive_client_id?: string; drive_client_secret?: string; drive_refresh_token?: string; drive_link_secret?: string; drive_api_key?: string };
 
 /* ---------------------------------------------------------------- config and tokens */
 async function config(): Promise<Config> {
@@ -466,6 +472,223 @@ async function remove(body: { attachment_id?: string }, req: Request) {
   return { ok: true };
 }
 
+
+/* ---------------------------------------------------------------- shared Drive links */
+// Folders and files anyone pastes on a task or project. They're read with a Google key (not the
+// connected Drive), so they must be shared as "Anyone with the link". Google Docs, Sheets and
+// Slides come out as PDF or Excel.
+const EXPORTS: Record<string, { mime: string; ext: string }> = {
+  "application/vnd.google-apps.document": { mime: "application/pdf", ext: "pdf" },
+  "application/vnd.google-apps.spreadsheet": { mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ext: "xlsx" },
+  "application/vnd.google-apps.presentation": { mime: "application/pdf", ext: "pdf" },
+  "application/vnd.google-apps.drawing": { mime: "application/pdf", ext: "pdf" },
+};
+const FILE_FIELDS = "id,name,mimeType,size,modifiedTime,resourceKey,shortcutDetails";
+const ID_RE = /^[\w-]{10,}$/;
+
+async function apiKey(): Promise<string> {
+  const c = await config();
+  if (!c.drive_api_key) {
+    throw new UserError("Shared Drive links need a one-time Google key. A manager can add it in Settings > Google Drive.", 503, "no_key");
+  }
+  return c.drive_api_key;
+}
+
+/** Resource keys open older shared links: "id/key,id/key". */
+function rkHeader(pairs: [string, string | null | undefined][]): Record<string, string> {
+  const v = pairs.filter(([, k]) => !!k).map(([id, k]) => `${id}/${k}`).join(",");
+  return v ? { "X-Goog-Drive-Resource-Keys": v } : {};
+}
+
+async function publicDrive(path: string, headers: Record<string, string> = {}, key?: string) {
+  const url = new URL(`${DRIVE}${path}`);
+  url.searchParams.set("key", key ?? (await apiKey()));
+  url.searchParams.set("supportsAllDrives", "true");
+  return fetch(url, { headers });
+}
+
+async function publicError(res: Response): Promise<never> {
+  const body = await res.json().catch(() => ({}));
+  const reason = body?.error?.errors?.[0]?.reason ?? "";
+  const msg = String(body?.error?.message ?? "");
+  if (reason === "keyInvalid" || /API key not valid/i.test(msg)) {
+    throw new UserError("Google didn't accept the key in Settings > Google Drive. A manager can check it there.", 503, "bad_key");
+  }
+  if (reason === "accessNotConfigured" || /has not been used|is disabled|SERVICE_DISABLED/i.test(msg)) {
+    throw new UserError("Google Drive API isn't switched on for that Google key. A manager can switch it on (Settings > Google Drive has the link).", 503, "api_off");
+  }
+  if (res.status === 404 || res.status === 403 || res.status === 401) {
+    throw new UserError('Google Drive can\'t open this link. Make sure it\'s shared as "Anyone with the link" and try again.', 404, "not_shared");
+  }
+  console.error("Shared Drive call failed", res.status, msg.slice(0, 200));
+  throw new UserError("Couldn't reach Google Drive. Try again in a moment.", 502);
+}
+
+type DriveItem = { id: string; name: string; mimeType: string; size?: string; modifiedTime?: string; resourceKey?: string; shortcutDetails?: { targetId: string; targetMimeType: string; targetResourceKey?: string } };
+
+/** A shortcut stands in for the file it points to. */
+function resolve(f: DriveItem) {
+  if (f.mimeType === "application/vnd.google-apps.shortcut" && f.shortcutDetails?.targetId) {
+    return { ...f, id: f.shortcutDetails.targetId, mimeType: f.shortcutDetails.targetMimeType, resourceKey: f.shortcutDetails.targetResourceKey, size: undefined };
+  }
+  return f;
+}
+
+function shape(raw: DriveItem) {
+  const f = resolve(raw);
+  const exp = EXPORTS[f.mimeType];
+  const folder = f.mimeType === FOLDER;
+  return {
+    id: f.id,
+    name: exp && !f.name.toLowerCase().endsWith(`.${exp.ext}`) ? `${f.name}.${exp.ext}` : f.name,
+    mime: exp ? exp.mime : f.mimeType,
+    size: f.size ? Number(f.size) : null,
+    modified: f.modifiedTime ?? null,
+    resource_key: f.resourceKey ?? null,
+    folder,
+    // Other Google files (Forms, Sites, Maps) can only be opened in Drive.
+    viewable: folder || !!exp || !f.mimeType.startsWith("application/vnd.google-apps."),
+  };
+}
+
+/** Folder or file id (and resource key) from a pasted Drive or Docs link. */
+function parseDriveUrl(raw: string): { id: string; rk: string | null } | null {
+  let u: URL;
+  try {
+    u = new URL(String(raw ?? "").trim());
+  } catch {
+    return null;
+  }
+  if (!/(^|\.)google\.com$/i.test(u.hostname)) return null;
+  const m = u.pathname.match(/\/(?:folders|d)\/([\w-]{10,})/);
+  const id = m?.[1] ?? u.searchParams.get("id");
+  if (!id || !ID_RE.test(id)) return null;
+  return { id, rk: u.searchParams.get("resourcekey") };
+}
+
+async function saveApiKey(body: { key?: string }, me: Me) {
+  if (me.role !== "manager") throw new UserError("Only a manager can change the Google key.", 403);
+  const key = String(body.key ?? "").trim();
+  if (!key) {
+    await setSecret("drive_api_key", "");
+    await admin.from("app_settings").update({ drive_key_added_at: null }).eq("id", 1);
+    return { ok: true };
+  }
+  if (!/^AIza[\w-]{30,}$/.test(key)) throw new UserError("That doesn't look like a Google API key. It starts with AIza.");
+  // A real key gets "sign in needed" for this test call; a wrong key or a switched-off API says so.
+  const res = await publicDrive("/about?fields=kind", {}, key);
+  if (!res.ok && res.status !== 401) await publicError(res);
+  await setSecret("drive_api_key", key);
+  await admin.from("app_settings").update({ drive_key_added_at: new Date().toISOString() }).eq("id", 1);
+  return { ok: true };
+}
+
+async function linkInfo(body: { url?: string }) {
+  const p = parseDriveUrl(body.url ?? "");
+  if (!p) throw new UserError("That isn't a Google Drive link. Copy it from Drive with Share > Copy link.");
+  const res = await publicDrive(`/files/${p.id}?fields=${FILE_FIELDS}`, rkHeader([[p.id, p.rk]]));
+  if (!res.ok) await publicError(res);
+  const raw = (await res.json()) as DriveItem;
+  const f = shape(raw);
+  return {
+    drive_id: f.id,
+    resource_key: f.resource_key ?? p.rk,
+    kind: f.folder ? "folder" : "file",
+    title: raw.name,
+    mime: f.folder ? FOLDER : f.mime,
+    size: f.size,
+  };
+}
+
+/** The link, as the signed-in person can see it (so only team members, and only links still on). */
+async function visibleLink(id: unknown, req: Request) {
+  const { data } = await asUser(req).from("drive_links").select("id, drive_id, resource_key, kind, removed_at").eq("id", String(id ?? "")).maybeSingle();
+  if (!data || data.removed_at) throw new UserError("That Drive link has been taken off.", 404);
+  return data as { id: string; drive_id: string; resource_key: string | null; kind: "folder" | "file" };
+}
+
+async function linkList(body: { link_id?: string; folder_id?: string; folder_rk?: string }, req: Request) {
+  const link = await visibleLink(body.link_id, req);
+  const keys = rkHeader([[link.drive_id, link.resource_key], [String(body.folder_id ?? ""), body.folder_rk]]);
+  if (link.kind === "file") {
+    const res = await publicDrive(`/files/${link.drive_id}?fields=${FILE_FIELDS}`, keys);
+    if (!res.ok) await publicError(res);
+    return { files: [shape(await res.json())] };
+  }
+  const folder = body.folder_id && ID_RE.test(body.folder_id) ? body.folder_id : link.drive_id;
+  const files: ReturnType<typeof shape>[] = [];
+  let page = "";
+  for (let i = 0; i < 5; i++) {
+    const q = encodeURIComponent(`'${folder}' in parents and trashed = false`);
+    const res = await publicDrive(
+      `/files?q=${q}&fields=nextPageToken,files(${FILE_FIELDS})&orderBy=folder,name_natural&pageSize=200&includeItemsFromAllDrives=true${page ? `&pageToken=${encodeURIComponent(page)}` : ""}`,
+      keys,
+    );
+    if (!res.ok) await publicError(res);
+    const out = (await res.json()) as { files?: DriveItem[]; nextPageToken?: string };
+    for (const f of out.files ?? []) files.push(shape(f));
+    if (!out.nextPageToken) break;
+    page = out.nextPageToken;
+  }
+  return { files };
+}
+
+async function linkFile(body: { link_id?: string; file_id?: string; file_rk?: string }, req: Request) {
+  const link = await visibleLink(body.link_id, req);
+  const id = String(body.file_id ?? "");
+  if (!ID_RE.test(id)) throw new UserError("File not found.", 404);
+  const res = await publicDrive(`/files/${id}?fields=${FILE_FIELDS}`, rkHeader([[link.drive_id, link.resource_key], [id, body.file_rk]]));
+  if (!res.ok) await publicError(res);
+  return shape(await res.json());
+}
+
+async function linkOpen(body: { link_id?: string; file_id?: string; file_rk?: string; download?: boolean }, req: Request) {
+  const link = await visibleLink(body.link_id, req);
+  const id = String(body.file_id ?? "");
+  if (!ID_RE.test(id)) throw new UserError("File not found.", 404);
+  const rk = String(body.file_rk ?? (id === link.drive_id ? link.resource_key ?? "" : ""));
+  if (rk && !/^[\w-]{1,100}$/.test(rk)) throw new UserError("File not found.", 404);
+  const e = Math.floor(Date.now() / 1000) + LINK_HOURS * 3600;
+  const d = body.download ? "1" : "0";
+  const s = await hmac(`gopen:${id}:${rk}:${e}:${d}`);
+  return { url: `${SELF_URL}?g=${id}&k=${encodeURIComponent(rk)}&e=${e}&d=${d}&s=${s}` };
+}
+
+async function streamShared(req: Request, url: URL): Promise<Response> {
+  const id = url.searchParams.get("g") ?? "";
+  const rk = url.searchParams.get("k") ?? "";
+  const e = Number(url.searchParams.get("e"));
+  const d = url.searchParams.get("d") === "1" ? "1" : "0";
+  const s = url.searchParams.get("s") ?? "";
+  if (!ID_RE.test(id) || !e || !s || !same(s, await hmac(`gopen:${id}:${rk}:${e}:${d}`))) return new Response("This link isn't valid.", { status: 403, headers: CORS });
+  if (Date.now() / 1000 > e) return new Response("This link has expired. Open the file again from the app.", { status: 410, headers: CORS });
+  const keys = rkHeader([[id, rk]]);
+  const meta = await publicDrive(`/files/${id}?fields=${FILE_FIELDS}`, keys);
+  if (!meta.ok) return new Response("Google Drive can't open this file. It may no longer be shared.", { status: 404, headers: CORS });
+  const raw = resolve((await meta.json()) as DriveItem);
+  const f = shape(raw);
+  const exp = EXPORTS[raw.mimeType];
+  const range = req.headers.get("range");
+  const g = exp
+    ? await publicDrive(`/files/${raw.id}/export?mimeType=${encodeURIComponent(exp.mime)}`, rkHeader([[raw.id, raw.resourceKey ?? rk]]))
+    : await publicDrive(`/files/${raw.id}?alt=media`, { ...rkHeader([[raw.id, raw.resourceKey ?? rk]]), ...(range ? { Range: range } : {}) });
+  if (!g.ok && g.status !== 206) {
+    console.error("Shared Drive download failed", g.status);
+    return new Response(exp ? "Google can't export this file (it may be over 10 MB). Open it in Google Drive instead." : "Couldn't open the file from Google Drive.", { status: 502, headers: CORS });
+  }
+  const inline = d === "0" && INLINE.test(f.mime);
+  const headers = new Headers(CORS);
+  for (const h of ["content-length", "content-range", "accept-ranges", "etag", "last-modified"]) {
+    const v = g.headers.get(h);
+    if (v) headers.set(h, v);
+  }
+  headers.set("Content-Type", inline ? f.mime : "application/octet-stream");
+  headers.set("Content-Disposition", `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(f.name)}`);
+  headers.set("Cache-Control", "private, max-age=3600");
+  headers.set("X-Content-Type-Options", "nosniff");
+  return new Response(g.body, { status: g.status, headers });
+}
+
 /* ---------------------------------------------------------------- entry */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -474,6 +697,7 @@ Deno.serve(async (req) => {
     if (req.method === "GET") {
       if (url.pathname.endsWith("/callback")) return await callback(url);
       if (url.searchParams.has("f")) return await stream(req, url);
+      if (url.searchParams.has("g")) return await streamShared(req, url);
       return new Response("Not found", { status: 404, headers: CORS });
     }
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -501,6 +725,16 @@ Deno.serve(async (req) => {
         return json(await links(body, req));
       case "delete":
         return json(await remove(body, req));
+      case "save_api_key":
+        return json(await saveApiKey(body, me));
+      case "link_info":
+        return json(await linkInfo(body));
+      case "link_list":
+        return json(await linkList(body, req));
+      case "link_file":
+        return json(await linkFile(body, req));
+      case "link_open":
+        return json(await linkOpen(body, req));
       default:
         return json({ error: "Unknown action" }, 400);
     }

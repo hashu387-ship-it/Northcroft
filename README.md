@@ -12,6 +12,11 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Handing work in a day or more before its due date gets a big "Great job, 2 days early". Handing it in on the due day gets a smaller "Right on time". Late work gets the normal message.
   - Work handed in early keeps a gold-on-navy **Finished early** badge in lists and on the task, so it's easy to spot when reviewing.
   - A short chime and, on Android, a small buzz go with it. Switch them off per phone in Settings > Appearance > Celebrations. iPhones stay quiet when on silent and don't buzz. With reduce-motion on, the card shows without confetti.
+- **Google Drive links** on tasks and on a project's Files tab (and in the New task form):
+  - Paste a Google Drive folder or file link (shared as "Anyone with the link") and its files show right there: step into subfolders, open PDFs, Excel files and photos in the app's own viewers, or download. Google Docs, Sheets and Slides come through as PDF or Excel.
+  - Editing a file from a link saves a copy to the task's own files; the file in Google Drive stays as it was.
+  - On a repeating task, a link added when it's set up comes with every copy. Whoever added a link, or a manager or senior, can take it off.
+  - Needs a one-time Google key, which a manager adds in Settings > Google Drive (step-by-step there, about 5 minutes).
 - **Files on a new task**: *Add files* in the New task form attaches drawings, BOQs, PDFs and photos as the task goes out. The form shows each file's progress and opens the task once they're all up. If one fails, the task is still sent and it says which file to add again from the task's Files.
   - On a repeating task, the files come with every copy (marked *Every repeat*). They're stored once, and the copies already made keep them even if the repeating task is removed.
 - **Variations and BOQ packages** can have several owners too; all of them get the updates and reminders.

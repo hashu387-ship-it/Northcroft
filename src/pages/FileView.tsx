@@ -13,6 +13,7 @@ import { errorMessage, supabase } from "@/lib/supabase";
 import { fileSize } from "@/lib/format";
 import { timeAgo } from "@/lib/time";
 import type { Attachment } from "@/lib/types";
+import { driveFileAttachment, isDriveLinkFile } from "@/lib/drivelinks";
 import { Spinner, useConfirm, useToast } from "@/components/ui";
 import type { EditorProps, SaveOptions } from "@/features/files/editor";
 import type { OpenFileState } from "@/components/useOpenFile";
@@ -21,9 +22,13 @@ const PdfEditor = lazy(() => import("@/features/pdf/PdfEditor"));
 const SheetEditor = lazy(() => import("@/features/sheet/SheetEditor"));
 const ImageEditor = lazy(() => import("@/features/image/ImageEditor"));
 
+// Files from a linked Drive folder have ids starting "gd." and come from Google, not the database.
 const attachmentRow = (id: string) => ({
   queryKey: ["attachments", "one", id],
-  queryFn: () => unwrap<Attachment | null>(supabase.from("attachments").select("*").eq("id", id).maybeSingle()),
+  queryFn: () =>
+    id.startsWith("gd.")
+      ? driveFileAttachment(id)
+      : unwrap<Attachment | null>(supabase.from("attachments").select("*").eq("id", id).maybeSingle()),
   staleTime: 60_000,
 });
 
@@ -201,18 +206,22 @@ export default function FileView() {
 
   async function saveVersion(file: Blob, opts?: SaveOptions): Promise<Attachment> {
     if (!a) throw new Error("The file isn't loaded yet.");
-    setSaving({ label: `Saving version ${nextVersion}...`, fraction: null });
+    // A file from a linked Drive folder is saved as a copy in the task's own files.
+    const asCopy = isDriveLinkFile(a);
+    const where = a.task_id ? "this task's files" : "the project's files";
+    setSaving({ label: asCopy ? "Saving a copy..." : `Saving version ${nextVersion}...`, fraction: null });
     try {
       const saved = await saveNewVersion(a, file, {
         userId: me.id,
         nextVersion,
         extension: opts?.extension,
-        onProgress: (x) => setSaving({ label: `Saving version ${nextVersion} to Google Drive, ${Math.round(x * 100)}%`, fraction: x }),
+        onProgress: (x) =>
+          setSaving({ label: asCopy ? `Saving a copy, ${Math.round(x * 100)}%` : `Saving version ${nextVersion} to Google Drive, ${Math.round(x * 100)}%`, fraction: x }),
       });
       setDirty(false);
       dirtyRef.current = false;
       await invalidate("attachments", "comments");
-      toast(`Saved as version ${saved.version}. The original is kept as it was.`);
+      toast(asCopy ? `Saved a copy to ${where}. The file in Google Drive stays as it was.` : `Saved as version ${saved.version}. The original is kept as it was.`);
       navigate(`/files/${saved.id}`, { replace: true });
       return saved;
     } catch (e) {

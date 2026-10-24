@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { sar } from "@/lib/format";
 import { fmtDate } from "@/lib/time";
 import { Attachments } from "@/components/Attachments";
+import { DriveLinks } from "@/components/DriveLinks";
 import { CommentThread } from "@/components/CommentThread";
 import { Empty, Loading, Pill } from "@/components/ui";
 import { ProjectCover } from "@/components/ProjectCover";
@@ -131,8 +132,9 @@ export default function ProjectDetail() {
         </div>
       )}
       {tab === "files" && (
-        <div className="glass card">
+        <div className="glass card stack" style={{ gap: 16 }}>
           <Attachments projectId={project.id} />
+          <DriveLinks projectId={project.id} />
         </div>
       )}
       {tab === "activity" && <ProjectActivity projectId={project.id} />}

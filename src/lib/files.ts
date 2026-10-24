@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { DriveError, deleteDriveAttachment, driveLink, driveLinks, uploadToDrive } from "./drive";
 import type { Attachment } from "./types";
+import { driveItemUrl, driveLinkFileParts, isDriveLinkFile } from "./drivelinks";
 
 const BUCKET = "files";
 /** The app's own storage takes files up to this size; it's only used until Google Drive is connected. */
@@ -113,7 +114,7 @@ export async function openAttachment(a: Attachment) {
       tab.document.body.style.font = "15px -apple-system, system-ui, sans-serif";
       tab.document.body.textContent = isOnDrive(a) ? "Opening from Google Drive..." : "Opening...";
     }
-    const url = isOnDrive(a) ? await driveLink(a) : await signedUrl(a.path);
+    const url = await fileUrl(a);
     if (tab) tab.location.href = url;
     else window.open(url, "_blank", "noopener");
   } catch (e) {
@@ -165,6 +166,14 @@ export function versionName(name: string, version: number, extension?: string): 
   return `${base} (v${version})${ext}`;
 }
 
+/** "Plan L5.pdf" -> "Plan L5 (edited).pdf". */
+function editedName(name: string, extension?: string): string {
+  const dot = name.lastIndexOf(".");
+  const base = (dot > 0 ? name.slice(0, dot) : name).replace(/\s*\(edited\)$/i, "");
+  const ext = extension ? (extension.startsWith(".") ? extension : `.${extension}`) : dot > 0 ? name.slice(dot) : "";
+  return `${base} (edited)${ext}`;
+}
+
 async function readWithProgress(res: Response, onProgress?: (fraction: number) => void): Promise<ArrayBuffer> {
   const total = Number(res.headers.get("content-length")) || 0;
   if (!res.body || !total || !onProgress) return res.arrayBuffer();
@@ -187,9 +196,18 @@ async function readWithProgress(res: Response, onProgress?: (fraction: number) =
   return out.buffer;
 }
 
+/** A private link to the file: the team's Drive, a linked shared Drive folder, or the app's storage. */
+async function fileUrl(a: Attachment, download = false): Promise<string> {
+  if (isDriveLinkFile(a)) {
+    const p = driveLinkFileParts(a);
+    return driveItemUrl(p.linkId, p.fileId, p.rk, download);
+  }
+  return isOnDrive(a) ? driveLink(a, download) : signedUrl(a.path, download ? a.name : undefined);
+}
+
 /** The file's contents, from Google Drive or the app's storage. `onProgress` gets 0 to 1. */
 export async function fetchAttachmentData(a: Attachment, onProgress?: (fraction: number) => void): Promise<ArrayBuffer> {
-  const url = isOnDrive(a) ? await driveLink(a) : await signedUrl(a.path);
+  const url = await fileUrl(a);
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(res.status === 404 || res.status === 410 ? "This file is no longer there." : `The file didn't download (${res.status}). Try again.`);
@@ -198,7 +216,9 @@ export async function fetchAttachmentData(a: Attachment, onProgress?: (fraction:
 }
 
 /** Every version of a file (the original and its edited copies), newest first. */
-export async function fileVersions(a: Pick<Attachment, "id" | "version_of">): Promise<Attachment[]> {
+export async function fileVersions(a: Attachment): Promise<Attachment[]> {
+  // A file in a linked Drive folder has no versions in the app.
+  if (isDriveLinkFile(a)) return [a];
   const root = a.version_of ?? a.id;
   const { data, error } = await supabase.from("attachments").select("*").or(`id.eq.${root},version_of.eq.${root}`).order("version", { ascending: false });
   if (error) throw error;
@@ -215,8 +235,20 @@ export async function saveNewVersion(
   data: Blob,
   opts: { userId: string; nextVersion: number; extension?: string; onProgress?: (fraction: number) => void },
 ): Promise<Attachment> {
-  const name = versionName(original.name, opts.nextVersion, opts.extension);
+  // An edited file from a linked Drive folder is saved as a copy in the task's (or project's) own
+  // files; the Drive file stays as it was.
+  const fromDrive = isDriveLinkFile(original);
+  const name = fromDrive ? editedName(original.name, opts.extension) : versionName(original.name, opts.nextVersion, opts.extension);
   const file = new File([data], name, { type: data.type || original.mime || "application/octet-stream" });
+  if (fromDrive) {
+    return uploadFile(file, {
+      taskId: original.task_id,
+      projectId: original.project_id,
+      recurringId: original.task_id ? null : original.recurring_id ?? null,
+      userId: opts.userId,
+      onProgress: opts.onProgress,
+    });
+  }
   // An edited copy of a file that comes with a repeating task comes with every copy too.
   let where: { taskId: string | null; projectId: string | null; conversationId: string | null; recurringId?: string | null } = {
     taskId: original.task_id,

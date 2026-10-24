@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileSpreadsheet, FileText, Image as ImageIcon, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
+import { FileSpreadsheet, FileText, Folder, Image as ImageIcon, Link2, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
 import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
+import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
 import { fileSize } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { DOW_LONG, addDays, fmtDue, todayISO } from "@/lib/time";
@@ -66,6 +67,11 @@ export function TaskForm({
   const [uploadNote, setUploadNote] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const driveOn = !!useSettings().data?.drive_connected_at;
+  // Google Drive links checked in the form; saved on the task once it exists.
+  const [links, setLinks] = useState<(LinkInfo & { url: string })[]>([]);
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -92,6 +98,9 @@ export function TaskForm({
     setOffset(2);
     setFiles([]);
     setUploadNote(null);
+    setLinks([]);
+    setLinkUrl(null);
+    setLinkError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, task, defaults?.projectId, defaults?.assigneeId, defaults?.assigneeIds?.join(","), defaults?.dueDate, defaults?.title, defaults?.description, defaults?.priority, defaults?.steps?.join("\n"), me.id]);
 
@@ -132,6 +141,40 @@ export function TaskForm({
     }
     setUploadNote(null);
     return { failed, reason };
+  }
+
+  async function addLink() {
+    const v = (linkUrl ?? "").trim();
+    setLinkError(null);
+    if (!v) return;
+    if (!looksLikeDriveLink(v)) {
+      setLinkError("That isn't a Google Drive link. In Drive, use Share > Copy link, then paste it here.");
+      return;
+    }
+    if (links.some((l) => l.url === v)) {
+      setLinkUrl(null);
+      return;
+    }
+    setLinkBusy(true);
+    try {
+      const info = await checkDriveLink(v);
+      setLinks((xs) => [...xs, { ...info, url: v }]);
+      setLinkUrl(null);
+    } catch (e) {
+      setLinkError(errorMessage(e));
+    } finally {
+      setLinkBusy(false);
+    }
+  }
+
+  /** Save the checked Drive links; says so if they couldn't be saved (the task still goes out). */
+  async function saveLinks(where: { taskId?: string; recurringId?: string; projectId: string | null }) {
+    if (!links.length) return;
+    try {
+      await addDriveLinks(links, where);
+    } catch (e) {
+      toast(`The Drive ${links.length === 1 ? "link wasn't" : "links weren't"} saved (${errorMessage(e)}). Add ${links.length === 1 ? "it" : "them"} again from the task.`, "error");
+    }
   }
 
   function reportFailed({ failed, reason }: { failed: string[]; reason: string }, where: string) {
@@ -177,6 +220,7 @@ export function TaskForm({
         if (error) throw error;
         // Files set up here come with every copy of the task.
         const result = files.length ? await uploadPicked({ recurringId: data.id, projectId }) : { failed: [], reason: "" };
+        await saveLinks({ recurringId: data.id, projectId });
         await supabase.rpc("run_recurring");
         const { data: fresh } = await supabase.from("recurring_tasks").select("next_run, last_run").eq("id", data.id).single();
         toast(
@@ -201,6 +245,7 @@ export function TaskForm({
         }
         // The task is out; now its files go up, with progress, before the task opens.
         const result = files.length ? await uploadPicked({ taskId: data.id, projectId }) : { failed: [], reason: "" };
+        await saveLinks({ taskId: data.id, projectId });
         const others = assignees.filter((id) => id !== me.id).map((id) => people.get(id)?.short_name).filter(Boolean);
         toast(others.length ? `Task sent to ${others.length > 3 ? `${others.length} people` : others.join(", ")}` : "Task created");
         reportFailed(result, "the task's Files");
@@ -306,9 +351,60 @@ export function TaskForm({
                   </button>
                 </span>
               ))}
-              <button className="btn small" type="button" onClick={() => fileInput.current?.click()} disabled={saving}>
-                <Paperclip /> {files.length ? "Add more files" : "Add files"}
-              </button>
+              {links.map((l) => (
+                <span className="tf-file" key={l.url}>
+                  <span className="tf-file-icon drive">{l.kind === "folder" ? <Folder /> : <Link2 />}</span>
+                  <span className="tf-file-name ellipsis">{l.title}</span>
+                  <span className="faint tiny">{l.kind === "folder" ? "Drive folder" : "Drive file"}</span>
+                  <button
+                    type="button"
+                    className="icon-btn small plain"
+                    onClick={() => setLinks((xs) => xs.filter((x) => x !== l))}
+                    aria-label={`Take ${l.title} off`}
+                    disabled={saving}
+                  >
+                    <X />
+                  </button>
+                </span>
+              ))}
+              {linkUrl !== null && (
+                <div className="tf-link-row">
+                  <input
+                    className="input"
+                    value={linkUrl}
+                    onChange={(e) => {
+                      setLinkUrl(e.target.value);
+                      setLinkError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void addLink();
+                      }
+                    }}
+                    placeholder="Paste a Google Drive folder or file link"
+                    inputMode="url"
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-label="Google Drive link"
+                    autoFocus
+                  />
+                  <button className="btn" type="button" onClick={addLink} disabled={linkBusy || !linkUrl.trim()}>
+                    {linkBusy ? "Checking..." : "Add"}
+                  </button>
+                </div>
+              )}
+              {linkError && <small className="danger-text tiny">{linkError}</small>}
+              <div className="row wrap" style={{ gap: 8 }}>
+                <button className="btn small" type="button" onClick={() => fileInput.current?.click()} disabled={saving}>
+                  <Paperclip /> {files.length ? "Add more files" : "Add files"}
+                </button>
+                {linkUrl === null && (
+                  <button className="btn small" type="button" onClick={() => setLinkUrl("")} disabled={saving}>
+                    <Link2 /> Add Drive link
+                  </button>
+                )}
+              </div>
               <input ref={fileInput} type="file" multiple hidden aria-label="Choose files" onChange={(e) => pickFiles(e.target.files)} />
             </div>
           </Field>

@@ -29,6 +29,7 @@ import { diffDays, fmtDateTime, timeAgo, todayISO } from "@/lib/time";
 import { celebrate, daysText, earlyDays } from "@/lib/celebrate";
 import type { Task, TaskStatus } from "@/lib/types";
 import { Attachments } from "@/components/Attachments";
+import { DriveLinks } from "@/components/DriveLinks";
 import { CommentThread } from "@/components/CommentThread";
 import { TaskForm } from "@/components/TaskForm";
 import { DueLabel, EarlyBadge, Empty, Loading, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast } from "@/components/ui";
@@ -321,6 +322,7 @@ export default function TaskDetail() {
               </h3>
             </div>
             <Attachments taskId={t.id} projectId={t.project_id} repeatOf={t.repeat_of ?? t.recurring_id} />
+            <DriveLinks taskId={t.id} projectId={t.project_id} repeatOf={t.repeat_of ?? t.recurring_id} />
           </div>
 
           <div className="glass card">
