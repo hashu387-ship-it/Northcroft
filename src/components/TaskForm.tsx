@@ -1,16 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileSpreadsheet, FileText, Folder, Image as ImageIcon, Link2, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
+import { FileSpreadsheet, FileText, Folder, Image as ImageIcon, Link2, Mic, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
 import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
 import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
 import { useSignoff } from "@/lib/signoff";
+import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
 import { fileSize } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { DOW_LONG, addDays, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Task } from "@/lib/types";
 import { Field, PeopleSelect, PersonSelect, PriorityPicker, ProjectSelect, Segmented, Sheet, useToast } from "./ui";
+import { RecorderBar, VoicePlayer } from "./Voice";
+
+/** A voice note recorded in the form: its English text goes into Details, the recording onto the task. */
+interface FormVoice {
+  url: string;
+  path: string | null;
+  seconds: number;
+  peaks: number[];
+  state: "uploading" | "writing" | "done" | "failed" | "off";
+}
 
 type Repeat = "none" | "daily" | "weekly" | "monthly";
 
@@ -74,6 +85,12 @@ export function TaskForm({
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const [linkBusy, setLinkBusy] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [voice, setVoice] = useState<FormVoice | null>(null);
+  const voiceRef = useRef<FormVoice | null>(null);
+  voiceRef.current = voice;
+  const recorder = useRecorder({ onDone: (r) => void gotVoice(r) });
+  const recording = recorder.state !== "idle";
+  const voiceBusy = voice?.state === "uploading" || voice?.state === "writing";
 
   useEffect(() => {
     if (!open) return;
@@ -103,10 +120,93 @@ export function TaskForm({
     setLinks([]);
     setLinkUrl(null);
     setLinkError(null);
+    setVoice(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, task, defaults?.projectId, defaults?.assigneeId, defaults?.assigneeIds?.join(","), defaults?.dueDate, defaults?.title, defaults?.description, defaults?.priority, defaults?.steps?.join("\n"), me.id]);
 
   const cleanSteps = steps.map((s) => s.trim()).filter(Boolean);
+
+  /** A recording is done: store it, then put its English text into Details. */
+  async function gotVoice(rec: Recording) {
+    const url = URL.createObjectURL(rec.blob);
+    const same = (v: FormVoice | null) => v?.url === url;
+    setVoice({ url, path: null, seconds: rec.seconds, peaks: rec.peaks, state: "uploading" });
+    let path: string;
+    try {
+      path = await uploadVoice(rec, me.id);
+    } catch (e) {
+      setVoice((v) => (same(v) ? null : v));
+      URL.revokeObjectURL(url);
+      toast(`The voice note couldn't be saved (${errorMessage(e)}). Record it again.`, "error");
+      return;
+    }
+    // Taken off or the form closed while it was saving: tidy up.
+    if (!same(voiceRef.current)) {
+      void supabase.storage.from("files").remove([path]);
+      return;
+    }
+    setVoice((v) => (same(v) ? { ...v!, path, state: "writing" } : v));
+    try {
+      const { data, error } = await supabase.functions.invoke("transcribe", { body: { kind: "draft", path, seconds: rec.seconds } });
+      if (error) throw error;
+      if (data?.status === "off") {
+        setVoice((v) => (same(v) ? { ...v!, state: "off" } : v));
+        return;
+      }
+      const text = String(data?.text ?? "").trim();
+      if (same(voiceRef.current) && text) setDescription((d) => (d.trim() ? `${d.trimEnd()}\n${text}` : text));
+      setVoice((v) => (same(v) ? { ...v!, state: "done" } : v));
+    } catch {
+      setVoice((v) => (same(v) ? { ...v!, state: "failed" } : v));
+    }
+  }
+
+  async function startVoice() {
+    try {
+      await recorder.start();
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    }
+  }
+
+  /** Take the voice note off (the text already in Details stays, to keep or edit). */
+  function dropVoice() {
+    const v = voiceRef.current;
+    if (!v) return;
+    if (v.path) void supabase.storage.from("files").remove([v.path]);
+    URL.revokeObjectURL(v.url);
+    setVoice(null);
+  }
+
+  /** The recording goes on the task as a voice note, so the team can play it. */
+  async function attachVoice(taskId: string, project: string | null) {
+    const v = voiceRef.current;
+    if (!v?.path) return;
+    const { error } = await supabase.from("comments").insert({
+      body: voiceLabel(v.seconds),
+      mentions: [],
+      author_id: me.id,
+      task_id: taskId,
+      project_id: project,
+      voice_path: v.path,
+      voice_seconds: Math.round(v.seconds * 10) / 10,
+      voice_peaks: v.peaks,
+    });
+    if (error) {
+      toast(`The voice note wasn't added to the task (${errorMessage(error)}). Its text is in the details.`, "error");
+      return;
+    }
+    URL.revokeObjectURL(v.url);
+    voiceRef.current = null;
+    setVoice(null);
+  }
+
+  /** Closing without saving: stop any recording and remove a stored one. */
+  function close() {
+    if (recording) recorder.cancel();
+    dropVoice();
+    onClose();
+  }
 
   function pickFiles(list: FileList | null) {
     if (!list?.length) return;
@@ -203,6 +303,7 @@ export function TaskForm({
       if (editing && task) {
         const { error } = await supabase.from("tasks").update({ ...fields, due_date: dueDate || null }).eq("id", task.id);
         if (error) throw error;
+        await attachVoice(task.id, projectId);
         toast("Task updated");
       } else if (repeat !== "none") {
         const { data, error } = await supabase
@@ -232,6 +333,8 @@ export function TaskForm({
         );
         await invalidate("recurring_tasks", "attachments");
         reportFailed(result, "a copy of the task's Files");
+        // A repeating task keeps the voice note's text in its details; the recording isn't kept.
+        dropVoice();
       } else {
         const { data, error } = await supabase
           .from("tasks")
@@ -248,15 +351,16 @@ export function TaskForm({
         // The task is out; now its files go up, with progress, before the task opens.
         const result = files.length ? await uploadPicked({ taskId: data.id, projectId }) : { failed: [], reason: "" };
         await saveLinks({ taskId: data.id, projectId });
+        await attachVoice(data.id, projectId);
         const others = assignees.filter((id) => id !== me.id).map((id) => people.get(id)?.short_name).filter(Boolean);
         toast(others.length ? `Task sent to ${others.length > 3 ? `${others.length} people` : others.join(", ")}` : "Task created");
         reportFailed(result, "the task's Files");
         onClose();
-        await invalidate("tasks", "task_checklist", "attachments");
+        await invalidate("tasks", "task_checklist", "attachments", "comments");
         navigate(`/tasks/${data.id}`);
         return;
       }
-      await invalidate("tasks", "task_checklist");
+      await invalidate("tasks", "task_checklist", "comments");
       onClose();
     } catch (e) {
       toast(errorMessage(e), "error");
@@ -268,16 +372,28 @@ export function TaskForm({
   return (
     <Sheet
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={editing ? "Edit task" : "New task"}
       wide
       footer={
         <>
-          <button className="btn" onClick={onClose} type="button" disabled={!!uploadNote}>
+          <button className="btn" onClick={close} type="button" disabled={!!uploadNote}>
             Cancel
           </button>
-          <button className="btn primary" onClick={save} disabled={saving} type="button">
-            {uploadNote ? "Uploading files..." : saving ? "Saving..." : editing ? "Save changes" : repeat !== "none" ? "Set up repeating task" : "Assign task"}
+          <button className="btn primary" onClick={save} disabled={saving || recording || voiceBusy} type="button">
+            {uploadNote
+              ? "Uploading files..."
+              : recording
+                ? "Recording..."
+                : voiceBusy
+                  ? "Writing out the voice note..."
+                  : saving
+                    ? "Saving..."
+                    : editing
+                      ? "Save changes"
+                      : repeat !== "none"
+                        ? "Set up repeating task"
+                        : "Assign task"}
           </button>
         </>
       }
@@ -327,8 +443,62 @@ export function TaskForm({
         <Field label="Priority" className="full" group>
           <PriorityPicker value={priority} onChange={setPriority} />
         </Field>
-        <Field label="Details" className="full">
-          <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What needs doing, drawings to use, anything to watch for" />
+        <Field
+          label="Details"
+          className="full"
+          group
+          hint={
+            !canRecord()
+              ? undefined
+              : voice?.state === "uploading"
+                ? "Saving the voice note..."
+                : voice?.state === "writing"
+                  ? "Writing it out in English..."
+                  : voice?.state === "failed"
+                    ? "Couldn't write it out. The voice note still goes with the task; type the details if you need them."
+                    : voice?.state === "off"
+                      ? "The voice note goes with the task. Writing it out isn't switched on."
+                      : voice
+                        ? repeat !== "none"
+                          ? "Its text is in the details above. For a repeating task the recording isn't kept."
+                          : "Its text is in the details above to check. The recording goes on the task too."
+                        : "Speak instead of typing: the English text goes into the details, and the recording goes on the task."
+          }
+        >
+          <textarea
+            className="textarea"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What needs doing, drawings to use, anything to watch for"
+            aria-label="Details"
+          />
+          {canRecord() && (
+            <div className="tf-voice">
+              {recording ? (
+                <RecorderBar
+                  elapsed={recorder.elapsed}
+                  maxSeconds={recorder.maxSeconds}
+                  bars={recorder.bars}
+                  onCancel={recorder.cancel}
+                  onFinish={recorder.stop}
+                  finishLabel="Done"
+                  finishIcon="stop"
+                />
+              ) : voice ? (
+                <div className="tf-voice-note">
+                  <VoicePlayer src={voice.url} seconds={voice.seconds} peaks={voice.peaks} seed={voice.url} />
+                  {voiceBusy && <span className="vspin" style={{ color: "var(--accent)" }} aria-hidden />}
+                  <button type="button" className="icon-btn small plain" onClick={dropVoice} aria-label="Take the voice note off" title="Take it off">
+                    <X />
+                  </button>
+                </div>
+              ) : (
+                <button type="button" className="btn small" onClick={startVoice}>
+                  <Mic /> Record a voice note
+                </button>
+              )}
+            </div>
+          )}
         </Field>
         {!editing && (
           <Field

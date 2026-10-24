@@ -59,6 +59,7 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 - **Voice notes** in team chat, project chat, task comments and announcements:
   - Tap the microphone, speak (up to 3 minutes), then send. Others get a play button with a waveform.
   - Each note is written out in English a few seconds later, even if spoken in Arabic or Tamil. The sender can correct the text.
+  - In the New task (and Edit task) form, **Record a voice note** under Details: its English text goes straight into Details to check and edit before sending, and the recording goes on the task as a voice note the team can play. For a repeating task, the text is kept in the details and the recording isn't.
 - **PDF, Excel and photos inside the app**: tapping a PDF, a spreadsheet (Excel or CSV) or a photo opens it full screen in the app, with tools to edit it.
   - PDF: mark up (pen, highlighter, arrows, boxes, clouds, notes), sign and stamp, rotate, reorder, remove and join pages, measure lengths and areas at the drawing's scale, change existing text (the old words are wiped from the file), add text and pictures, and fill in forms.
   - Excel: every sheet with its formatting, edit cells and formulas (they recalculate), insert and remove rows and columns, basic formatting, find. Charts, macros and pivot tables can't be edited and aren't in the saved copy; the original keeps them.

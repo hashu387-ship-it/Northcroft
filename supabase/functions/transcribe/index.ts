@@ -7,6 +7,9 @@
 //   If Claude is unavailable: English is kept as Whisper wrote it, and other languages fall back to
 //   Whisper's own English translation, so every note still reads in English.
 // Called by the database (request_transcript) with the same shared secret as send-push.
+// Also called by a signed-in team member with {kind: "draft", path, seconds} for a recording they
+// just made in the New task form: the text comes straight back so it can go into the task's Details,
+// and a copy is kept next to the recording so it isn't written out twice when it's attached.
 // Keys: a Groq key (required for text; without it the note is marked 'off') and a Claude key
 // (optional; turns on the tidy-up and translation step). Each comes from an Edge Function secret
 // (GROQ_API_KEY, ANTHROPIC_API_KEY) when set, otherwise from Supabase Vault through get_ai_keys().
@@ -71,9 +74,20 @@ function sameSecret(a: string, b: string) {
   return diff === 0;
 }
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 }
+
+/** A recording someone just made, in their own voice folder. */
+const DRAFT_PATH = /^voice\/([0-9a-f-]{36})\/[\w-]+\.(webm|m4a|mp4|ogg|wav|mp3)$/i;
+/** The text kept next to a recording written out from the New task form. */
+const sidecar = (path: string) => `${path}.txt`;
 
 /** The team's names and live projects, so both steps spell them correctly. */
 async function vocabulary(): Promise<{ people: string[]; projects: string[] }> {
@@ -175,8 +189,61 @@ async function finish(raw: string, language: string, v: { people: string[]; proj
   }
 }
 
+/** Both steps for one recording: what was said, in English. */
+async function writeOut(key: string, audio: Blob, ext: string, seconds: number) {
+  const vocab = await vocabulary();
+  const hint = whisperHint(vocab);
+  const heard = await callGroq(key, audio, ext, hint, "transcriptions");
+  let text = heard.text;
+  // Whisper sometimes "hears" a stock phrase in near-silence; ignore it for very short clips.
+  if (seconds < 1.5 && /^(thank you\.?|thanks for watching!?|you)$/i.test(text)) text = "";
+
+  let final = text ? await finish(text, heard.language, vocab) : "";
+  let via = "claude";
+  if (final === null) {
+    if (isEnglish(heard.language)) {
+      final = text;
+      via = "whisper";
+    } else {
+      // No Claude: use Whisper's own English translation instead of leaving it in Arabic or Tamil.
+      final = (await callGroq(key, audio, ext, hint, "translations")).text;
+      via = "whisper-translation";
+    }
+  }
+  return { final: final ?? "", language: heard.language, via };
+}
+
+/** A team member's own new recording, written out for the New task form. */
+async function draft(req: Request, body: { path?: string; seconds?: number }) {
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const { data: auth } = await supabase.auth.getUser(jwt);
+  if (!auth?.user) return json({ error: "Please sign in again." }, 401);
+  const { data: me } = await supabase.from("profiles").select("active").eq("id", auth.user.id).maybeSingle();
+  if (!me?.active) return json({ error: "Your account doesn't have access." }, 403);
+  const path = String(body.path ?? "");
+  const m = DRAFT_PATH.exec(path);
+  if (!m || m[1] !== auth.user.id) return json({ error: "That recording isn't yours." }, 403);
+
+  const key = (await keys()).groq;
+  if (!key) return json({ status: "off" });
+  try {
+    const { data: audio, error: dlErr } = await supabase.storage.from("files").download(path);
+    if (dlErr || !audio) return json({ error: "The recording isn't there any more. Record it again." }, 404);
+    const out = await writeOut(key, audio, m[2].toLowerCase(), Number(body.seconds) || 0);
+    // Kept next to the recording, so attaching it to the task doesn't write it out again.
+    await supabase.storage.from("files").upload(sidecar(path), new Blob([out.final], { type: "text/plain" }), { upsert: true, contentType: "text/plain; charset=utf-8" });
+    return json({ status: "done", text: out.final, language: out.language, via: out.via });
+  } catch (e) {
+    console.error(e);
+    return json({ status: "failed", error: "Couldn't write the voice note out. It still goes with the task." }, 500);
+  }
+}
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  const body = await req.json().catch(() => ({}));
+  if (body?.kind === "draft") return await draft(req, body);
   try {
     if (!sameSecret(req.headers.get("x-push-secret") ?? "", await webhookSecret())) return json({ error: "Unauthorized" }, 401);
   } catch (e) {
@@ -184,7 +251,7 @@ Deno.serve(async (req) => {
     return json({ error: "Not configured" }, 500);
   }
 
-  const { kind, id } = await req.json().catch(() => ({}));
+  const { kind, id } = body;
   const table = TABLES[kind as keyof typeof TABLES];
   if (!table || !id) return json({ error: "kind and id are required" }, 400);
 
@@ -201,31 +268,21 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Written out already in the New task form: use that text.
+    if (DRAFT_PATH.test(row.voice_path)) {
+      const { data: kept } = await supabase.storage.from("files").download(sidecar(row.voice_path));
+      if (kept) {
+        const text = (await kept.text()).trim();
+        await save({ transcript: text || null, transcript_status: "done" });
+        return json({ status: "done", via: "draft", chars: text.length });
+      }
+    }
     const { data: audio, error: dlErr } = await supabase.storage.from("files").download(row.voice_path);
     if (dlErr || !audio) throw new Error(`Could not read the recording: ${dlErr?.message ?? "missing"}`);
     const ext = (row.voice_path.split(".").pop() ?? "webm").toLowerCase();
-    const vocab = await vocabulary();
-    const hint = whisperHint(vocab);
-
-    const heard = await callGroq(key, audio, ext, hint, "transcriptions");
-    let text = heard.text;
-    // Whisper sometimes "hears" a stock phrase in near-silence; ignore it for very short clips.
-    if ((row.voice_seconds ?? 0) < 1.5 && /^(thank you\.?|thanks for watching!?|you)$/i.test(text)) text = "";
-
-    let final = text ? await finish(text, heard.language, vocab) : "";
-    let via = "claude";
-    if (final === null) {
-      if (isEnglish(heard.language)) {
-        final = text;
-        via = "whisper";
-      } else {
-        // No Claude: use Whisper's own English translation instead of leaving it in Arabic or Tamil.
-        final = (await callGroq(key, audio, ext, hint, "translations")).text;
-        via = "whisper-translation";
-      }
-    }
-    await save({ transcript: final || null, transcript_status: "done" });
-    return json({ status: "done", language: heard.language, via, chars: final.length });
+    const out = await writeOut(key, audio, ext, row.voice_seconds ?? 0);
+    await save({ transcript: out.final || null, transcript_status: "done" });
+    return json({ status: "done", language: out.language, via: out.via, chars: out.final.length });
   } catch (e) {
     console.error(e);
     await save({ transcript_status: "failed" });
