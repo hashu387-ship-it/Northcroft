@@ -390,7 +390,8 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Re
     .single();
   if (error) {
     if (/duplicate key/.test(error.message)) {
-      const { data: existing } = await admin.from("attachments").select("*").eq("drive_file_id", f.id).single();
+      // The original record (forwarded copies of the same Drive file have their own paths).
+      const { data: existing } = await admin.from("attachments").select("*").eq("path", `drive/${f.id}`).single();
       return existing;
     }
     throw new Error(error.message);
@@ -464,7 +465,11 @@ async function remove(body: { attachment_id?: string }, req: Request) {
   if (error) throw new UserError(error.message, 400);
   if (!data?.length) throw new UserError("You can't delete that file.", 403);
   const fileId = data[0].drive_file_id as string | null;
-  if (fileId) {
+  // A file forwarded to other chats is the same file in Drive: keep it while any message still has it.
+  const { count: stillUsed } = fileId
+    ? await admin.from("attachments").select("id", { count: "exact", head: true }).eq("drive_file_id", fileId)
+    : { count: 0 };
+  if (fileId && !stillUsed) {
     // Into the Drive bin, so it can still be recovered for 30 days.
     const res = await drive(`/files/${fileId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trashed: true }) }).catch(() => null);
     if (res && !res.ok && res.status !== 404) console.error("Trash failed", res.status);

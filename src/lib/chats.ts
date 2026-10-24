@@ -5,7 +5,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { CircleCheckBig, Frown, Handshake, Heart, Laugh, ThumbsUp, type LucideIcon } from "lucide-react";
 import { supabase } from "./supabase";
-import type { ChatRead, ChatSummary, Conversation, ConversationMember, Profile, Reaction, ReactionKind } from "./types";
+import type { Attachment, ChatPin, ChatRead, ChatSummary, Comment, Conversation, ConversationMember, Profile, Reaction, ReactionKind } from "./types";
+import { copyStoredFile, copyVoiceNote, isOnDrive, removeStored } from "./files";
+import { isDriveLinkFile } from "./drivelinks";
 
 async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args);
@@ -267,4 +269,84 @@ export function typingLine(names: string[]): string | null {
   if (names.length === 1) return `${names[0]} is typing...`;
   if (names.length === 2) return `${names[0]} and ${names[1]} are typing...`;
   return `${names.length} people are typing...`;
+}
+
+/* ---------------------------------------------------------------- pinned messages */
+
+/** The messages pinned in a chat, newest first (up to 3). */
+export function usePins(chat: string | null) {
+  return useQuery({
+    queryKey: ["chat_pins", chat],
+    enabled: !!chat,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("chat_pins")
+        .select("*")
+        .eq("chat", chat!)
+        .is("unpinned_at", null)
+        .order("pinned_at", { ascending: false })
+        .limit(3);
+      if (error) throw error;
+      return (data ?? []) as ChatPin[];
+    },
+  });
+}
+
+/** Pin a message to the top of its chat, or unpin it. The database checks who may. */
+export const pinMessage = (commentId: string, pin: boolean) => rpc<void>("pin_message", { p_comment: commentId, p_pin: pin });
+
+/* ---------------------------------------------------------------- forwarding */
+
+/** Where a forwarded copy goes: a chat from the Chats list. */
+export type ForwardTarget = Pick<ChatSummary, "chat" | "project_id" | "conversation_id">;
+
+/**
+ * Forward a message into one or more chats. Voice notes and files kept in the app's storage are
+ * copied into each chat's own folder first (inside storage, nothing is uploaded again); the database
+ * then makes the copies, with Google Drive files and Drive links on them. Returns how many chats it
+ * went to, and the names of any stored files that couldn't be copied across (the message still went).
+ */
+export async function forwardMessage(
+  src: Comment,
+  files: Attachment[],
+  targets: ForwardTarget[],
+  meId: string,
+): Promise<{ count: number; failed: string[] }> {
+  if (!targets.length) return { count: 0, failed: [] };
+  const copiedVoices: string[] = [];
+  try {
+    let voicePaths: string[] | null = null;
+    if (src.voice_path) {
+      voicePaths = [];
+      for (const t of targets) {
+        const p = await copyVoiceNote(src.voice_path, { conversationId: t.conversation_id, userId: meId });
+        copiedVoices.push(p);
+        voicePaths.push(p);
+      }
+    }
+    const made = await rpc<{ chat: string; comment_id: string }[]>("forward_message", {
+      p_comment: src.id,
+      p_chats: targets.map((t) => t.chat),
+      p_voice_paths: voicePaths,
+    });
+    copiedVoices.length = 0;
+    // Files in the app's own storage (Drive files are already on the copies).
+    const stored = files.filter((a) => !isOnDrive(a) && !isDriveLinkFile(a));
+    const failed = new Set<string>();
+    for (const m of made ?? []) {
+      const t = targets.find((x) => x.chat === m.chat);
+      if (!t) continue;
+      for (const a of stored) {
+        try {
+          await copyStoredFile(a, { commentId: m.comment_id, projectId: t.project_id, conversationId: t.conversation_id, userId: meId });
+        } catch {
+          failed.add(a.name);
+        }
+      }
+    }
+    return { count: (made ?? []).length, failed: [...failed] };
+  } finally {
+    // Something failed before the copies were made: tidy up the voice notes copied for them.
+    await removeStored(copiedVoices);
+  }
 }

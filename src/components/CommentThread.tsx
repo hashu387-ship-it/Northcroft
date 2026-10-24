@@ -10,31 +10,39 @@ import {
   CornerUpLeft,
   EllipsisVertical,
   FileText,
+  Forward,
   Info,
   Link2,
+  ListChecks,
   MessageCircle,
   Mic,
   Paperclip,
+  Pin,
+  PinOff,
   SendHorizontal,
   SmilePlus,
   Trash2,
   X,
 } from "lucide-react";
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
-import { useMe } from "@/lib/auth";
-import { REACTIONS, reactionInfo, setReaction, typingLine, useChatReads, useKeepRead, useReactions, useTyping } from "@/lib/chats";
+import { useAuth, useMe } from "@/lib/auth";
+import { REACTIONS, pinMessage, reactionInfo, setReaction, typingLine, useChatReads, useConversation, useKeepRead, usePins, useReactions, useTyping } from "@/lib/chats";
+import { usePolls } from "@/lib/polls";
 import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
 import { addDriveLinks, useMessageDriveLinks, type LinkInfo } from "@/lib/drivelinks";
 import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
 import { fileSize } from "@/lib/format";
-import type { Attachment, Comment, Profile, ReactionKind } from "@/lib/types";
+import type { Attachment, ChatPin, Comment, Profile, ReactionKind } from "@/lib/types";
 import { Avatar, Empty, Loading, Sheet, useConfirm, useToast } from "./ui";
 import { PersonAvatar, openPersonCard } from "./People";
 import { RecorderBar, VoiceNote } from "./Voice";
 import { useOpenFile } from "./useOpenFile";
 import { AddDriveLinkSheet, LinkCard } from "./DriveLinks";
+import { PollCard, PollSheet } from "./Polls";
+import { ForwardSheet } from "./Forward";
+import { PinnedBar } from "./PinnedBar";
 import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
 
 export type Scope =
@@ -133,6 +141,9 @@ export function CommentThread({
   const [seenFor, setSeenFor] = useState<Comment | null>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [flash, setFlash] = useState<string | null>(null);
+  const [forwardFor, setForwardFor] = useState<Comment | null>(null);
+  const [pollOpen, setPollOpen] = useState(false);
+  const { canAssign } = useAuth();
   const link = seenLink(scope);
   // Reading a chat clears its notifications (task pages do this for the whole task).
   useMarkSeen(link ? { link } : null);
@@ -153,15 +164,24 @@ export function CommentThread({
   const byId = useMemo(() => new Map(list.map((c) => [c.id, c])), [list]);
   const ids = list.map((c) => c.id);
   const latest = list[list.length - 1];
+  // Pinned messages (chats only, up to 3).
+  const pins = usePins(isChat ? chatKey : null);
+  const pinnedIds = useMemo(() => new Set((pins.data ?? []).map((p) => p.comment_id)), [pins.data]);
 
-  // Messages quoted by replies that are older than what's loaded here.
-  const missing = useMemo(() => [...new Set(list.map((c) => c.reply_to).filter((r): r is string => !!r && !byId.has(r)))], [list, byId]);
+  // Messages quoted by replies, or pinned, that are older than what's loaded here.
+  const missing = useMemo(
+    () => [...new Set([...list.map((c) => c.reply_to), ...[...pinnedIds]].filter((r): r is string => !!r && !byId.has(r)))],
+    [list, byId, pinnedIds],
+  );
   const quoted = useQuery({
     queryKey: ["comments", "quoted", missing.join(",")],
     enabled: missing.length > 0,
     queryFn: () => unwrap<Comment[]>(supabase.from("comments").select("*").in("id", missing)),
   });
   const quote = (id: string) => byId.get(id) ?? quoted.data?.find((c) => c.id === id);
+  const pinned = (pins.data ?? [])
+    .map((pin) => ({ pin, comment: quote(pin.comment_id) }))
+    .filter((x): x is { pin: ChatPin; comment: Comment } => !!x.comment && !x.comment.event);
 
   const files = useQuery({
     queryKey: ["attachments", "comments", ids.join(",")],
@@ -184,11 +204,17 @@ export function CommentThread({
   const threadImages = useMemo(() => list.flatMap((c) => (filesByComment.get(c.id) ?? []).filter(isImage)), [list, filesByComment]);
 
   const reactions = useReactions(ids.filter((id) => !byId.get(id)?.event));
+  // Polls sent as messages here.
+  const polls = usePolls("comment", ids.filter((id) => !byId.get(id)?.event && byId.get(id)?.body.startsWith("Poll: ")));
   // Google Drive links shared in these messages.
   const msgLinks = useMessageDriveLinks(ids.filter((id) => !byId.get(id)?.event));
   const reads = useChatReads(chatKey);
   useKeepRead(chatKey, latest?.id);
   const typing = useTyping(chatKey, me.id);
+  // Who can pin: group admins, either person in a one-to-one chat, managers and seniors elsewhere.
+  const group = useConversation(scope.kind === "conversation" && !scope.direct ? scope.conversationId : undefined);
+  const amAdmin = !!group.data?.members.some((m) => m.user_id === me.id && m.is_admin);
+  const canPin = isChat && (scope.kind === "conversation" ? scope.direct || amAdmin : canAssign);
 
   // Who receives messages here (for seen ticks), not counting me.
   const audience = useMemo(() => {
@@ -220,6 +246,12 @@ export function CommentThread({
     if (el && isChat) el.scrollTop = el.scrollHeight;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comments.isSuccess, chatKey]);
+  // Polls arrive just after the messages and make them taller: stay at the newest.
+  useEffect(() => {
+    const el = listRef.current;
+    if (el && isChat && atBottom) el.scrollTop = el.scrollHeight;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [polls.size]);
 
   function onScroll() {
     const el = listRef.current;
@@ -282,6 +314,23 @@ export function CommentThread({
     setReplyTo(c);
   }
 
+  function forward(c: Comment) {
+    setMenuFor(null);
+    setForwardFor(c);
+  }
+
+  async function togglePin(c: Comment) {
+    setMenuFor(null);
+    const on = pinnedIds.has(c.id);
+    try {
+      await pinMessage(c.id, !on);
+      await invalidate("chat_pins");
+      toast(on ? "Unpinned" : pinned.length >= 3 ? "Pinned. The oldest pin made way for it." : "Pinned to the top of the chat", "info");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    }
+  }
+
   const typers = typing.typers.map((id) => people.get(id)?.short_name).filter((n): n is string => !!n);
   const typingText = typingLine(typers);
   let lastDay = "";
@@ -289,6 +338,17 @@ export function CommentThread({
 
   return (
     <div className={clsx("chat-thread", fill && "fill")}>
+      {isChat && pinned.length > 0 && (
+        <PinnedBar
+          pins={pinned}
+          canUnpin={canPin}
+          onJump={jumpTo}
+          onUnpin={(id) => {
+            const c = quote(id);
+            if (c) void togglePin(c);
+          }}
+        />
+      )}
       <div
         ref={listRef}
         className="thread"
@@ -334,6 +394,7 @@ export function CommentThread({
             new Date(c.created_at).getTime() - new Date(before.created_at).getTime() < CONTINUE_MINUTES * 60_000;
           const atts = filesByComment.get(c.id) ?? [];
           const rx = reactions.data?.get(c.id) ?? [];
+          const poll = polls.get(c.id);
           const seen = isChat && mine ? seenBy(c) : [];
           const tick = !isChat || !mine ? null : audience.length > 0 && seen.length >= audience.length ? "all" : seen.length > 0 ? "some" : "sent";
           return (
@@ -354,6 +415,11 @@ export function CommentThread({
                     {author?.short_name ?? "Someone"}
                   </button>
                 )}
+                {c.forwarded_from && (
+                  <div className="fwd-label">
+                    <Forward aria-hidden /> Forwarded
+                  </div>
+                )}
                 {c.reply_to && (
                   <button type="button" className="quote" onClick={() => jumpTo(c.reply_to!)}>
                     <b>{quote(c.reply_to) ? (quote(c.reply_to)!.author_id === me.id ? "You" : people.get(quote(c.reply_to)!.author_id)?.short_name ?? "Someone") : ""}</b>
@@ -371,6 +437,8 @@ export function CommentThread({
                     status={c.transcript_status}
                     canEdit={mine}
                   />
+                ) : poll ? (
+                  <PollCard pw={poll} onDark={mine} />
                 ) : (
                   <div>{renderBody(c.body, mentionable.length ? mentionable : people.active)}</div>
                 )}
@@ -408,6 +476,7 @@ export function CommentThread({
                   </div>
                 )}
                 <div className="when row" style={{ gap: 6 }}>
+                  {pinnedIds.has(c.id) && <Pin className="when-pin" aria-label="Pinned" />}
                   <span>
                     {!isChat && dateOf(c.created_at) !== todayISO() ? `${fmtDue(dateOf(c.created_at))}, ` : ""}
                     {fmtTime12(c.created_at)}
@@ -468,6 +537,7 @@ export function CommentThread({
         onClearReply={() => setReplyTo(null)}
         onTyping={typing.typing}
         onStopTyping={typing.stopped}
+        onPoll={isChat && chatKey ? () => setPollOpen(true) : undefined}
       />
 
       <Sheet open={!!menuFor} onClose={() => setMenuFor(null)} title="Message">
@@ -487,6 +557,24 @@ export function CommentThread({
               <button type="button" onClick={() => reply(menuFor)}>
                 <CornerUpLeft /> Reply
               </button>
+              {!polls.get(menuFor.id) && (
+                <button type="button" onClick={() => forward(menuFor)}>
+                  <Forward /> Forward
+                </button>
+              )}
+              {canPin && (
+                <button type="button" onClick={() => togglePin(menuFor)}>
+                  {pinnedIds.has(menuFor.id) ? (
+                    <>
+                      <PinOff /> Unpin
+                    </>
+                  ) : (
+                    <>
+                      <Pin /> Pin
+                    </>
+                  )}
+                </button>
+              )}
               <button type="button" onClick={() => copy(menuFor)}>
                 <Copy /> Copy text
               </button>
@@ -514,6 +602,16 @@ export function CommentThread({
       <Sheet open={!!seenFor} onClose={() => setSeenFor(null)} title="Seen by">
         {seenFor && <SeenList c={seenFor} audience={audience} reads={reads.data ?? {}} />}
       </Sheet>
+
+      {forwardFor && (
+        <ForwardSheet
+          message={forwardFor}
+          files={filesByComment.get(forwardFor.id) ?? []}
+          linkCount={(msgLinks.data?.get(forwardFor.id) ?? []).length}
+          onClose={() => setForwardFor(null)}
+        />
+      )}
+      {pollOpen && chatKey && <PollSheet open onClose={() => setPollOpen(false)} chat={chatKey} />}
     </div>
   );
 }
@@ -689,6 +787,7 @@ function Composer({
   onClearReply,
   onTyping,
   onStopTyping,
+  onPoll,
 }: {
   scope: Scope;
   mentionable: Profile[];
@@ -698,6 +797,8 @@ function Composer({
   onClearReply: () => void;
   onTyping: () => void;
   onStopTyping: () => void;
+  /** Chats only: start a poll. */
+  onPoll?: () => void;
 }) {
   const me = useMe();
   const people = usePeople();
@@ -975,6 +1076,11 @@ function Composer({
             <button className="icon-btn plain" type="button" onClick={() => setAddingLink(true)} aria-label="Add a Google Drive link" title="Add a Google Drive link">
               <Link2 />
             </button>
+            {onPoll && (
+              <button className="icon-btn plain" type="button" onClick={onPoll} aria-label="Start a poll" title="Start a poll">
+                <ListChecks />
+              </button>
+            )}
             <input
               ref={fileRef}
               type="file"
