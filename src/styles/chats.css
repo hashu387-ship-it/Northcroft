@@ -348,3 +348,39 @@
 @media (max-width: 480px) {
   .composer { gap: 4px; }
 }
+
+/* Forwarded messages */
+.bubble .fwd-label { display: flex; align-items: center; gap: 4px; font-size: 12px; font-style: italic; color: var(--text-2); margin-bottom: 3px; }
+.bubble .fwd-label svg { width: 13px; height: 13px; }
+.msg.mine .bubble .fwd-label { color: rgba(255, 255, 255, 0.85); }
+.fwd-preview { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--fill); min-width: 0; }
+.fwd-preview > svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.fwd-preview .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; }
+.fwd-search { position: relative; display: block; }
+.fwd-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-3); }
+.fwd-search input { width: 100%; padding-left: 34px; }
+
+/* Pinned messages */
+.pin-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  min-width: 0;
+}
+.pin-ticks { display: flex; flex-direction: column; gap: 3px; align-self: stretch; justify-content: center; padding: 4px 0; }
+.pin-ticks i { width: 3px; flex: 1; max-height: 12px; border-radius: 2px; background: color-mix(in srgb, var(--accent) 28%, transparent); }
+.pin-ticks i.on { background: var(--accent); }
+.pin-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 4px 4px; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: 9px; }
+.pin-main:hover { background: var(--fill); }
+.pin-main .pin-icon { width: 16px; height: 16px; color: var(--accent); flex: none; transform: rotate(35deg); }
+.pin-main .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pin-main b { font-size: 12px; font-weight: 650; color: var(--accent); }
+.pin-main .pin-text { font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.pin-main .pin-text svg { width: 13px; height: 13px; flex: none; color: var(--text-2); }
+.bubble .when-pin { width: 12px; height: 12px; transform: rotate(35deg); opacity: 0.85; }
+/* A long placeholder stays on one line in the message box. */
+.composer textarea::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

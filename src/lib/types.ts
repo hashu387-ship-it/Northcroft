@@ -163,6 +163,8 @@ export interface Comment {
   reply_to: string | null;
   /** Grey group lines such as "Hassan added Rimash"; null for normal messages. */
   event: ChatEvent | null;
+  /** Set when the message was forwarded from another one (shown as "Forwarded"). */
+  forwarded_from?: string | null;
 }
 
 export type ChatEvent = "created" | "added" | "removed" | "left" | "renamed" | "admin";
@@ -474,4 +476,40 @@ export interface Attendance {
   in_received_at?: string | null;
   out_sent_later?: boolean;
   out_received_at?: string | null;
+}
+
+/* ---------------------------------------------------------------- pinned messages and polls */
+
+/** A message pinned to the top of a chat (up to 3 per chat). */
+export interface ChatPin {
+  comment_id: string;
+  /** "team", "project:<id>" or "conv:<id>" */
+  chat: string;
+  pinned_by: string;
+  pinned_at: string;
+  unpinned_at: string | null;
+  unpinned_by: string | null;
+}
+
+/** A poll in a chat (comment_id) or under an announcement (announcement_id). */
+export interface Poll {
+  id: string;
+  comment_id: string | null;
+  announcement_id: string | null;
+  question: string;
+  options: string[];
+  /** More than one answer allowed. */
+  multi: boolean;
+  created_by: string;
+  created_at: string;
+  closed_at: string | null;
+  closed_by: string | null;
+}
+
+/** One person's answers on a poll (numbered from 0; empty once they take their vote back). */
+export interface PollVote {
+  poll_id: string;
+  user_id: string;
+  choices: number[];
+  updated_at: string;
 }

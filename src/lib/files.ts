@@ -86,6 +86,56 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
   return data as Attachment;
 }
 
+/**
+ * Copy a file kept in the app's storage onto another message (forwarding). The copy is made inside
+ * storage, so nothing is uploaded again, and it goes in the new chat's own folder: a private chat's
+ * files stay readable only by the people in it, and deleting the original never breaks the copy.
+ */
+export async function copyStoredFile(
+  a: Attachment,
+  to: { commentId: string; projectId: string | null; conversationId: string | null; userId: string },
+): Promise<Attachment> {
+  const path = to.conversationId
+    ? `c/${to.conversationId}/${crypto.randomUUID()}-${safeName(a.name)}`
+    : `${to.projectId ?? "general"}/project/${crypto.randomUUID()}-${safeName(a.name)}`;
+  const { error: cpErr } = await supabase.storage.from(BUCKET).copy(a.path, path);
+  if (cpErr) throw cpErr;
+  const { data, error } = await supabase
+    .from("attachments")
+    .insert({
+      path,
+      name: a.name,
+      mime: a.mime,
+      size: a.size,
+      project_id: to.projectId,
+      comment_id: to.commentId,
+      conversation_id: to.conversationId,
+      uploaded_by: to.userId,
+    })
+    .select()
+    .single();
+  if (error) {
+    await supabase.storage.from(BUCKET).remove([path]);
+    throw error;
+  }
+  return data as Attachment;
+}
+
+/** Copy a voice note into another chat's voice folder (forwarding). Returns the new path. */
+export async function copyVoiceNote(path: string, to: { conversationId: string | null; userId: string }): Promise<string> {
+  const ext = (path.split(".").pop() ?? "webm").toLowerCase().replace(/[^a-z0-9]/g, "") || "webm";
+  const name = `${crypto.randomUUID()}.${ext}`;
+  const dest = to.conversationId ? `c/${to.conversationId}/voice/${to.userId}-${name}` : `voice/${to.userId}/${name}`;
+  const { error } = await supabase.storage.from(BUCKET).copy(path, dest);
+  if (error) throw error;
+  return dest;
+}
+
+/** Remove stored files (best effort, for tidying up after something fails part way). */
+export async function removeStored(paths: string[]) {
+  if (paths.length) await supabase.storage.from(BUCKET).remove(paths).catch(() => {});
+}
+
 export async function signedUrl(path: string, download?: string): Promise<string> {
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600, download ? { download } : undefined);
   if (error) throw error;
@@ -123,7 +173,16 @@ export async function openAttachment(a: Attachment) {
   }
 }
 
+/** A Google Drive file forwarded onto another message: the same file in Drive as the original. */
+export const isForwardedDriveCopy = (a: Pick<Attachment, "drive_file_id" | "path">) => isOnDrive(a) && a.path.includes("/fwd/");
+
 export async function deleteAttachment(a: Attachment) {
+  if (isForwardedDriveCopy(a)) {
+    // Only this message's link to it goes; the file stays in Drive for the original.
+    const { error } = await supabase.from("attachments").delete().eq("id", a.id);
+    if (error) throw error;
+    return;
+  }
   if (isOnDrive(a)) {
     // The Drive function removes the record and moves the file to the Drive bin.
     await deleteDriveAttachment(a);

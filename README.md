@@ -71,6 +71,24 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - **Reactions**: hold a message (or right-click) for Like, Done, Love, Haha, Thanks and Sad.
   - "Saheeb is typing..." shows at the top of the chat.
   - Voice notes, files and @mentions work in every chat. Project chats also stay inside each project.
+- **Forward messages**: hold a message (right-click, or the menu next to it on a computer), tap **Forward** and pick one or more chats you're in, with a search box at the top. Team chat, project chats, groups and one-to-ones are all there.
+  - The copy is marked *Forwarded*. It keeps the text, files, Drive links and voice note, including the voice note's English text, so it isn't written out again.
+  - Files and voice notes kept in the app's storage are copied into the new chat's own folder, inside storage, so nothing is uploaded again. A private chat's files stay private, and deleting the original never breaks a copy.
+  - Google Drive files point at the same file in Drive. The file only goes to the Drive bin once the last message with it is deleted.
+  - Task comments can be forwarded into chats too. Polls can't be forwarded.
+- **Pinned messages**: **Pin** from the same menu. A chat can have up to 3 pins, and a fourth replaces the oldest.
+  - A slim bar at the top of the chat shows "Pinned by Hassan" and the message. Tap it to jump to the message and move on to the next pin. Pinned messages also have a small pin by their time.
+  - Who can pin:
+    - Groups: their admins.
+    - One-to-one chats: either person.
+    - Team chat and project chats: managers and seniors.
+  - Unpin from the menu or the bar. The database enforces who can pin (`pin_message`).
+- **Polls**: tap the list button next to the paperclip in any chat, or switch on **Add a poll** in the announcement form.
+  - A question with 2 to 10 answers, with one answer allowed or several.
+  - A poll in a chat is a message, so everyone gets the usual notification. Voting sends none.
+  - Votes are named (**See who**), can be changed until the poll is closed, and the results update live for everyone.
+  - The person who started the poll, or a manager, can close it, and the results stay.
+  - An announcement's poll stays as it is once posted.
 - **Voice notes** in team chat, project chat, task comments and announcements:
   - Tap the microphone, speak (up to 3 minutes), then send. Others get a play button with a waveform.
   - Each note is written out in English a few seconds later, even if spoken in Arabic or Tamil. The sender can correct the text.

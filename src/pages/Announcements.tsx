@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { BellRing, ChevronDown, ChevronUp, CircleCheck, Clock, Megaphone, Mic, Pencil, Pin, PinOff, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { BellRing, ChevronDown, ChevronUp, CircleCheck, Clock, ListChecks, Megaphone, Mic, Pencil, Pin, PinOff, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, Empty, Field, Loading, Pill, Progress, ProjectSelect, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
 import { useInvalidate, usePeople, useProjectMap, useProjects } from "@/lib/api";
@@ -12,6 +12,8 @@ import { errorMessage, supabase } from "@/lib/supabase";
 import { dateOf, diffDays, fmtDateTime, fmtDue, fmtTime12, timeAgo, todayISO } from "@/lib/time";
 import { canRecord, uploadVoice, useRecorder, type Recording } from "@/lib/voice";
 import { RecorderBar, VoiceNote, VoicePlayer } from "@/components/Voice";
+import { PollCard, PollFields, emptyPoll, type PollDraft } from "@/components/Polls";
+import { addAnnouncementPoll, pollProblem, usePolls, type PollWithVotes } from "@/lib/polls";
 
 /** "today at 9:14 AM", "yesterday at 5:02 PM" or "on Sun 18 Oct at 8:40 AM". */
 function whenPhrase(ts: string) {
@@ -35,6 +37,7 @@ export default function Announcements() {
   const [highlight, setHighlight] = useState<string | null>(null);
 
   const waiting = data.filter((a) => needsMyAck(a, me.id)).length;
+  const polls = usePolls("announcement", data.map((a) => a.id));
 
   useEffect(() => {
     if (!focusId || isLoading) return;
@@ -71,17 +74,22 @@ export default function Announcements() {
       ) : (
         <div className="stack" style={{ gap: 14 }}>
           {data.map((a) => (
-            <AnnouncementItem key={a.id} a={a} highlight={highlight === a.id} onEdit={() => setEditing(a)} />
+            <AnnouncementItem key={a.id} a={a} poll={polls.get(a.id)} highlight={highlight === a.id} onEdit={() => setEditing(a)} />
           ))}
         </div>
       )}
 
-      <AnnouncementForm open={composing || !!editing} announcement={editing} onClose={() => (setComposing(false), setEditing(null))} />
+      <AnnouncementForm
+        open={composing || !!editing}
+        announcement={editing}
+        hasPoll={!!editing && polls.has(editing.id)}
+        onClose={() => (setComposing(false), setEditing(null))}
+      />
     </div>
   );
 }
 
-function AnnouncementItem({ a, highlight, onEdit }: { a: AnnouncementWithAcks; highlight: boolean; onEdit: () => void }) {
+function AnnouncementItem({ a, poll, highlight, onEdit }: { a: AnnouncementWithAcks; poll?: PollWithVotes; highlight: boolean; onEdit: () => void }) {
   const me = useMe();
   const { canAssign } = useAuth();
   const people = usePeople();
@@ -209,6 +217,7 @@ function AnnouncementItem({ a, highlight, onEdit }: { a: AnnouncementWithAcks; h
           canEdit={canAssign}
         />
       )}
+      {poll && <PollCard pw={poll} />}
 
       <div className="ann-foot">
         {needsMyAck(a, me.id) ? (
@@ -276,7 +285,18 @@ function AnnouncementItem({ a, highlight, onEdit }: { a: AnnouncementWithAcks; h
   );
 }
 
-function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onClose: () => void; announcement: Announcement | null }) {
+function AnnouncementForm({
+  open,
+  onClose,
+  announcement,
+  hasPoll,
+}: {
+  open: boolean;
+  onClose: () => void;
+  announcement: Announcement | null;
+  /** The announcement being edited already has a poll (polls can't be changed once posted). */
+  hasPoll: boolean;
+}) {
   const me = useMe();
   const toast = useToast();
   const invalidate = useInvalidate();
@@ -288,6 +308,9 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
   const [pinned, setPinned] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // An optional poll under the announcement.
+  const [pollOn, setPollOn] = useState(false);
+  const [poll, setPoll] = useState<PollDraft>(emptyPoll);
   // Voice note: a fresh recording, or the one already on the announcement (when editing).
   const [voice, setVoice] = useState<Recording | null>(null);
   const [keepExisting, setKeepExisting] = useState(true);
@@ -307,6 +330,8 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
     setProjectId(announcement?.project_id ?? null);
     setVoice(null);
     setKeepExisting(true);
+    setPollOn(false);
+    setPoll(emptyPoll());
   }, [open, announcement]);
 
   async function record() {
@@ -324,8 +349,14 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
   }
 
   async function save() {
-    if (!title.trim() || (!body.trim() && !hasVoice)) {
-      toast("Add a title, and a message or a voice note", "error");
+    const addingPoll = pollOn && !hasPoll;
+    if (!title.trim() || (!body.trim() && !hasVoice && !addingPoll && !hasPoll)) {
+      toast("Add a title, and a message, a voice note or a poll", "error");
+      return;
+    }
+    const problem = addingPoll ? pollProblem(poll.question, poll.options) : null;
+    if (problem) {
+      toast(`Poll: ${problem.toLowerCase()}`, "error");
       return;
     }
     if (recorder.state !== "idle") {
@@ -343,19 +374,33 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
       } else if (announcement && oldPath && !keepExisting) {
         fields.voice_path = null;
       }
+      // The poll goes on once the announcement is saved; if it fails, the announcement still stands.
+      const attachPoll = async (id: string) => {
+        if (!addingPoll) return null;
+        try {
+          await addAnnouncementPoll(id, poll.question.trim(), poll.options.map((o) => o.trim()).filter(Boolean), poll.multi);
+          return null;
+        } catch (e) {
+          return errorMessage(e);
+        }
+      };
+      let pollError: string | null = null;
       if (announcement) {
         const { error } = await supabase.from("announcements").update(fields).eq("id", announcement.id);
         if (error) throw error;
         // The old recording is no longer used once it's replaced or removed.
         if (oldPath && (uploaded || !keepExisting)) await supabase.storage.from("files").remove([oldPath]);
-        toast("Announcement updated");
+        pollError = await attachPoll(announcement.id);
+        if (!pollError) toast(addingPoll ? "Announcement updated, with its poll" : "Announcement updated");
       } else {
-        const { error } = await supabase.from("announcements").insert({ ...fields, author_id: me.id });
+        const { data: made, error } = await supabase.from("announcements").insert({ ...fields, author_id: me.id }).select("id").single();
         if (error) throw error;
-        toast("Posted. The team has been notified.");
+        pollError = await attachPoll((made as { id: string }).id);
+        if (!pollError) toast("Posted. The team has been notified.");
       }
+      if (pollError) toast(`Saved, but the poll wasn't added: ${pollError} Edit the announcement to add it again.`, "error");
       uploaded = null;
-      await invalidate("announcements");
+      await invalidate("announcements", "polls");
       onClose();
     } catch (e) {
       if (uploaded) await supabase.storage.from("files").remove([uploaded]);
@@ -385,7 +430,7 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
         <Field label="Title">
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
         </Field>
-        <Field label={hasVoice ? "Message (optional with a voice note)" : "Message"}>
+        <Field label={hasVoice ? "Message (optional with a voice note)" : pollOn || hasPoll ? "Message (optional with a poll)" : "Message"}>
           <textarea className="textarea" style={{ minHeight: hasVoice ? 90 : 160 }} value={body} onChange={(e) => setBody(e.target.value)} placeholder="What does the team need to know?" />
         </Field>
         {canRecord() && (
@@ -432,6 +477,20 @@ function AnnouncementForm({ open, onClose, announcement }: { open: boolean; onCl
                   <Mic /> Record a voice note
                 </button>
                 <span className="muted small">Up to 3 minutes. Written out in English for everyone.</span>
+              </div>
+            )}
+          </div>
+        )}
+        {hasPoll ? (
+          <div className="muted small row" style={{ gap: 8 }}>
+            <ListChecks size={17} /> This announcement has a poll. Polls stay as they are once posted.
+          </div>
+        ) : (
+          <div className="solid stack" style={{ padding: 6, borderRadius: 10, gap: 0 }}>
+            <ToggleRow label="Add a poll" hint="Ask the team a quick question. Everyone can vote and see the results." checked={pollOn} onChange={setPollOn} />
+            {pollOn && (
+              <div style={{ padding: "6px 10px 12px" }}>
+                <PollFields value={poll} onChange={setPoll} />
               </div>
             )}
           </div>
