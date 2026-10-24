@@ -2,7 +2,9 @@ import { Link } from "react-router-dom";
 import clsx from "clsx";
 import { ListChecks, RotateCcw, Users } from "lucide-react";
 import { usePeople, useProjectMap } from "@/lib/api";
+import { useMe } from "@/lib/auth";
 import { peopleOn } from "@/lib/people";
+import { reviewLabel, useSignoff } from "@/lib/signoff";
 import type { Task } from "@/lib/types";
 import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing } from "./ui";
 
@@ -19,6 +21,8 @@ export function TaskRow({
 }) {
   const people = usePeople();
   const projects = useProjectMap();
+  const signoff = useSignoff();
+  const me = useMe();
   const changesRequested = !!task.changes_note && (task.status === "in_progress" || task.status === "todo");
   const team = peopleOn(task);
   return (
@@ -43,7 +47,7 @@ export function TaskRow({
               {team.length} people
             </span>
           )}
-          {task.status === "in_review" && <Pill tone="purple">In review</Pill>}
+          {task.status === "in_review" && <Pill tone="purple">{reviewLabel(task, signoff, me.id)}</Pill>}
           {changesRequested && (
             <Pill tone="orange">
               <RotateCcw />

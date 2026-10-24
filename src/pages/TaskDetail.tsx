@@ -27,6 +27,7 @@ import { PersonLink, WhatsAppButton } from "@/components/People";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { diffDays, fmtDateTime, timeAgo, todayISO } from "@/lib/time";
 import { celebrate, daysText, earlyDays } from "@/lib/celebrate";
+import { passesOn, stageFor, useSignoff, waitingOn } from "@/lib/signoff";
 import type { Task, TaskStatus } from "@/lib/types";
 import { Attachments } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
@@ -60,6 +61,7 @@ export default function TaskDetail() {
   const { data: task, isLoading } = useTask(id);
   const activity = useActivity({ taskId: id, limit: 60 });
   const watchers = useWatchers(id);
+  const signoff = useSignoff();
   // Opening the task reads its notifications, here and on the phone.
   useMarkSeen(id ? { taskId: id } : null);
 
@@ -95,6 +97,17 @@ export default function TaskDetail() {
   );
   const following = (watchers.data ?? []).some((w) => w.user_id === me.id);
   const changesRequested = !!t.changes_note && (t.status === "todo" || t.status === "in_progress");
+  // Two-step sign-off: whose turn it is, and whether my OK finishes it or passes it on.
+  const finalName = signoff.final?.short_name ?? "the final checker";
+  const firstName = signoff.first?.short_name ?? "the first checker";
+  const turn = waitingOn(t, signoff);
+  const myReview = t.status === "in_review" && canAssign && (!signoff.on || !t.review_stage || turn === me.id);
+  const handsOn = passesOn(t, me.id, signoff);
+  const firstOkBy = people.get(t.first_ok_by);
+  // Who it goes to when it's handed in.
+  const nextStage = stageFor(onIt, signoff);
+  const sendTo =
+    nextStage === "first" ? signoff.first : nextStage === "final" ? signoff.final : reviewer && reviewer.id !== me.id ? reviewer : undefined;
 
   /** Saves the change; `message` is the toast (none when a celebration says it instead). */
   async function update(fields: Partial<Task>, message: string | null): Promise<boolean> {
@@ -117,7 +130,9 @@ export default function TaskDetail() {
 
   /** Approving (or marking done): the work is finished, so celebrate it with the people who did it. */
   async function finish(approving: boolean) {
-    if (!(await update({ status: "done" }, null))) return;
+    // With two steps, my OK may pass it on to the final checker instead of finishing it.
+    if (!(await update({ status: "done" }, handsOn ? `Approved. Sent to ${finalName} for the final OK.` : null))) return;
+    if (handsOn) return;
     const others = onIt.filter((x) => x !== me.id).map((x) => people.get(x)?.short_name ?? "someone");
     const early = earlyDays(t);
     celebrate({
@@ -140,7 +155,8 @@ export default function TaskDetail() {
           .insert({ task_id: t.id, project_id: t.project_id, author_id: me.id, body: `Submitted for review: ${note.trim()}`, mentions: [] });
         if (e2) throw e2;
       }
-      const sentTo = `Sent to ${reviewer && reviewer.id !== me.id ? reviewer.short_name : "the reviewer"} for review`;
+      const sentTo =
+        nextStage === "final" ? `Sent to ${finalName} for the final OK` : `Sent to ${sendTo ? sendTo.short_name : "the reviewer"} for review`;
       // Handed in before the due date: a big "Great job". On the due day: a smaller cheer.
       const ahead = t.due_date ? diffDays(t.due_date, todayISO()) : -1;
       if (ahead >= 1) {
@@ -213,10 +229,10 @@ export default function TaskDetail() {
       </button>,
     );
   }
-  if (t.status === "in_review" && canAssign) {
+  if (myReview) {
     actions.push(
       <button key="approve" className="btn success grow-mobile" disabled={busy} onClick={() => finish(true)}>
-        <CircleCheck /> Approve
+        <CircleCheck /> {handsOn ? `Approve, send to ${finalName}` : t.review_stage === "final" ? "Give final OK" : "Approve"}
       </button>,
       <button key="changes" className="btn warn grow-mobile" disabled={busy} onClick={() => { setNote(""); setChangesOpen(true); }}>
         <RotateCcw /> Request changes
@@ -232,8 +248,14 @@ export default function TaskDetail() {
   }
   if ((t.status === "todo" || t.status === "in_progress") && canAssign) {
     actions.push(
-      <button key="done" className="btn grow-mobile" disabled={busy} onClick={() => finish(false)}>
-        <CircleCheck /> Mark done
+      <button
+        key="done"
+        className="btn grow-mobile"
+        disabled={busy}
+        onClick={() => finish(false)}
+        title={handsOn ? `Goes to ${finalName} for the final OK` : undefined}
+      >
+        <CircleCheck /> {handsOn ? `Mark done, send to ${finalName}` : "Mark done"}
       </button>,
     );
   }
@@ -291,10 +313,32 @@ export default function TaskDetail() {
               <div className="review-banner">
                 <Clock />
                 <div className="small">
-                  <b>Waiting for review</b>
+                  <b>
+                    {t.review_stage === "final"
+                      ? turn === me.id
+                        ? "Waiting for your final OK"
+                        : `Waiting for ${finalName}'s final OK`
+                      : t.review_stage === "first"
+                        ? turn === me.id
+                          ? "Waiting for your check"
+                          : `Waiting for ${firstName}'s check`
+                        : "Waiting for review"}
+                  </b>
                   <div className="muted">
-                    Submitted by {submittedBy?.short_name ?? "someone"} {timeAgo(t.submitted_at) === "now" ? "just now" : `· ${fmtDateTime(t.submitted_at)}`}.
-                    {reviewer ? ` ${reviewer.id === me.id ? "You are" : `${reviewer.short_name} is`} reviewing it.` : ""}
+                    {t.review_stage === "final" && firstOkBy && firstOkBy.id !== submittedBy?.id
+                      ? `${firstOkBy.id === me.id ? "You" : firstOkBy.short_name} approved it${t.first_ok_at ? ` · ${fmtDateTime(t.first_ok_at)}` : ""}. `
+                      : `Submitted by ${submittedBy?.short_name ?? "someone"} ${timeAgo(t.submitted_at) === "now" ? "just now" : `· ${fmtDateTime(t.submitted_at)}`}. `}
+                    {t.review_stage === "first"
+                      ? turn === me.id
+                        ? `You check it first, then it goes to ${finalName} for the final OK.`
+                        : `${firstName} checks it first, then ${finalName} gives the final OK.`
+                      : t.review_stage === "final"
+                        ? turn === me.id
+                          ? "Yours is the final OK."
+                          : `${finalName} gives the final OK.`
+                        : reviewer
+                          ? `${reviewer.id === me.id ? "You are" : `${reviewer.short_name} is`} reviewing it.`
+                          : ""}
                   </div>
                 </div>
               </div>
@@ -383,7 +427,11 @@ export default function TaskDetail() {
       >
         <div className="stack">
           <p className="muted">
-            {reviewer && reviewer.id !== me.id ? `${reviewer.short_name} gets a notification` : "The reviewer gets a notification"} and either approves it or sends it back with notes.
+            {nextStage === "first"
+              ? `${firstName} gets a notification and checks it first. Once they approve it, ${finalName} gives the final OK. Either can send it back with notes.`
+              : nextStage === "final"
+                ? `${finalName} gets a notification and gives the final OK, or sends it back with notes.`
+                : `${sendTo ? `${sendTo.short_name} gets a notification` : "The reviewer gets a notification"} and either approves it or sends it back with notes.`}
           </p>
           <label className="field">
             <span>Note for the reviewer (optional)</span>
@@ -445,12 +493,38 @@ export default function TaskDetail() {
               ))}
             </span>
           </Row>
-          <Row label="Reviewer">
-            <span className="row" style={{ gap: 8, minWidth: 0 }}>
-              <PersonLink person={reviewer} />
-              {reviewer && <WhatsAppButton person={reviewer} variant="small" text={msg(reviewer.short_name)} />}
-            </span>
-          </Row>
+          {signoff.on ? (
+            <Row label="Sign-off">
+              <span className="stack" style={{ gap: 6, minWidth: 0 }}>
+                {signoff.first && signoff.first.id !== signoff.final?.id && !peopleOn(task).includes(signoff.first.id) && (
+                  <span className="row" style={{ gap: 8, minWidth: 0 }}>
+                    <PersonLink person={signoff.first} />
+                    <span className="faint tiny">checks first</span>
+                  </span>
+                )}
+                {signoff.final && !peopleOn(task).includes(signoff.final.id) ? (
+                  <span className="row" style={{ gap: 8, minWidth: 0 }}>
+                    <PersonLink person={signoff.final} />
+                    <span className="faint tiny">final OK</span>
+                  </span>
+                ) : (
+                  signoff.first && (
+                    <span className="row" style={{ gap: 8, minWidth: 0 }}>
+                      <PersonLink person={signoff.first} />
+                      <span className="faint tiny">approves it</span>
+                    </span>
+                  )
+                )}
+              </span>
+            </Row>
+          ) : (
+            <Row label="Reviewer">
+              <span className="row" style={{ gap: 8, minWidth: 0 }}>
+                <PersonLink person={reviewer} />
+                {reviewer && <WhatsAppButton person={reviewer} variant="small" text={msg(reviewer.short_name)} />}
+              </span>
+            </Row>
+          )}
           <Row label="Due">
             {task.due_date ? (
               <DueLabel date={task.due_date} done={task.status === "done"} />
@@ -481,8 +555,15 @@ export default function TaskDetail() {
               </span>
             </Row>
           )}
+          {task.first_ok_by && task.first_ok_at && task.status !== "todo" && task.status !== "in_progress" && (
+            <Row label="Checked">
+              <span className="small">
+                {people.get(task.first_ok_by)?.short_name ?? "Someone"}, {fmtDateTime(task.first_ok_at)}
+              </span>
+            </Row>
+          )}
           {task.status === "done" && task.completed_at && (
-            <Row label="Approved">
+            <Row label={task.first_ok_by ? "Final OK" : "Approved"}>
               <span className="small">
                 {people.get(task.approved_by)?.short_name ?? "Someone"}, {fmtDateTime(task.completed_at)}
               </span>

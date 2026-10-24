@@ -1,6 +1,7 @@
 export type Role = "manager" | "member";
 export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
 export type Priority = "low" | "normal" | "high" | "urgent";
+export type ReviewStage = "first" | "final";
 export type VoStatus =
   | "identified" | "requested" | "quoted" | "evaluation" | "recommended"
   | "approved" | "agreed" | "closed" | "rejected" | "withdrawn" | "disputed";
@@ -25,6 +26,8 @@ export interface Profile {
   attendance_exempt: boolean;
   /** False when nobody else can give this person tasks (they can still give themselves one). */
   assignable: boolean;
+  /** False for a manager who sees who is present, absent or on leave, but not check-in times or places. */
+  attendance_times: boolean;
   created_at: string;
 }
 
@@ -45,6 +48,9 @@ export interface AppSettings {
   drive_connected_at: string | null;
   /** When a manager added the Google key for shared Drive links (the key itself stays private). */
   drive_key_added_at?: string | null;
+  /** Task sign-off: who checks handed-in work first, and who gives the final OK after them. */
+  first_checker_id?: string | null;
+  final_checker_id?: string | null;
   updated_at: string;
 }
 
@@ -85,6 +91,11 @@ export interface Task {
   submitted_at: string | null;
   completed_at: string | null;
   approved_by: string | null;
+  /** While in review with the two-step sign-off: "first" waits for the first checker, "final" for the final OK. */
+  review_stage?: ReviewStage | null;
+  /** Who gave the first OK, and when (the task then waits for the final OK). */
+  first_ok_by?: string | null;
+  first_ok_at?: string | null;
   recurring_id: string | null;
   /** The repeating task it was made from; kept even if that repeating task is removed. */
   repeat_of?: string | null;

@@ -45,6 +45,14 @@
 
 .team-stats .stat .label { font-size: 12px; }
 
+/* Presence only (no times): Present / Absent or Not in yet / On leave */
+.presence-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.presence-stats .stat .label { font-size: 12px; }
+
 /* Settings layout */
 .settings-layout {
   display: grid;

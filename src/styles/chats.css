@@ -329,3 +329,22 @@
   .chat-pane-body { padding: 6px 6px 8px; }
   .jump-down { bottom: 88px; }
 }
+
+/* Google Drive links shared in a message */
+.msg-links { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.bubble .dl-card {
+  color: var(--text);
+  white-space: normal;
+  text-align: left;
+  width: 320px;
+  max-width: 100%;
+}
+.bubble .dl-card.compact .dl-head { padding: 4px 4px 4px 6px; }
+.bubble .dl-card.compact .dl-drive { width: 30px; height: 30px; }
+.bubble .dl-card .dl-items { max-height: 300px; }
+.bubble .dl-card .faint { color: var(--text-3); }
+.msg.mine .bubble .dl-card { border-color: transparent; }
+.link-chip svg { width: 13px; height: 13px; flex: none; }
+@media (max-width: 480px) {
+  .composer { gap: 4px; }
+}

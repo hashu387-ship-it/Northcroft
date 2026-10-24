@@ -5,6 +5,7 @@ import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
 import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
+import { useSignoff } from "@/lib/signoff";
 import { fileSize } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { DOW_LONG, addDays, fmtDue, todayISO } from "@/lib/time";
@@ -40,6 +41,7 @@ export function TaskForm({
   const me = useMe();
   const { canAssign } = useAuth();
   const people = usePeople();
+  const signoff = useSignoff();
   const { data: projects = [] } = useProjects();
   const toast = useToast();
   const invalidate = useInvalidate();
@@ -301,9 +303,19 @@ export function TaskForm({
         <Field label="Project">
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} />
         </Field>
-        <Field label="Reviewer" hint="Checks the work before it's marked done">
-          <PersonSelect value={reviewerId} onChange={setReviewerId} people={people.assigners} placeholder="Whoever created it" disabled={lockPeople} />
-        </Field>
+        {signoff.on ? (
+          <Field label="Sign-off" hint="Set in Settings > Team">
+            <div className="tf-signoff">
+              {signoff.first && signoff.first.id !== signoff.final?.id
+                ? `${signoff.first.short_name} checks it, then ${signoff.final?.short_name} gives the final OK`
+                : `${signoff.final?.short_name} approves it`}
+            </div>
+          </Field>
+        ) : (
+          <Field label="Reviewer" hint="Checks the work before it's marked done">
+            <PersonSelect value={reviewerId} onChange={setReviewerId} people={people.assigners} placeholder="Whoever created it" disabled={lockPeople} />
+          </Field>
+        )}
         {repeat === "none" && (
           <Field label="Due date">
             <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />

@@ -135,7 +135,8 @@ export default function AppShell() {
   const isRoot = TAB_ROOTS.includes(location.pathname);
   const nav = [
     { to: "/", label: "Home", icon: House, end: true },
-    { to: "/my-tasks", label: "My tasks", icon: SquareCheckBig },
+    // Someone who only gives out tasks sees every assigned task there instead of their own.
+    { to: "/my-tasks", label: me.assignable === false ? "Assigned tasks" : "My tasks", icon: SquareCheckBig },
     { to: "/projects", label: "Projects", icon: FolderKanban },
     { to: "/inbox", label: "Inbox", icon: Inbox, count: unread },
     { to: "/announcements", label: "Announcements", icon: Megaphone, count: unacked },

@@ -206,9 +206,16 @@ export default function FileView() {
 
   async function saveVersion(file: Blob, opts?: SaveOptions): Promise<Attachment> {
     if (!a) throw new Error("The file isn't loaded yet.");
-    // A file from a linked Drive folder is saved as a copy in the task's own files.
+    // A file from a linked Drive folder is saved as a copy in the task's own files, or posted in
+    // the same chat when the link was shared in a message.
     const asCopy = isDriveLinkFile(a);
-    const where = a.task_id ? "this task's files" : "the project's files";
+    const where = a.comment_id
+      ? a.task_id && !a.conversation_id
+        ? "the task's comments"
+        : "the chat"
+      : a.task_id
+        ? "this task's files"
+        : "the project's files";
     setSaving({ label: asCopy ? "Saving a copy..." : `Saving version ${nextVersion}...`, fraction: null });
     try {
       const saved = await saveNewVersion(a, file, {

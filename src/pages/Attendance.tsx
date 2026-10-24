@@ -7,6 +7,7 @@ import { CheckInCard } from "./attendance/CheckInCard";
 import { MyHistory } from "./attendance/MyHistory";
 import { TeamBoard } from "./attendance/TeamBoard";
 import { MonthlyReport } from "./attendance/MonthlyReport";
+import { PresenceBoard, PresenceMonthly } from "./attendance/Presence";
 import { useMyAttendance, usePlaces } from "./attendance/shared";
 import "@/styles/admin.css";
 
@@ -17,18 +18,35 @@ export default function Attendance() {
   const places = usePlaces();
   const today = (mine.data ?? []).find((r) => r.work_date === todayISO());
   const noOffice = isManager && places.data && !places.data.some((p) => p.kind === "office" && p.active);
+  // Some managers see who is present, absent or on leave, but not times or places.
+  const presenceOnly = canAssign && me.attendance_times === false;
+  const team = presenceOnly ? (
+    <>
+      <PresenceBoard />
+      <PresenceMonthly />
+    </>
+  ) : (
+    <>
+      <TeamBoard />
+      <MonthlyReport />
+    </>
+  );
 
   // Someone who doesn't check in (the Commercial Manager) only sees the team's attendance.
   if (me.attendance_exempt) {
     return (
       <div className="page">
-        <PageHead title="Attendance" sub={canAssign ? "The team's day and the monthly report. You don't need to check in." : "You don't need to check in."} />
-        {canAssign && (
-          <div className="attendance-grid">
-            <TeamBoard />
-            <MonthlyReport />
-          </div>
-        )}
+        <PageHead
+          title="Attendance"
+          sub={
+            !canAssign
+              ? "You don't need to check in."
+              : presenceOnly
+                ? "Who's in, absent or on leave each day, and the monthly summary. You don't need to check in."
+                : "The team's day and the monthly report. You don't need to check in."
+          }
+        />
+        {canAssign && <div className="attendance-grid">{team}</div>}
       </div>
     );
   }
@@ -37,7 +55,13 @@ export default function Attendance() {
     <div className="page">
       <PageHead
         title="Check in"
-        sub={canAssign ? "Your attendance, plus the whole team's day and monthly report." : "Record when and where you start and finish work."}
+        sub={
+          !canAssign
+            ? "Record when and where you start and finish work."
+            : presenceOnly
+              ? "Your attendance, plus who's in, absent or on leave each day."
+              : "Your attendance, plus the whole team's day and monthly report."
+        }
       />
 
       {noOffice && (
@@ -58,8 +82,7 @@ export default function Attendance() {
         </div>
         {canAssign && (
           <div className="stack" style={{ gap: 16 }}>
-            <TeamBoard />
-            <MonthlyReport />
+            {team}
           </div>
         )}
       </div>

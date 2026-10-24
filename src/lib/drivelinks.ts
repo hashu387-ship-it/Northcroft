@@ -2,7 +2,7 @@
 // show in the app, ready to open in the app's viewers or download. They're read through the
 // `drive` function with a Google key a manager adds once (Settings > Google Drive), so the link
 // has to be shared as "Anyone with the link".
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { driveCall } from "./drive";
 import { supabase } from "./supabase";
 import type { Attachment } from "./types";
@@ -12,6 +12,8 @@ export interface DriveLink {
   task_id: string | null;
   project_id: string | null;
   recurring_id: string | null;
+  /** Set for a link posted in a message: it shows in that message, to whoever can see the message. */
+  comment_id?: string | null;
   url: string;
   drive_id: string;
   resource_key: string | null;
@@ -88,17 +90,21 @@ export function useDriveLinks(where: { taskId?: string | null; projectId?: strin
   });
 }
 
-/** Save checked links on a task, a repeating task or a project. */
+/** Save checked links on a task, a repeating task, a project, or a message. */
 export async function addDriveLinks(
   links: (LinkInfo & { url: string })[],
-  where: { taskId?: string | null; projectId: string | null; recurringId?: string | null },
+  where: { taskId?: string | null; projectId: string | null; recurringId?: string | null; commentId?: string | null },
 ) {
   if (!links.length) return;
+  // A link in a message belongs to the message only, so it doesn't also show in a task's or
+  // project's Files list. Whoever can see the message can see the link.
+  const inMessage = !!where.commentId;
   const { error } = await supabase.from("drive_links").insert(
     links.map((l) => ({
-      task_id: where.taskId ?? null,
-      project_id: where.projectId,
-      recurring_id: where.taskId ? null : where.recurringId ?? null,
+      task_id: inMessage ? null : where.taskId ?? null,
+      project_id: inMessage ? null : where.projectId,
+      recurring_id: inMessage || where.taskId ? null : where.recurringId ?? null,
+      comment_id: where.commentId ?? null,
       url: l.url.trim(),
       drive_id: l.drive_id,
       resource_key: l.resource_key,
@@ -110,10 +116,37 @@ export async function addDriveLinks(
   if (error) throw error;
 }
 
+/** Drive links posted in these messages (the ones still on). */
+export function useMessageDriveLinks(commentIds: string[]) {
+  const ids = [...commentIds].sort();
+  return useQuery({
+    queryKey: ["drive_links", "comments", ids.join(",")],
+    enabled: ids.length > 0,
+    // A new message changes the list of ids; keep the cards (and any open folder) in place meanwhile.
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("drive_links")
+        .select("*")
+        .in("comment_id", ids)
+        .is("removed_at", null)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const byComment = new Map<string, DriveLink[]>();
+      for (const l of (data ?? []) as DriveLink[]) {
+        if (!l.comment_id) continue;
+        byComment.set(l.comment_id, [...(byComment.get(l.comment_id) ?? []), l]);
+      }
+      return byComment;
+    },
+  });
+}
+
 /* ---------------------------------------------------------------- the file screen */
 // Files from a linked folder open in the same file screen as attachments. Their screen id is
 // "gd.<link>.<file>[.<resource key>]" and they behave like a read-only attachment: editing saves
-// a copy to the task's (or project's) own files and leaves the Drive file as it was.
+// a copy to the task's (or project's) own files, or posts it in the same chat for a link in a
+// message, and leaves the Drive file as it was.
 const PREFIX = "gd.";
 
 export function driveFileScreenId(linkId: string, item: Pick<DriveItem, "id" | "resource_key">) {
@@ -138,24 +171,35 @@ export function driveLinkFileParts(a: Pick<Attachment, "path">) {
 export async function driveFileAttachment(screenId: string): Promise<Attachment | null> {
   const p = parseDriveFileScreenId(screenId);
   if (!p) return null;
-  const { data: link } = await supabase.from("drive_links").select("id, task_id, project_id, recurring_id, added_by, created_at, removed_at").eq("id", p.linkId).maybeSingle();
+  const { data: link } = await supabase
+    .from("drive_links")
+    .select("id, task_id, project_id, recurring_id, comment_id, added_by, created_at, removed_at")
+    .eq("id", p.linkId)
+    .maybeSingle();
   if (!link || link.removed_at) return null;
+  // A link in a message: the file belongs to that chat (or task thread).
+  let where = { task_id: link.task_id as string | null, project_id: link.project_id as string | null, conversation_id: null as string | null };
+  if (link.comment_id) {
+    const { data: msg } = await supabase.from("comments").select("task_id, project_id, conversation_id").eq("id", link.comment_id).maybeSingle();
+    if (!msg) return null;
+    where = { task_id: msg.task_id, project_id: msg.project_id, conversation_id: msg.conversation_id };
+  }
   const f = await driveCall<DriveItem>("link_file", { link_id: p.linkId, file_id: p.fileId, file_rk: p.rk ?? "" });
   return {
     id: screenId,
-    task_id: link.task_id,
-    project_id: link.project_id,
-    comment_id: null,
+    task_id: where.task_id,
+    project_id: where.project_id,
+    comment_id: link.comment_id ?? null,
     path: `gdrive/${p.linkId}/${p.fileId}/${p.rk ?? ""}`,
     name: f.name,
     mime: f.mime,
     size: f.size,
     uploaded_by: link.added_by,
     drive_file_id: null,
-    conversation_id: null,
+    conversation_id: where.conversation_id,
     version_of: null,
     version: 1,
-    recurring_id: link.recurring_id,
+    recurring_id: link.comment_id ? null : link.recurring_id,
     created_at: f.modified ?? link.created_at,
   };
 }

@@ -104,6 +104,27 @@ export function useAttendanceRange(from: string, to: string, enabled = true) {
   });
 }
 
+/** One person on one day, without times or places: for managers who see presence only. */
+export interface PresenceRow {
+  user_id: string;
+  work_date: string;
+  present: boolean;
+  on_leave: boolean;
+}
+
+/** Who was present, absent or on leave each day (up to two months at a time). No times or places. */
+export function usePresenceRange(from: string, to: string, enabled = true) {
+  return useQuery({
+    queryKey: ["attendance", "presence", from, to],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("team_presence", { p_from: from, p_to: to });
+      if (error) throw error;
+      return (data ?? []) as PresenceRow[];
+    },
+  });
+}
+
 /** First day anyone checked in: absences are only counted from here on. */
 export function useTrackingStart() {
   return useQuery({

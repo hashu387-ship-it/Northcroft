@@ -21,10 +21,13 @@ import {
 import { InstallBanner } from "@/components/InstallBanner";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
+import { OngoingTasksCard } from "@/components/TeamTasks";
+import { TeamTodayPresence } from "./attendance/Presence";
 import { VoiceNote } from "@/components/Voice";
 import { Avatar, CountUp, Empty, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
+import { useSignoff, waitingOn } from "@/lib/signoff";
 import { BOQ_STATUS, EVENT_KIND, VO_STATUS } from "@/lib/constants";
 import { errorMessage } from "@/lib/supabase";
 import {
@@ -57,24 +60,35 @@ import {
 
 export default function Home() {
   const me = useMe();
-  const { canAssign } = useAuth();
+  const { canAssign, isManager } = useAuth();
+  const signoff = useSignoff();
   const today = todayISO();
   const [newTask, setNewTask] = useState(false);
   const firstName = me.short_name.split(" ")[0];
+  // Someone who only gives out tasks (the Commercial Head) sees the team's numbers, not their own.
+  const givesOnly = me.assignable === false;
 
   const mine = useTasks({ assigneeId: me.id, openOnly: true });
   const allOpen = useTasks({ openOnly: true });
   const unread = useUnreadCount(me.id).data ?? 0;
 
-  const myOpen = mine.data ?? [];
+  const teamOpen = allOpen.data ?? [];
+  const myOpen = givesOnly ? teamOpen : mine.data ?? [];
+  const tasksLoading = givesOnly ? allOpen.isLoading : mine.isLoading;
   const overdue = myOpen.filter((t) => t.due_date && t.due_date < today && t.status !== "in_review");
-  const toReview = (allOpen.data ?? []).filter((t) => t.status === "in_review" && (t.reviewer_id === me.id || (!t.reviewer_id && t.created_by === me.id)));
+  // Waiting on me: my check, my final OK, or (with one reviewer) my review.
+  const toReview = teamOpen.filter((t) => waitingOn(t, signoff) === me.id);
   const myInReview = myOpen.filter((t) => t.status === "in_review");
+  const finalOk = toReview.filter((t) => t.review_stage === "final").length;
 
   const dueToday = myOpen.filter((t) => t.due_date === today).length;
   // One plain-English line under the greeting.
-  const summary = mine.isLoading
+  const summary = tasksLoading
     ? "Loading your day..."
+    : givesOnly
+      ? `${teamOpen.length} ${teamOpen.length === 1 ? "task is" : "tasks are"} open across the team${overdue.length ? `, ${overdue.length} overdue` : ""}.${
+          toReview.length ? ` ${toReview.length} ${toReview.length === 1 ? "is" : "are"} waiting for your ${finalOk ? "final OK" : "review"}.` : ""
+        }`
     : overdue.length
       ? `${overdue.length} overdue ${overdue.length === 1 ? "task needs" : "tasks need"} your attention${dueToday ? `, and ${dueToday} ${dueToday === 1 ? "is" : "are"} due today` : ""}.`
       : dueToday
@@ -105,7 +119,7 @@ export default function Home() {
               </button>
             )}
             <Link to="/my-tasks" className="btn on-dark">
-              <SquareCheckBig /> My tasks
+              <SquareCheckBig /> {givesOnly ? "Assigned tasks" : "My tasks"}
             </Link>
           </div>
         </div>
@@ -115,27 +129,27 @@ export default function Home() {
       <div className="grid-4 stat-row">
         <Link to="/my-tasks" className="glass stat stat-link tone-blue">
           <span className="label">
-            <SquareCheckBig /> My open tasks
+            <SquareCheckBig /> {givesOnly ? "Open tasks" : "My open tasks"}
           </span>
-          <span className="value">{mine.isLoading ? "–" : <CountUp value={myOpen.length} />}</span>
-          <span className="hint">{dueToday} due today</span>
+          <span className="value">{tasksLoading ? "–" : <CountUp value={myOpen.length} />}</span>
+          <span className="hint">{givesOnly ? `Across the team, ${dueToday} due today` : `${dueToday} due today`}</span>
         </Link>
         <Link to="/my-tasks" className={`glass stat stat-link ${overdue.length ? "tone-red" : "tone-green"}`}>
           <span className="label" style={{ color: overdue.length ? "var(--red)" : undefined }}>
             <TriangleAlert /> Overdue
           </span>
           <span className="value" style={{ color: overdue.length ? "var(--red)" : undefined }}>
-            {mine.isLoading ? "–" : <CountUp value={overdue.length} />}
+            {tasksLoading ? "–" : <CountUp value={overdue.length} />}
           </span>
-          <span className="hint">{overdue.length ? "Needs your attention" : "Nothing late"}</span>
+          <span className="hint">{overdue.length ? (givesOnly ? "Across the team" : "Needs your attention") : "Nothing late"}</span>
         </Link>
         {canAssign ? (
           <Link to="/my-tasks?view=review" className="glass stat stat-link tone-purple">
             <span className="label" style={{ color: toReview.length ? "var(--purple)" : undefined }}>
-              <ClipboardList /> To review
+              <ClipboardList /> {signoff.on && signoff.final?.id === me.id ? "Final OK" : "To review"}
             </span>
             <span className="value">{allOpen.isLoading ? "–" : <CountUp value={toReview.length} />}</span>
-            <span className="hint">Submitted by the team</span>
+            <span className="hint">{signoff.on && signoff.final?.id === me.id ? "Checked, waiting for you" : "Submitted by the team"}</span>
           </Link>
         ) : (
           <Link to="/my-tasks" className="glass stat stat-link tone-purple">
@@ -160,9 +174,10 @@ export default function Home() {
       <div className="home-grid">
         <div className="stack">
           {!me.attendance_exempt && <CheckInCard />}
-          <FocusCard tasks={myOpen} loading={mine.isLoading} />
-          {canAssign && <ReviewCard tasks={toReview} loading={allOpen.isLoading} />}
-          {canAssign && <TeamSnapshot />}
+          {!givesOnly && <FocusCard tasks={myOpen} loading={mine.isLoading} />}
+          {canAssign && <ReviewCard tasks={toReview} loading={allOpen.isLoading} finalOk={signoff.on && signoff.final?.id === me.id} />}
+          {isManager && <OngoingTasksCard tasks={teamOpen} loading={allOpen.isLoading} linkTo={givesOnly ? "/my-tasks" : "/my-tasks?view=team"} />}
+          {canAssign && (me.attendance_times === false ? <TeamTodayPresence /> : <TeamSnapshot />)}
         </div>
         <div className="stack">
           <AnnouncementCard />
@@ -314,13 +329,13 @@ function FocusCard({ tasks, loading }: { tasks: Task[]; loading: boolean }) {
   );
 }
 
-function ReviewCard({ tasks, loading }: { tasks: Task[]; loading: boolean }) {
+function ReviewCard({ tasks, loading, finalOk }: { tasks: Task[]; loading: boolean; finalOk?: boolean }) {
   const counts = useChecklistCounts(tasks.map((t) => t.id)).data ?? {};
   return (
     <div className="glass card">
       <div className="card-head">
         <h2 className="tone-purple">
-          <ClipboardList /> Waiting for your review
+          <ClipboardList /> {finalOk ? "Waiting for your final OK" : "Waiting for your review"}
         </h2>
         {tasks.length > 0 && <Pill tone="purple">{tasks.length}</Pill>}
       </div>
@@ -328,7 +343,7 @@ function ReviewCard({ tasks, loading }: { tasks: Task[]; loading: boolean }) {
         <Loading />
       ) : tasks.length === 0 ? (
         <Empty icon={<CircleCheck />} title="Nothing to review">
-          When someone submits a task for review it shows up here.
+          {finalOk ? "Tasks show up here once they've been checked and need your final OK." : "When someone submits a task for review it shows up here."}
         </Empty>
       ) : (
         <div className="list">

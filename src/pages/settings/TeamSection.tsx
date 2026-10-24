@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, Copy, KeyRound, RefreshCw, ShieldCheck, UserPlus, UserX, UserCheck } from "lucide-react";
-import { useInvalidate, usePeople } from "@/lib/api";
+import { useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { randomPassword } from "@/lib/format";
 import { formatPhone, localDigits, normalizeSaudiMobile } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
 import { PhoneInput, WhatsAppButton, openPersonCard } from "@/components/People";
-import { Avatar, Field, Pill, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
+import { Avatar, Field, Pill, PersonSelect, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
 import { Section, adminCall, copyText } from "./common";
 
 function RoleBadge({ p }: { p: Profile }) {
@@ -60,6 +60,7 @@ export function TeamSection() {
   const current = manage ? people.get(manage.id) ?? manage : null;
 
   return (
+    <div className="stack" style={{ gap: 16 }}>
     <Section
       title="Team"
       sub={isManager ? "Choose who can assign work, reset passwords and add new people." : "Everyone on the Northcroft QS team."}
@@ -97,6 +98,71 @@ export function TeamSection() {
       </div>
       {isManager && current && <ManagePerson person={current} onClose={() => setManage(null)} />}
       {isManager && <AddPerson open={adding} onClose={() => setAdding(false)} />}
+    </Section>
+    <SignoffSection />
+    </div>
+  );
+}
+
+/** Who checks handed-in work: the first check, then the final OK. */
+function SignoffSection() {
+  const { isManager } = useAuth();
+  const people = usePeople();
+  const settings = useSettings().data;
+  const toast = useToast();
+  const invalidate = useInvalidate();
+  const [first, setFirst] = useState<string | null>(null);
+  const [final, setFinal] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setFirst(settings?.first_checker_id ?? null);
+    setFinal(settings?.final_checker_id ?? null);
+  }, [settings?.first_checker_id, settings?.final_checker_id]);
+  const changed = first !== (settings?.first_checker_id ?? null) || final !== (settings?.final_checker_id ?? null);
+  const firstP = people.get(first);
+  const finalP = people.get(final);
+
+  async function save() {
+    if (first && first === final) {
+      toast("Pick two different people, or leave the first check empty", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("app_settings").update({ first_checker_id: first, final_checker_id: final }).eq("id", 1);
+      if (error) throw error;
+      await invalidate("app_settings");
+      toast(final ? "Sign-off saved" : "Back to one reviewer per task");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const summary = finalP
+    ? firstP
+      ? `Handed-in work goes to ${firstP.short_name} first. Once ${firstP.short_name} approves it, ${finalP.short_name} gives the final OK, and only then is it done. ${firstP.short_name}'s own tasks go straight to ${finalP.short_name}.`
+      : `Handed-in work goes to ${finalP.short_name}, who approves it.`
+    : "Each task has one reviewer, chosen on the task.";
+
+  return (
+    <Section title="Task sign-off" sub={summary}>
+      {isManager ? (
+        <div className="form-grid">
+          <Field label="First check" hint="Checks the work and passes it on">
+            <PersonSelect value={first} onChange={setFirst} people={people.assigners} placeholder="Nobody" disabled={busy} />
+          </Field>
+          <Field label="Final OK" hint="Gives the last approval">
+            <PersonSelect value={final} onChange={setFinal} people={people.assigners} placeholder="Nobody (one reviewer per task)" disabled={busy} />
+          </Field>
+          <div className="full row" style={{ justifyContent: "flex-end" }}>
+            <button className="btn primary small" type="button" onClick={save} disabled={busy || !changed}>
+              {busy ? "Saving..." : "Save sign-off"}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </Section>
   );
 }
@@ -222,6 +288,22 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
               label="Checks in and out"
             />
           </div>
+          {(isManagerRow || person.can_assign) && (
+            <div className="setting-row">
+              <div className="grow">
+                <b>Sees check-in times</b>
+                <small>Off: they see who is present, absent or on leave, but not check-in or check-out times or places.</small>
+              </div>
+              <Switch
+                checked={person.attendance_times !== false}
+                disabled={busy || !person.active}
+                onChange={(v) =>
+                  update({ attendance_times: v }, v ? `${person.short_name} now sees check-in times` : `${person.short_name} now sees present or absent only`)
+                }
+                label="Sees check-in times"
+              />
+            </div>
+          )}
           <div className="setting-row">
             <div className="grow">
               <b>Can be given tasks</b>

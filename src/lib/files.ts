@@ -236,10 +236,35 @@ export async function saveNewVersion(
   opts: { userId: string; nextVersion: number; extension?: string; onProgress?: (fraction: number) => void },
 ): Promise<Attachment> {
   // An edited file from a linked Drive folder is saved as a copy in the task's (or project's) own
-  // files; the Drive file stays as it was.
+  // files, or posted in the same chat when the link was shared in a message; the Drive file stays
+  // as it was.
   const fromDrive = isDriveLinkFile(original);
   const name = fromDrive ? editedName(original.name, opts.extension) : versionName(original.name, opts.nextVersion, opts.extension);
   const file = new File([data], name, { type: data.type || original.mime || "application/octet-stream" });
+  if (fromDrive && original.comment_id) {
+    // driveFileAttachment already holds the message's chat, task thread or project chat.
+    const { data: posted, error } = await supabase
+      .from("comments")
+      .insert({
+        body: `Edited ${original.name}, saved a copy`,
+        mentions: [],
+        author_id: opts.userId,
+        task_id: original.task_id,
+        project_id: original.project_id,
+        conversation_id: original.conversation_id,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return uploadFile(file, {
+      taskId: original.task_id,
+      projectId: original.project_id,
+      conversationId: original.conversation_id,
+      commentId: posted.id,
+      userId: opts.userId,
+      onProgress: opts.onProgress,
+    });
+  }
   if (fromDrive) {
     return uploadFile(file, {
       taskId: original.task_id,

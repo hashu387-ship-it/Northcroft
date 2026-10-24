@@ -11,6 +11,7 @@ import {
   EllipsisVertical,
   FileText,
   Info,
+  Link2,
   MessageCircle,
   Mic,
   Paperclip,
@@ -23,6 +24,7 @@ import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { REACTIONS, reactionInfo, setReaction, typingLine, useChatReads, useKeepRead, useReactions, useTyping } from "@/lib/chats";
 import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
+import { addDriveLinks, useMessageDriveLinks, type LinkInfo } from "@/lib/drivelinks";
 import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
@@ -32,6 +34,7 @@ import { Avatar, Empty, Loading, Sheet, useConfirm, useToast } from "./ui";
 import { PersonAvatar, openPersonCard } from "./People";
 import { RecorderBar, VoiceNote } from "./Voice";
 import { useOpenFile } from "./useOpenFile";
+import { AddDriveLinkSheet, LinkCard } from "./DriveLinks";
 import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
 
 export type Scope =
@@ -181,6 +184,8 @@ export function CommentThread({
   const threadImages = useMemo(() => list.flatMap((c) => (filesByComment.get(c.id) ?? []).filter(isImage)), [list, filesByComment]);
 
   const reactions = useReactions(ids.filter((id) => !byId.get(id)?.event));
+  // Google Drive links shared in these messages.
+  const msgLinks = useMessageDriveLinks(ids.filter((id) => !byId.get(id)?.event));
   const reads = useChatReads(chatKey);
   useKeepRead(chatKey, latest?.id);
   const typing = useTyping(chatKey, me.id);
@@ -393,6 +398,13 @@ export function CommentThread({
                         </button>
                       ),
                     )}
+                  </div>
+                )}
+                {(msgLinks.data?.get(c.id) ?? []).length > 0 && (
+                  <div className="msg-links">
+                    {msgLinks.data!.get(c.id)!.map((l) => (
+                      <LinkCard key={l.id} link={l} compact />
+                    ))}
                   </div>
                 )}
                 <div className="when row" style={{ gap: 6 }}>
@@ -693,6 +705,9 @@ function Composer({
   const invalidate = useInvalidate();
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  // Google Drive links checked and waiting to go with the message.
+  const [links, setLinks] = useState<(LinkInfo & { url: string })[]>([]);
+  const [addingLink, setAddingLink] = useState(false);
   const [sending, setSending] = useState(false);
   // Big files go to Google Drive and can take a while: show how far along they are.
   const [progress, setProgress] = useState<string | null>(null);
@@ -704,7 +719,7 @@ function Composer({
   const recorder = useRecorder({ onDone: (r) => void sendVoice(r) });
   const recording = recorder.state !== "idle";
   // Like WhatsApp: the microphone shows while the box is empty, the send arrow once you type.
-  const showMic = canRecord() && !body.trim() && files.length === 0;
+  const showMic = canRecord() && !body.trim() && files.length === 0 && links.length === 0;
   const conversationId = scope.kind === "conversation" ? scope.conversationId : null;
 
   useEffect(() => {
@@ -830,13 +845,13 @@ function Composer({
 
   async function send() {
     const text = body.trim();
-    if ((!text && !files.length) || sending) return;
+    if ((!text && !files.length && !links.length) || sending) return;
     setSending(true);
     onStopTyping();
     try {
       const mentions = findMentions(text, mentionable, me.id);
       const row = {
-        body: text || (files.length === 1 ? `Shared ${files[0].name}` : `Shared ${files.length} files`),
+        body: text || sharedText(files, links),
         mentions,
         author_id: me.id,
         reply_to: replyTo?.id ?? null,
@@ -847,6 +862,10 @@ function Composer({
       setBody("");
       onClearReply();
       if (ref.current) ref.current.style.height = "auto";
+      if (links.length) {
+        await addDriveLinks(links, { projectId: null, commentId: data.id });
+        setLinks([]);
+      }
       for (const f of files) {
         setProgress(`Uploading ${f.name}...`);
         await uploadFile(f, {
@@ -864,7 +883,7 @@ function Composer({
         const names = mentions.map((id) => people.get(id)?.short_name).filter(Boolean);
         toast(names.length > 3 ? `Notified ${names.length} people` : `Notified ${names.join(", ")}`, "info");
       }
-      invalidate("comments", "attachments", "chats");
+      invalidate("comments", "attachments", "chats", "drive_links");
     } catch (e) {
       toast(errorMessage(e), "error");
     } finally {
@@ -892,8 +911,19 @@ function Composer({
           </button>
         </div>
       )}
-      {files.length > 0 && (
+      {(files.length > 0 || links.length > 0) && (
         <div className="row wrap">
+          {links.map((l, i) => (
+            <span className="pill green link-chip" key={`link-${i}`}>
+              <Link2 />
+              <span className="ellipsis" style={{ maxWidth: 160 }}>
+                {l.title}
+              </span>
+              <button type="button" onClick={() => setLinks((xs) => xs.filter((_, j) => j !== i))} style={{ border: 0, background: "none", padding: 0, color: "inherit", display: "grid" }} aria-label={`Remove ${l.title}`}>
+                <X size={13} />
+              </button>
+            </span>
+          ))}
           {files.map((f, i) => (
             <span className="pill blue" key={i}>
               <Paperclip />
@@ -942,6 +972,9 @@ function Composer({
             <button className="icon-btn plain" type="button" onClick={() => fileRef.current?.click()} aria-label="Attach a file">
               <Paperclip />
             </button>
+            <button className="icon-btn plain" type="button" onClick={() => setAddingLink(true)} aria-label="Add a Google Drive link" title="Add a Google Drive link">
+              <Link2 />
+            </button>
             <input
               ref={fileRef}
               type="file"
@@ -965,6 +998,24 @@ function Composer({
           </>
         )}
       </div>
+      <AddDriveLinkSheet
+        open={addingLink}
+        onClose={() => setAddingLink(false)}
+        onAdd={(l) => {
+          setLinks((xs) => (xs.some((x) => x.drive_id === l.drive_id) ? xs : [...xs, l]));
+          ref.current?.focus();
+        }}
+      />
     </div>
   );
+}
+
+/** The message text when only files or links are sent. */
+function sharedText(files: File[], links: { title: string }[]): string {
+  if (files.length + links.length === 1) return `Shared ${files.length ? files[0].name : links[0].title}`;
+  const parts = [
+    files.length ? (files.length === 1 ? "1 file" : `${files.length} files`) : null,
+    links.length ? (links.length === 1 ? "1 Drive link" : `${links.length} Drive links`) : null,
+  ].filter(Boolean);
+  return `Shared ${parts.join(" and ")}`;
 }

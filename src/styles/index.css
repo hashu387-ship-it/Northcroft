@@ -1548,3 +1548,34 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .tf-file-icon.drive { background: rgba(52, 168, 83, 0.16); color: #1e8e3e; }
 .tf-link-row { display: flex; gap: 8px; width: 100%; }
 .tf-link-row .input { flex: 1; min-width: 0; }
+
+/* Task form: the two-step sign-off note in place of the reviewer picker */
+.tf-signoff {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--line, rgba(127, 127, 127, 0.3));
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+/* Ongoing tasks: everyone's open work, person by person (Home card and the tasks screen) */
+.tt-stack { display: flex; flex-direction: column; gap: 14px; }
+.tt-person { min-width: 0; }
+.tt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.tt-head b { display: block; font-size: 14px; }
+.tt-counts { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--text-2); }
+.tt-counts .late { color: var(--red); font-weight: 600; }
+.tt-counts .review { color: var(--purple); }
+.tt-list { border-radius: 12px; }
+.tt-list .task-row { padding-left: 8px; padding-right: 8px; }
+.tt-more {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin: 4px 0 0 6px; padding: 4px 6px;
+  border: 0; background: none; color: var(--accent);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.tt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 14px; margin-top: 12px; }
+.tt-card { padding: 12px; min-width: 0; }

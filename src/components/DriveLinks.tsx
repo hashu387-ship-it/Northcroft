@@ -190,14 +190,16 @@ function FolderList({ link }: { link: DriveLink }) {
   );
 }
 
-function LinkCard({ link, showTaskNote }: { link: DriveLink; showTaskNote?: boolean }) {
+/** One Drive link: a folder that opens into its file list, or a single file. `compact` is the
+ *  smaller card inside a chat message (folders start closed). */
+export function LinkCard({ link, showTaskNote, compact }: { link: DriveLink; showTaskNote?: boolean; compact?: boolean }) {
   const me = useMe();
   const { canAssign } = useAuth();
   const people = usePeople();
   const toast = useToast();
   const confirm = useConfirm();
   const invalidate = useInvalidate();
-  const [openList, setOpenList] = useState(true);
+  const [openList, setOpenList] = useState(!compact);
   const canRemove = link.added_by === me.id || canAssign;
   const file: DriveItem = {
     id: link.drive_id,
@@ -213,7 +215,11 @@ function LinkCard({ link, showTaskNote }: { link: DriveLink; showTaskNote?: bool
   async function remove() {
     const ok = await confirm({
       title: `Take "${link.title}" off?`,
-      message: link.recurring_id && !link.task_id ? "It comes with every copy of this repeating task, so it goes from all of them. Nothing changes in Google Drive." : "Nothing changes in Google Drive.",
+      message: link.comment_id
+        ? "It goes from this message for everyone. Nothing changes in Google Drive."
+        : link.recurring_id && !link.task_id
+          ? "It comes with every copy of this repeating task, so it goes from all of them. Nothing changes in Google Drive."
+          : "Nothing changes in Google Drive.",
       confirmLabel: "Take it off",
       danger: true,
     });
@@ -224,13 +230,17 @@ function LinkCard({ link, showTaskNote }: { link: DriveLink; showTaskNote?: bool
     invalidate("drive_links");
   }
 
-  const meta = [
-    link.kind === "folder" ? "Google Drive folder" : "Google Drive file",
-    `added by ${people.get(link.added_by)?.short_name ?? "someone"} ${timeAgo(link.created_at)}`,
-  ].join(" · ");
+  // In a message, who shared it and when is already on the message.
+  const meta = compact
+    ? link.kind === "folder"
+      ? openList
+        ? "Google Drive folder"
+        : "Google Drive folder · tap to see the files"
+      : "Google Drive file"
+    : [link.kind === "folder" ? "Google Drive folder" : "Google Drive file", `added by ${people.get(link.added_by)?.short_name ?? "someone"} ${timeAgo(link.created_at)}`].join(" · ");
 
   return (
-    <div className="dl-card">
+    <div className={clsx("dl-card", compact && "compact")}>
       <div className="dl-head">
         {link.kind === "folder" ? (
           <button type="button" className="dl-head-main" onClick={() => setOpenList((v) => !v)} aria-expanded={openList}>

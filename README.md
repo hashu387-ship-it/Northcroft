@@ -89,9 +89,9 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 
 | | Managers: Fawaz (Commercial Manager) and Hassan | Seniors (switched on in Settings > Team) | Team members |
 |---|---|---|---|
-| Create and assign tasks, approve work | Yes | Yes | No |
+| Create and assign tasks, approve work | Yes (with the two-step sign-off below) | Yes | No |
 | Post announcements, create projects | Yes | Yes | No |
-| See everyone's attendance | Yes | Yes | Own only |
+| See everyone's attendance | Yes (Fawaz: present, absent or on leave only) | Yes | Own only |
 | Add people, reset passwords, set hours, office pins | Yes | No | No |
 | Change who's on a task, delete tasks | Yes | Yes | No |
 | Edit a task's details, steps and files, and submit it | Yes | Yes | When they're on the task |
@@ -100,7 +100,22 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 Work flows down: Fawaz gives tasks to Hassan, and Hassan gives tasks to the team. Two switches in Settings > Team control this for anyone:
 
 - **Checks in and out**: off for Fawaz. He has no Check in tab and isn't on the attendance board, map, late list or monthly export. Managers who don't check in still see everyone else's attendance.
-- **Can be given tasks**: off for Fawaz. He doesn't appear in anyone's "Assign to" list (the database blocks it too), but he can give himself a reminder task.
+- **Can be given tasks**: off for Fawaz. He doesn't appear in anyone's "Assign to" list (the database blocks it too), but he can give himself a reminder task. Instead of My tasks he has **Assigned tasks**: every open task in the team, person by person, his Final OK list, and the team's recently finished work.
+- **Sees check-in times** (managers and seniors): off for Fawaz. He sees who is present, absent or on leave each day and the monthly totals, but no check-in or check-out times, places or map. The database enforces this: the `team_presence` function gives him the day-by-day status only.
+
+### Task sign-off in two steps
+
+Settings > Team > Task sign-off sets who checks handed-in work first (Hassan) and who gives the final OK (Fawaz).
+
+- A task handed in goes to Hassan first. When he approves it (or marks it done), it goes to Fawaz, and only Fawaz's final OK makes it Done. The celebration for the team comes with the final OK.
+- Either of them can send it back with notes. A task Fawaz sends back goes to the people on it and Hassan hears about it too. When it's handed in again, Hassan checks it first again.
+- Hassan's own tasks go straight to Fawaz. A task Fawaz is on finishes at Hassan's OK.
+- Fawaz can't approve before Hassan has checked, and Hassan can't give the final OK. The database enforces the order (`guard_task`), whatever screen is used.
+- Clear the Final OK in Settings to go back to one reviewer per task.
+
+Hassan and Fawaz both have an **Ongoing tasks** card on Home with every open task, grouped by person, late ones first.
+
+Drive links can also be added to any message (team chat, project chats, groups, one-to-one chats and task comments) with the link button next to the paperclip. A link in a message is seen by the people who can see that message, so links in a private chat stay private.
 
 ## Tech
 
