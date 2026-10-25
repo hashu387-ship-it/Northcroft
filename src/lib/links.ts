@@ -14,6 +14,8 @@ export interface OtherLink {
   what: string;
   /** A name to start from: the file name in the address if there is one. */
   name: string;
+  /** True when the name is the file name from the address (it beats the page's title). */
+  fromAddress: boolean;
 }
 
 /** The address with https:// added when someone pasted "www.example.com". Null if it isn't a link. */
@@ -84,7 +86,8 @@ export function describeLink(url: string): OtherLink {
     const letter = host === "1drv.ms" ? u.pathname.split("/").filter(Boolean)[0] : "";
     const k = MS_KIND[letter] ?? (u.searchParams.has("id") && /folder/i.test(url) ? MS_KIND.f : null);
     const what = k?.what ?? whatForName(file, "Link");
-    return { provider: "onedrive", site: "OneDrive", kind: k?.kind ?? "file", what, name: file ?? (k?.kind === "folder" ? "OneDrive folder" : `${what} on OneDrive`) };
+    const fallback = k?.kind === "folder" ? "OneDrive folder" : what === "Link" ? "OneDrive link" : `${what} on OneDrive`;
+    return { provider: "onedrive", site: "OneDrive", kind: k?.kind ?? "file", what, name: file ?? fallback, fromAddress: !!file };
   }
   if (host.endsWith(".sharepoint.com")) {
     const site = host.includes("-my.sharepoint.com") ? "OneDrive" : "SharePoint";
@@ -105,7 +108,8 @@ export function describeLink(url: string): OtherLink {
       site,
       kind: k?.kind ?? "file",
       what,
-      name: file ?? folderName ?? (k?.kind === "folder" ? `${site} folder` : `${what} on ${site}`),
+      name: file ?? folderName ?? (k?.kind === "folder" ? `${site} folder` : what === "Link" ? `${site} link` : `${what} on ${site}`),
+      fromAddress: !!(file ?? folderName),
     };
   }
 
@@ -120,13 +124,13 @@ export function describeLink(url: string): OtherLink {
     }
   } else if (host === "wetransfer.com" || host.endsWith(".wetransfer.com") || host === "we.tl") {
     site = "WeTransfer";
-    what = "Transfer";
+    what = "Files";
   } else if (host === "box.com" || host.endsWith(".box.com")) {
     site = "Box";
   } else if (host === "icloud.com" || host.endsWith(".icloud.com")) {
     site = "iCloud";
   }
-  return { provider: "web", site, kind, what, name: file ?? (what === "Link" ? site : `${what} on ${site}`) };
+  return { provider: "web", site, kind, what, name: file ?? (what === "Link" ? site : `${what} on ${site}`), fromAddress: !!file };
 }
 
 /** How the card describes a saved link: "Excel file on OneDrive", "Folder on Dropbox", "example.com". */
@@ -176,7 +180,7 @@ export async function checkOtherLink(url: string): Promise<LinkInfo> {
     site: d.site,
     kind: d.kind,
     // The file name in the address beats a page title; otherwise the page's own title.
-    title: (d.name !== d.site && !d.name.endsWith(` on ${d.site}`) && d.name !== `${d.site} folder` ? d.name : title || d.name).slice(0, 200),
+    title: (d.fromAddress ? d.name : title || d.name).slice(0, 200),
     drive_id: url,
     resource_key: null,
     mime: null,
