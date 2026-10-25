@@ -14,15 +14,22 @@ import { PageHead } from "@/components/PageHead";
 import { Avatar, Empty, Loading, Pill, Segmented } from "@/components/ui";
 import { UpdateForm } from "./updates/UpdateForm";
 import { UpdateCard } from "./updates/UpdateCard";
+import { PeopleBoard } from "./updates/PeopleBoard";
 
-type Tab = "mine" | "team";
+type Tab = "mine" | "team" | "board";
 
 export default function DailyUpdates() {
   const me = useMe();
   const { canAssign } = useAuth();
   const mine = sendsDailyUpdate(me);
   const [params, setParams] = useSearchParams();
-  const tab: Tab = mine && (!canAssign || params.get("tab") !== "team") ? "mine" : "team";
+  // Members only have their own; managers have the team's day and the people board; seniors have all three.
+  const asked = params.get("tab");
+  const tab: Tab = !canAssign ? "mine" : asked === "board" ? "board" : asked === "team" || !mine ? "team" : "mine";
+  const tabs: { value: Tab; label: string }[] = [
+    ...(mine ? [{ value: "mine" as Tab, label: "My update" }] : []),
+    ...(canAssign ? [{ value: "team" as Tab, label: mine ? "Team" : "Updates" }, { value: "board" as Tab, label: "People" }] : []),
+  ];
 
   if (!mine && !canAssign) {
     return (
@@ -44,22 +51,19 @@ export default function DailyUpdates() {
             ? "Send yours before you check out, and see the team's day."
             : mine
               ? "Before you check out, say how far your tasks got and what you did on them."
-              : "What the team did each day, how far each task got, and who hasn't sent theirs."
+              : "What the team did each day, what each person is working on and what they've finished."
         }
       />
-      {mine && canAssign && (
+      {tabs.length > 1 && (
         <div style={{ marginBottom: 14 }}>
           <Segmented<Tab>
             value={tab}
-            onChange={(v) => setParams(v === "team" ? { tab: "team" } : {}, { replace: true })}
-            options={[
-              { value: "mine", label: "My update" },
-              { value: "team", label: "Team" },
-            ]}
+            onChange={(v) => setParams(v === "mine" || (v === "team" && !mine) ? {} : { tab: v }, { replace: true })}
+            options={tabs}
           />
         </div>
       )}
-      {tab === "mine" ? <MyUpdates /> : <TeamDay />}
+      {tab === "mine" ? <MyUpdates /> : tab === "team" ? <TeamDay /> : <PeopleBoard />}
     </div>
   );
 }
