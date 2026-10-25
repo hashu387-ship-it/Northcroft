@@ -294,6 +294,8 @@ type Target = {
   variation_id?: string | null;
   vo_round?: string | null;
   vo_side?: string | null;
+  /** A file on an announcement (added by whoever posted it, or a manager or senior). */
+  announcement_id?: string | null;
 };
 
 async function checkTarget(t: Target, me: Me, req: Request): Promise<string | null> {
@@ -313,6 +315,11 @@ async function checkTarget(t: Target, me: Me, req: Request): Promise<string | nu
     if (t.vo_side && !["sent", "assessment"].includes(t.vo_side)) throw new UserError("Pick where the file goes on the variation.");
     if (t.vo_side && !t.vo_round) throw new UserError("Pick the submission the file belongs to.");
     if (t.vo_round && String(t.vo_round).length > 64) throw new UserError("Pick the submission the file belongs to.");
+  } else if (t.announcement_id) {
+    const { data: an } = await admin.from("announcements").select("id, project_id, author_id").eq("id", t.announcement_id).maybeSingle();
+    if (!an) throw new UserError("That announcement no longer exists.", 404);
+    if (an.author_id !== me.id && me.role !== "manager" && !me.can_assign) throw new UserError("Only whoever posted the announcement can add files to it.", 403);
+    projectId = an.project_id;
   }
   let conversation = t.conversation_id ?? null;
   if (t.comment_id) {
@@ -399,6 +406,7 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Re
       variation_id: body.task_id ? null : body.variation_id ?? null,
       vo_round: body.task_id || !body.variation_id ? null : body.vo_round ?? null,
       vo_side: body.task_id || !body.variation_id || !body.vo_round ? null : body.vo_side ?? null,
+      announcement_id: body.task_id || body.variation_id ? null : body.announcement_id ?? null,
       uploaded_by: me.id,
     })
     .select()

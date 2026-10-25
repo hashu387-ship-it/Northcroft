@@ -1,9 +1,9 @@
 import "@/styles/comms.css";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { BellRing, ChevronDown, ChevronUp, CircleCheck, Clock, ListChecks, Megaphone, Mic, Pencil, Pin, PinOff, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { BellRing, ChevronDown, ChevronUp, CircleCheck, Clock, Link2, ListChecks, Megaphone, Mic, Paperclip, Pencil, Pin, PinOff, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, Empty, Field, Loading, Pill, Progress, ProjectSelect, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
 import { useInvalidate, usePeople, useProjectMap, useProjects } from "@/lib/api";
@@ -14,6 +14,12 @@ import { canRecord, uploadVoice, useRecorder, type Recording } from "@/lib/voice
 import { RecorderBar, VoiceNote, VoicePlayer } from "@/components/Voice";
 import { PollCard, PollFields, emptyPoll, type PollDraft } from "@/components/Polls";
 import { addAnnouncementPoll, pollProblem, usePolls, type PollWithVotes } from "@/lib/polls";
+import { Attachments } from "@/components/Attachments";
+import { AddDriveLinkSheet, DriveLinks } from "@/components/DriveLinks";
+import { addDriveLinks, type LinkInfo } from "@/lib/drivelinks";
+import { deleteAttachment, uploadFile } from "@/lib/files";
+import { linkMeta } from "@/lib/links";
+import type { Attachment } from "@/lib/types";
 
 /** "today at 9:14 AM", "yesterday at 5:02 PM" or "on Sun 18 Oct at 8:40 AM". */
 function whenPhrase(ts: string) {
@@ -156,10 +162,13 @@ function AnnouncementItem({ a, poll, highlight, onEdit }: { a: AnnouncementWithA
       danger: true,
     });
     if (!ok) return;
+    const { data: files } = await supabase.from("attachments").select("*").eq("announcement_id", a.id);
     const { error } = await supabase.from("announcements").delete().eq("id", a.id);
     if (error) toast(errorMessage(error), "error");
     else {
       if (a.voice_path) await supabase.storage.from("files").remove([a.voice_path]);
+      // Its files go too (Drive files move to the Drive bin).
+      for (const f of (files ?? []) as Attachment[]) await deleteAttachment(f).catch(() => undefined);
       qc.setQueryData<Announcement[]>(["announcements", "list"], (old) => old?.filter((x) => x.id !== a.id));
       toast("Announcement deleted");
       invalidate("announcements", "announcement_acks");
@@ -218,6 +227,10 @@ function AnnouncementItem({ a, poll, highlight, onEdit }: { a: AnnouncementWithA
         />
       )}
       {poll && <PollCard pw={poll} />}
+      <div className="ann-files">
+        <Attachments announcementId={a.id} projectId={a.project_id} canUpload={false} compact hideWhenEmpty />
+        <DriveLinks announcementId={a.id} projectId={a.project_id} canAdd={false} compact hint={false} />
+      </div>
 
       <div className="ann-foot">
         {needsMyAck(a, me.id) ? (
@@ -319,6 +332,12 @@ function AnnouncementForm({
   useEffect(() => () => void (voiceUrl && URL.revokeObjectURL(voiceUrl)), [voiceUrl]);
   const existingVoice = announcement?.voice_path && keepExisting ? announcement : null;
   const hasVoice = !!voice || !!existingVoice;
+  // Files and links for a new announcement go up once it's posted. (Editing adds them straight away.)
+  const [files, setFiles] = useState<File[]>([]);
+  const [links, setLinks] = useState<(LinkInfo & { url: string })[]>([]);
+  const [addingLink, setAddingLink] = useState(false);
+  const [uploadNote, setUploadNote] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -332,6 +351,9 @@ function AnnouncementForm({
     setKeepExisting(true);
     setPollOn(false);
     setPoll(emptyPoll());
+    setFiles([]);
+    setLinks([]);
+    setUploadNote(null);
   }, [open, announcement]);
 
   async function record() {
@@ -395,12 +417,26 @@ function AnnouncementForm({
       } else {
         const { data: made, error } = await supabase.from("announcements").insert({ ...fields, author_id: me.id }).select("id").single();
         if (error) throw error;
-        pollError = await attachPoll((made as { id: string }).id);
-        if (!pollError) toast("Posted. The team has been notified.");
+        const newId = (made as { id: string }).id;
+        pollError = await attachPoll(newId);
+        // Files and links go on now that the announcement exists; if one fails, the announcement still stands.
+        const failed: string[] = [];
+        for (const [i, f] of files.entries()) {
+          setUploadNote(`Uploading ${f.name}${files.length > 1 ? ` (${i + 1} of ${files.length})` : ""}...`);
+          try {
+            await uploadFile(f, { announcementId: newId, projectId, userId: me.id });
+          } catch {
+            failed.push(f.name);
+          }
+        }
+        if (links.length) await addDriveLinks(links, { projectId, announcementId: newId }).catch(() => failed.push(links.length === 1 ? "the link" : "the links"));
+        setUploadNote(null);
+        if (failed.length) toast(`Posted, but ${failed.join(", ")} didn't go on. Edit the announcement to add ${failed.length === 1 ? "it" : "them"} again.`, "error");
+        else if (!pollError) toast("Posted. The team has been notified.");
       }
       if (pollError) toast(`Saved, but the poll wasn't added: ${pollError} Edit the announcement to add it again.`, "error");
       uploaded = null;
-      await invalidate("announcements", "polls");
+      await invalidate("announcements", "polls", "attachments", "drive_links");
       onClose();
     } catch (e) {
       if (uploaded) await supabase.storage.from("files").remove([uploaded]);
@@ -421,7 +457,7 @@ function AnnouncementForm({
             Cancel
           </button>
           <button className="btn primary" onClick={save} disabled={saving}>
-            {saving ? "Saving..." : announcement ? "Save changes" : "Post to the team"}
+            {saving ? uploadNote ?? "Saving..." : announcement ? "Save changes" : "Post to the team"}
           </button>
         </>
       }
@@ -495,6 +531,64 @@ function AnnouncementForm({
             )}
           </div>
         )}
+        <Field label="Files and links (optional)" group>
+          {announcement ? (
+            <div className="stack" style={{ gap: 8 }}>
+              <Attachments announcementId={announcement.id} projectId={announcement.project_id} compact emptyText="No files yet" />
+              <DriveLinks announcementId={announcement.id} projectId={announcement.project_id} compact hint={false} />
+            </div>
+          ) : (
+            <div className="stack" style={{ gap: 8 }}>
+              {(files.length > 0 || links.length > 0) && (
+                <div className="row wrap" style={{ gap: 6 }}>
+                  {files.map((f, i) => (
+                    <span className="pill blue" key={`f${i}`}>
+                      <Paperclip />
+                      <span className="ellipsis" style={{ maxWidth: 180 }}>
+                        {f.name}
+                      </span>
+                      <button type="button" className="pill-x" onClick={() => setFiles((xs) => xs.filter((_, j) => j !== i))} aria-label={`Take ${f.name} off`}>
+                        <X size={13} />
+                      </button>
+                    </span>
+                  ))}
+                  {links.map((l, i) => (
+                    <span className="pill green" key={`l${i}`} title={l.provider && l.provider !== "google" ? linkMeta(l) : "Google Drive"}>
+                      <Link2 />
+                      <span className="ellipsis" style={{ maxWidth: 180 }}>
+                        {l.title}
+                      </span>
+                      <button type="button" className="pill-x" onClick={() => setLinks((xs) => xs.filter((_, j) => j !== i))} aria-label={`Take ${l.title} off`}>
+                        <X size={13} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="row wrap" style={{ gap: 8 }}>
+                <button type="button" className="btn small" onClick={() => fileInput.current?.click()}>
+                  <Paperclip /> Add files
+                </button>
+                <button type="button" className="btn small" onClick={() => setAddingLink(true)}>
+                  <Link2 /> Add link
+                </button>
+              </div>
+              <input
+                ref={fileInput}
+                type="file"
+                multiple
+                hidden
+                aria-label="Choose files"
+                onChange={(e) => {
+                  const picked = Array.from(e.target.files ?? []);
+                  setFiles((xs) => [...xs, ...picked]);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          )}
+        </Field>
+        <AddDriveLinkSheet open={addingLink} onClose={() => setAddingLink(false)} onAdd={(l) => setLinks((xs) => (xs.some((x) => x.url === l.url) ? xs : [...xs, l]))} />
         <Field label="Project (optional)">
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} emptyLabel="Whole team" />
         </Field>

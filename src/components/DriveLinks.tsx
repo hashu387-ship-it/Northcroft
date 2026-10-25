@@ -224,6 +224,7 @@ function OtherLinkCard({ link, showTaskNote, compact, canRemove, onRemove }: { l
               {meta}
               {showTaskNote && link.task_id ? " · on a task" : ""}
               {showTaskNote && link.variation_id ? " · on a VO" : ""}
+              {showTaskNote && link.announcement_id ? " · on an announcement" : ""}
               {link.recurring_id && !link.task_id ? " · every repeat" : ""}
             </span>
           </span>
@@ -307,6 +308,8 @@ export function LinkCard({ link, showTaskNote, compact }: { link: DriveLink; sho
                 {meta}
                 {showTaskNote && link.task_id ? " · on a task" : ""}
                 {showTaskNote && link.variation_id ? " · on a VO" : ""}
+              {showTaskNote && link.announcement_id ? " · on an announcement" : ""}
+                {showTaskNote && link.announcement_id ? " · on an announcement" : ""}
                 {link.recurring_id && !link.task_id ? " · every repeat" : ""}
               </span>
             </span>
@@ -555,6 +558,8 @@ export function DriveLinks({
   compact,
   hint = true,
   knownRounds,
+  announcementId,
+  canAdd = true,
 }: {
   taskId?: string | null;
   projectId?: string | null;
@@ -568,11 +573,15 @@ export function DriveLinks({
   hint?: boolean;
   /** For a variation's supporting links: its revisions' keys (links from a revision taken off show here). */
   knownRounds?: string[];
+  /** Links on an announcement. */
+  announcementId?: string | null;
+  /** False to only show the links (nothing at all when there are none). */
+  canAdd?: boolean;
 }) {
   const toast = useToast();
   const invalidate = useInvalidate();
   const keySet = !!useSettings().data?.drive_key_added_at;
-  const q = useDriveLinks({ taskId, projectId, repeatOf, variationId });
+  const q = useDriveLinks({ taskId, projectId, repeatOf, variationId, announcementId });
   const [adding, setAdding] = useState(false);
   const all = q.data ?? [];
   const links = variationId
@@ -580,29 +589,32 @@ export function DriveLinks({
     : all;
 
   async function save(link: LinkInfo & { url: string }) {
-    const where: LinkWhere = { taskId: taskId ?? null, projectId: projectId ?? null, variationId: variationId ?? null, voRound: voRound ?? null, voSide: voSide ?? null };
+    const where: LinkWhere = { taskId: taskId ?? null, projectId: projectId ?? null, variationId: variationId ?? null, voRound: voRound ?? null, voSide: voSide ?? null, announcementId: announcementId ?? null };
     await addDriveLinks([link], where);
     await invalidate("drive_links");
     const google = !link.provider || link.provider === "google";
     toast(google && link.kind === "folder" ? `"${link.title}" added. Its files show here.` : `"${link.title}" added`);
   }
 
+  if (!canAdd && links.length === 0) return null;
   return (
     <div className={clsx("dl-section", compact && "compact")}>
-      <div className="row wrap" style={{ gap: 8 }}>
-        <button className="btn small" type="button" onClick={() => setAdding(true)}>
-          <Link2 /> Add link
-        </button>
-        {hint && (
-          <span className="faint tiny">
-            {keySet
-              ? "Google Drive, OneDrive, Dropbox or any link. A Google Drive folder's files show here to open or download."
-              : "Google Drive, OneDrive, Dropbox or any link. Showing a Google Drive folder's files needs a one-time set-up in Settings > Google Drive."}
-          </span>
-        )}
-      </div>
+      {canAdd && (
+        <div className="row wrap" style={{ gap: 8 }}>
+          <button className="btn small" type="button" onClick={() => setAdding(true)}>
+            <Link2 /> Add link
+          </button>
+          {hint && (
+            <span className="faint tiny">
+              {keySet
+                ? "Google Drive, OneDrive, Dropbox or any link. A Google Drive folder's files show here to open or download."
+                : "Google Drive, OneDrive, Dropbox or any link. Showing a Google Drive folder's files needs a one-time set-up in Settings > Google Drive."}
+            </span>
+          )}
+        </div>
+      )}
       {links.map((l) => (
-        <LinkCard key={l.id} link={l} showTaskNote={!taskId && !variationId} compact={compact} />
+        <LinkCard key={l.id} link={l} showTaskNote={!taskId && !variationId && !announcementId} compact={compact} />
       ))}
       <AddDriveLinkSheet open={adding} onClose={() => setAdding(false)} onAdd={save} />
     </div>

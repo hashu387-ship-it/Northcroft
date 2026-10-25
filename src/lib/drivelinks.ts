@@ -31,6 +31,8 @@ export interface DriveLink {
   variation_id?: string | null;
   vo_round?: string | null;
   vo_side?: "sent" | "assessment" | null;
+  /** Set for a link on an announcement. */
+  announcement_id?: string | null;
 }
 
 export type LinkProvider = "google" | "onedrive" | "web";
@@ -87,15 +89,16 @@ export function driveWebUrl(l: Pick<DriveLink, "kind" | "drive_id" | "resource_k
 }
 
 /** Links on a task (and its repeating task), on a variation, or every link in a project. */
-export function useDriveLinks(where: { taskId?: string | null; projectId?: string | null; repeatOf?: string | null; variationId?: string | null }) {
-  const { taskId, projectId, repeatOf, variationId } = where;
+export function useDriveLinks(where: { taskId?: string | null; projectId?: string | null; repeatOf?: string | null; variationId?: string | null; announcementId?: string | null }) {
+  const { taskId, projectId, repeatOf, variationId, announcementId } = where;
   return useQuery({
-    queryKey: ["drive_links", taskId ? "task" : variationId ? "vo" : "project", taskId ?? variationId ?? projectId, repeatOf ?? null],
-    enabled: !!(taskId || projectId || variationId),
+    queryKey: ["drive_links", taskId ? "task" : variationId ? "vo" : announcementId ? "announcement" : "project", taskId ?? variationId ?? announcementId ?? projectId, repeatOf ?? null],
+    enabled: !!(taskId || projectId || variationId || announcementId),
     queryFn: async () => {
       let q = supabase.from("drive_links").select("*").is("removed_at", null);
       if (taskId && repeatOf) q = q.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
       else if (variationId) q = q.eq("variation_id", variationId);
+      else if (announcementId) q = q.eq("announcement_id", announcementId);
       else q = taskId ? q.eq("task_id", taskId) : q.eq("project_id", projectId!);
       const { data, error } = await q.order("created_at", { ascending: true });
       if (error) throw error;
@@ -113,6 +116,8 @@ export interface LinkWhere {
   variationId?: string | null;
   voRound?: string | null;
   voSide?: "sent" | "assessment" | null;
+  /** A link on an announcement. */
+  announcementId?: string | null;
 }
 
 /** Save checked links on a task, a repeating task, a project, a variation, or a message. */
@@ -131,6 +136,7 @@ export async function addDriveLinks(links: (LinkInfo & { url: string })[], where
       variation_id: onVo ? where.variationId : null,
       vo_round: onVo ? where.voRound ?? null : null,
       vo_side: onVo && where.voRound ? where.voSide ?? null : null,
+      announcement_id: !inMessage && !where.taskId && !onVo ? where.announcementId ?? null : null,
       url: l.url.trim(),
       drive_id: l.drive_id,
       resource_key: l.resource_key,

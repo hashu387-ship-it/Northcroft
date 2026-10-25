@@ -37,6 +37,7 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - **Low**: green.
   - Pick it with the four buttons in the task, VO or package form. Finished tasks keep their badge, faded.
 - **Announcements**: everyone taps *Acknowledge*. Managers see who hasn't, and can nudge them. Anyone who hasn't acknowledged gets an automatic reminder the next morning.
+  - Files and links go on an announcement too: *Add files* and *Add link* in the form (PDFs, photos, drawings, Google Drive, OneDrive or any link). They go up as soon as it's posted, everyone can open them, and they can be added or taken off later by editing it.
 - **Inbox and push notifications**, WhatsApp style:
   - The sender's name is the title. On Android and computers their photo shows beside the message, or their initials if they have no photo. iPhone always shows the app icon for Home Screen apps.
   - One notification per chat or task. It updates with the latest message and a count, and clears when you open that chat or task.

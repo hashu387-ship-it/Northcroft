@@ -74,7 +74,8 @@ export function voLogRow(f: VoLogForm) {
       response: t(x.response),
       response_on: x.response_on || null,
     }))
-    .filter((x) => x.rev || x.sent || x.sent_note || x.response || x.response_on || x.submitted_value != null || x.assessed_value != null);
+    // A revision added and left empty (only its suggested "Rev 2" name) isn't kept.
+    .filter((x) => (x.rev && !/^Rev \d+$/i.test(x.rev)) || x.sent || x.sent_note || x.response || x.response_on || x.submitted_value != null || x.assessed_value != null);
   return {
     log_ref: t(f.log_ref),
     log_status: t(f.log_status),

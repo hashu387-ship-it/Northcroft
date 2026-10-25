@@ -193,6 +193,8 @@ export interface Attachment {
   variation_id?: string | null;
   vo_round?: string | null;
   vo_side?: "sent" | "assessment" | null;
+  /** Set for a file on an announcement. */
+  announcement_id?: string | null;
   created_at: string;
 }
 

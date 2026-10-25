@@ -37,6 +37,8 @@ export interface UploadTarget {
   variationId?: string | null;
   voRound?: string | null;
   voSide?: "sent" | "assessment" | null;
+  /** A file on an announcement. */
+  announcementId?: string | null;
   userId: string;
   onProgress?: (fraction: number) => void;
 }
@@ -60,7 +62,7 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
   // Private chat files live under c/<chat id>/, which only the people in that chat can read.
   const path = opts.conversationId
     ? `c/${opts.conversationId}/${crypto.randomUUID()}-${safeName(file.name)}`
-    : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : opts.variationId ? `vo-${opts.variationId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
+    : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : opts.variationId ? `vo-${opts.variationId}` : opts.announcementId ? `ann-${opts.announcementId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
@@ -82,6 +84,7 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
       variation_id: opts.taskId ? null : opts.variationId ?? null,
       vo_round: opts.taskId || !opts.variationId ? null : opts.voRound ?? null,
       vo_side: opts.taskId || !opts.variationId || !opts.voRound ? null : opts.voSide ?? null,
+      announcement_id: opts.taskId || opts.variationId ? null : opts.announcementId ?? null,
       uploaded_by: opts.userId,
     })
     .select()

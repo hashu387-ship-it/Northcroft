@@ -12,18 +12,23 @@
 --    person who added one, or a manager or senior, can take it off. A round also keeps its own
 --    amounts (submitted_value, assessed_value) in the submissions list, next to its dates and
 --    ECJV's comments.
+--
+-- 3. Announcements. Files and links can go on an announcement (announcement_id), added by whoever
+--    posts it when posting or editing. Everyone on the team can open them.
 
 alter table public.drive_links
   add column if not exists provider text not null default 'google',
   add column if not exists site text,
   add column if not exists variation_id uuid,
   add column if not exists vo_round text,
-  add column if not exists vo_side text;
+  add column if not exists vo_side text,
+  add column if not exists announcement_id uuid;
 
 alter table public.attachments
   add column if not exists variation_id uuid,
   add column if not exists vo_round text,
-  add column if not exists vo_side text;
+  add column if not exists vo_side text,
+  add column if not exists announcement_id uuid;
 
 do $$
 begin
@@ -49,6 +54,8 @@ end $$;
 
 create index if not exists drive_links_variation_idx on public.drive_links (variation_id) where removed_at is null;
 create index if not exists attachments_variation_idx on public.attachments (variation_id);
+create index if not exists drive_links_announcement_idx on public.drive_links (announcement_id) where removed_at is null;
+create index if not exists attachments_announcement_idx on public.attachments (announcement_id);
 
 -- Only taking a link off (or putting it back) can change an existing link.
 create or replace function public.drive_link_guard()
@@ -60,10 +67,10 @@ as $$
 begin
   if auth.uid() is null then return new; end if;
   if (new.task_id, new.project_id, new.recurring_id, new.url, new.drive_id, new.resource_key, new.kind, new.title, new.added_by, new.created_at,
-      new.provider, new.site, new.variation_id, new.vo_round, new.vo_side)
+      new.provider, new.site, new.variation_id, new.vo_round, new.vo_side, new.announcement_id)
      is distinct from
      (old.task_id, old.project_id, old.recurring_id, old.url, old.drive_id, old.resource_key, old.kind, old.title, old.added_by, old.created_at,
-      old.provider, old.site, old.variation_id, old.vo_round, old.vo_side) then
+      old.provider, old.site, old.variation_id, old.vo_round, old.vo_side, old.announcement_id) then
     raise exception 'A link can only be taken off. Add a new one instead.';
   end if;
   if new.removed_at is not null and old.removed_at is null then

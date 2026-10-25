@@ -55,6 +55,8 @@ export interface DriveTarget {
   variationId?: string | null;
   voRound?: string | null;
   voSide?: "sent" | "assessment" | null;
+  /** A file on an announcement. */
+  announcementId?: string | null;
 }
 
 /**
@@ -72,6 +74,7 @@ export async function uploadToDrive(file: File, target: DriveTarget, onProgress?
     variation_id: target.variationId ?? null,
     vo_round: target.voRound ?? null,
     vo_side: target.voSide ?? null,
+    announcement_id: target.announcementId ?? null,
   };
   const { upload_url } = await driveCall<{ upload_url: string }>("start_upload", {
     ...ids,

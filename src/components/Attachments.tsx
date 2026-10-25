@@ -32,6 +32,8 @@ export function Attachments({
   compact,
   emptyText = "No files yet",
   knownRounds,
+  announcementId,
+  hideWhenEmpty,
 }: {
   taskId?: string | null;
   projectId?: string | null;
@@ -47,6 +49,10 @@ export function Attachments({
   /** For a variation's supporting files: its revisions' keys. Files from a revision that was taken
    *  off show with the supporting files, so nothing goes missing. */
   knownRounds?: string[];
+  /** Files on an announcement. */
+  announcementId?: string | null;
+  /** Show nothing at all when there are no files (and no upload button). */
+  hideWhenEmpty?: boolean;
 }) {
   const me = useMe();
   const { canAssign } = useAuth();
@@ -61,14 +67,15 @@ export function Attachments({
   const driveOn = !!useSettings().data?.drive_connected_at;
 
   const q = useQuery({
-    queryKey: ["attachments", taskId ? "task" : variationId ? "vo" : "project", taskId ?? variationId ?? projectId, repeatOf ?? null, voRound ?? null, voSide ?? null, (knownRounds ?? []).join(",")],
+    queryKey: ["attachments", taskId ? "task" : variationId ? "vo" : announcementId ? "announcement" : "project", taskId ?? variationId ?? announcementId ?? projectId, repeatOf ?? null, voRound ?? null, voSide ?? null, (knownRounds ?? []).join(",")],
     queryFn: async () => {
       let query = supabase.from("attachments").select("*");
       if (taskId && repeatOf) query = query.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
       else if (variationId) {
         query = query.eq("variation_id", variationId);
         if (voRound) query = query.eq("vo_round", voRound).eq("vo_side", voSide ?? "sent");
-      } else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
+      } else if (announcementId) query = query.eq("announcement_id", announcementId);
+      else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
       let rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(300));
       // Supporting files: no revision, or one that has been taken off.
       if (variationId && !voRound) rows = rows.filter((r) => !r.vo_round || !(knownRounds ?? []).includes(r.vo_round));
@@ -89,6 +96,7 @@ export function Attachments({
           variationId: variationId ?? null,
           voRound: voRound ?? null,
           voSide: voRound ? voSide ?? "sent" : null,
+          announcementId: announcementId ?? null,
           userId: me.id,
           onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });
@@ -124,6 +132,7 @@ export function Attachments({
   }
 
   const rows = q.data?.rows ?? [];
+  if (hideWhenEmpty && !canUpload && rows.length === 0) return null;
   return (
     <div className="stack">
       {canUpload && (
@@ -158,6 +167,14 @@ export function Attachments({
                       <>
                         <span className="drive-tag">
                           <HardDrive size={11} /> Drive
+                        </span>
+                        {" · "}
+                      </>
+                    )}
+                    {!announcementId && a.announcement_id && (
+                      <>
+                        <span className="drive-tag repeat-tag" title="On an announcement">
+                          Announcement
                         </span>
                         {" · "}
                       </>

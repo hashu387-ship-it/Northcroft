@@ -306,3 +306,8 @@
   .notif .acts .icon-btn.small { width: 28px; height: 28px; }
   .notif { padding: 12px 8px; gap: 10px; }
 }
+
+/* Files and links on an announcement. */
+.ann-files { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ann-files:empty { display: none; }
+.pill-x { border: 0; background: none; padding: 0; color: inherit; display: grid; cursor: pointer; }
