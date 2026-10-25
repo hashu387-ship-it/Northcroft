@@ -1,6 +1,6 @@
 import "@/styles/comms.css";
 import { Link } from "react-router-dom";
-import { BarChart3, CalendarDays, ClipboardList, LogOut, MapPin, Megaphone, MessagesSquare, Settings, type LucideIcon } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardList, FileSpreadsheet, LogOut, MapPin, Megaphone, MessagesSquare, Settings, type LucideIcon } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, useConfirm } from "@/components/ui";
 import { useAuth, useMe } from "@/lib/auth";
@@ -28,6 +28,7 @@ export default function More() {
     { to: "/announcements", label: "Announcements", hint: unacked ? `${unacked} to acknowledge` : "Team news", icon: Megaphone, color: "#FF9F0A", count: unacked },
     { to: "/calendar", label: "Calendar", hint: "Deadlines and visits", icon: CalendarDays, color: "#FF375F" },
     { to: "/chats", label: "Chats", hint: "Team, projects, groups", icon: MessagesSquare, color: "#30D158" },
+    { to: "/vo-log", label: "VO log", hint: "Every project's VOs", icon: FileSpreadsheet, color: "#1D6F42" },
     ...(!me.attendance_exempt
       ? [{ to: "/attendance", label: "Check in", hint: "Arrive and leave", icon: MapPin, color: "#0A84FF" }]
       : canAssign

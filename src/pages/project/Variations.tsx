@@ -248,7 +248,9 @@ export function Variations({ project }: { project: Project }) {
   );
 }
 
-function VoSheet({
+/** The VO form: used by a project's Variations tab and by the all-projects VO log, so a change or a
+ *  file added in either shows in both. */
+export function VoSheet({
   open,
   onClose,
   project,
