@@ -315,6 +315,22 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
               </button>
             </div>
           )}
+          {!person.attendance_exempt && (
+            <div className="setting-row">
+              <div className="grow">
+                <b>Sends a daily update</b>
+                <small>Before checking out they say how far each task got and what they did on it. A reminder goes at 5:00 pm.</small>
+              </div>
+              <Switch
+                checked={person.daily_update === true}
+                disabled={busy || !person.active}
+                onChange={(v) =>
+                  update({ daily_update: v }, v ? `${person.short_name} now sends a daily update` : `${person.short_name} no longer sends a daily update`)
+                }
+                label="Sends a daily update"
+              />
+            </div>
+          )}
           {(isManagerRow || person.can_assign) && (
             <div className="setting-row">
               <div className="grow">

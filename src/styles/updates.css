@@ -1,0 +1,141 @@
+/* Daily updates: the form, each update, and the team's day. */
+
+.du-section-head { display: flex; align-items: center; gap: 10px; }
+.du-section-head h2 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -0.005em; }
+.du-section-head .faint { margin-left: auto; }
+
+/* ---- the form */
+.du-tasks { display: flex; flex-direction: column; gap: 10px; }
+.du-task {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 12px;
+  border-radius: var(--r);
+  background: var(--solid);
+  border: 1px solid var(--solid-border);
+}
+.du-task-top { display: flex; align-items: flex-start; gap: 10px; }
+.du-task-title {
+  display: block;
+  font-weight: 650;
+  font-size: 14.5px;
+  color: var(--text);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.du-task-title:hover { color: var(--accent); }
+.du-task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 3px; font-size: 12px; color: var(--text-2); }
+.du-pct { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; min-width: 56px; text-align: right; }
+
+.du-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  margin: 0;
+  touch-action: pan-y;
+}
+.du-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent) 0 var(--pct, 0%), var(--fill) var(--pct, 0%) 100%);
+}
+.du-range::-moz-range-track { height: 8px; border-radius: 4px; background: var(--fill); }
+.du-range::-moz-range-progress { height: 8px; border-radius: 4px; background: var(--accent); }
+.du-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(11, 29, 70, 0.28);
+}
+.du-range::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(11, 29, 70, 0.28);
+}
+
+.du-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.du-quick button {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 14px;
+  border: 1px solid var(--solid-border);
+  background: var(--fill);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.du-quick button.on { background: var(--accent); border-color: transparent; color: var(--on-accent, #fff); }
+.du-was { margin-left: auto; }
+
+.du-hand-in { display: flex; align-items: center; gap: 6px; color: var(--green); font-weight: 600; }
+.du-handed {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--green-soft);
+  color: var(--text);
+}
+.du-handed svg { color: var(--green); flex-shrink: 0; margin-top: 1px; }
+.du-more { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.du-more > .btn { align-self: flex-start; }
+
+/* ---- an update */
+.du-card { display: flex; flex-direction: column; gap: 12px; }
+.du-card-head { display: flex; align-items: center; gap: 10px; }
+.du-who { gap: 10px; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.du-items { display: flex; flex-direction: column; gap: 12px; }
+.du-item { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--separator); }
+.du-item:first-child { padding-top: 0; border-top: 0; }
+.du-item-pct { font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.du-item-pct b { font-size: 15px; }
+.du-bar { position: relative; height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; }
+.du-bar i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: inherit; }
+.du-bar i.before { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.du-bar i.gain { background: var(--accent); }
+.du-note { margin: 0; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+.du-block { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--fill); }
+.du-blocked { background: var(--orange-soft); }
+.du-blocked .field-label { display: inline-flex; align-items: center; gap: 5px; color: var(--orange); }
+.du-card > .btn { align-self: flex-start; }
+
+/* ---- the team's day */
+.du-day { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.du-day > .grow { flex: 1; min-width: 0; }
+.du-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.du-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 8px; border-radius: var(--r); }
+.du-stat b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.du-stat b .faint { font-size: 14px; font-weight: 600; }
+.du-stat span { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.du-stat.warn b { color: var(--orange); }
+.du-missing { display: flex; flex-direction: column; gap: 8px; }
+.du-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 3px;
+  border-radius: 16px;
+  background: var(--fill);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Progress chip on task rows and the progress row on a task. */
+.pct-chip { display: inline-flex; align-items: center; gap: 4px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.pct-chip .pct-mini { width: 28px; height: 4px; border-radius: 2px; background: var(--fill); overflow: hidden; display: inline-block; }
+.pct-chip .pct-mini i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+
+/* The update at check-out. */
+.du-sheet-note { margin: 0 0 4px; }

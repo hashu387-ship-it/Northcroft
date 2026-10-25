@@ -20,6 +20,7 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const More = lazy(() => import("@/pages/More"));
 const FileView = lazy(() => import("@/pages/FileView"));
 const Share = lazy(() => import("@/pages/Share"));
+const DailyUpdates = lazy(() => import("@/pages/DailyUpdates"));
 
 function Gate() {
   const { session, profile, loading } = useAuth();
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="more" element={<More />} />
           <Route path="files/:id" element={<FileView />} />
           <Route path="share" element={<Share />} />
+          <Route path="updates" element={<DailyUpdates />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

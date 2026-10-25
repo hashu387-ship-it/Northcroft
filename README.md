@@ -11,6 +11,7 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Everyone on that task sees it once too, the next time they open the app (or straight away if it's open): "Hassan approved your work. Great job, Najeefar." Several approvals at once show as one card.
   - Handing work in a day or more before its due date gets a big "Great job, 2 days early". Handing it in on the due day gets a smaller "Right on time". Late work gets the normal message.
   - Work handed in early keeps a gold-on-navy **Finished early** badge in lists and on the task, so it's easy to spot when reviewing.
+  - Checking in before 8:00 am gets confetti and a sunrise card: "Great job, Imthath! You're in at 7:42 am, before 8:00." A gold line underneath counts this week's early starts, from Sunday: "Your 3rd early start this week". It shows on the phone that checked in, including a check-in made with no signal (the streak is left off until the signal is back).
   - A short chime and, on Android, a small buzz go with it. Switch them off per phone in Settings > Appearance > Celebrations. iPhones stay quiet when on silent and don't buzz. With reduce-motion on, the card shows without confetti.
 - **Google Drive links** on tasks and on a project's Files tab (and in the New task form):
   - Paste a Google Drive folder or file link (shared as "Anyone with the link") and its files show right there: step into subfolders, open PDFs, Excel files and photos in the app's own viewers, or download. Google Docs, Sheets and Slides come through as PDF or Excel.
@@ -108,6 +109,14 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Tap anyone's photo to see their card, with WhatsApp, call and email buttons.
   - WhatsApp buttons also sit on the Team list, the attendance board and task pages. On a task, the WhatsApp message starts with the task name and a link to it.
   - People's check-ins show on the attendance map as their photo.
+- **Daily updates** (everyone who checks in, except managers):
+  - Before checking out, each person says how far each of their tasks got today with a slider (or 0, 25, 50, 75, Done) and what they did on it, then any other work and anything blocking them. Tasks under way are listed first; tasks not started yet are one tap away. They can change today's update until the end of the day.
+  - Setting a task to 100% (Done) hands it in for review, the same as tapping Submit, so the normal sign-off follows. Starting a task (above 0%) moves it to In progress.
+  - Check-out asks for the update first, with "Send update and check out" and "Check out without it". At 5:00 pm anyone checked in who hasn't sent theirs gets a reminder, and at 6:00 pm managers get one line: "Daily updates: 4 of 5 sent. Not sent yet: Inzam." Days off and people on leave are skipped.
+  - **Daily updates** in the menu (and on More): your update and your earlier ones. Managers and seniors see the team's day: how many sent theirs, how many tasks were handed in, who is blocked, who hasn't sent one and who is on leave, with each person's update. Step back day by day with the arrows.
+  - Each task keeps its latest %: a small bar and figure in task lists, a Progress row on the task, and a **Daily progress** card on the task with every day's note.
+  - Home shows your update from 2:00 pm (or once sent), and managers see "Daily updates: 3 of 5 sent".
+  - A manager switches it on or off per person in **Settings > Team** ("Sends a daily update"). It starts on for everyone except managers.
 - **Works without signal** (on site, in a basement, on a plane):
   - The app opens with no signal, and screens show what they last loaded: Home, My tasks, task pages, projects, chats, announcements, calendar and check-in. Every screen's code is fetched once per version, so even screens you haven't opened yet work. A navy bar says "No signal. You're seeing what was saved, and anything you send goes out when you're back online." When the signal returns, "Back online" shows for a moment and screens refresh.
   - Messages, voice notes, files and Drive links sent with no signal (or when the signal drops mid-send) show straight away with a small clock instead of the tick. They go out by themselves, in order, when the signal is back, and a message is never posted twice. If the server refuses one, it shows "Not sent" with the reason, and Try again or Remove.

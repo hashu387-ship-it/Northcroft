@@ -1,10 +1,11 @@
 import "@/styles/comms.css";
 import { Link } from "react-router-dom";
-import { BarChart3, CalendarDays, LogOut, MapPin, Megaphone, MessagesSquare, Settings, type LucideIcon } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardList, LogOut, MapPin, Megaphone, MessagesSquare, Settings, type LucideIcon } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, useConfirm } from "@/components/ui";
 import { useAuth, useMe } from "@/lib/auth";
 import { signOutWarning } from "@/lib/outbox";
+import { sendsDailyUpdate } from "@/lib/dailyUpdates";
 import { needsMyAck, useAnnouncementsWithAcks } from "./home/data";
 
 interface Tile {
@@ -32,6 +33,9 @@ export default function More() {
       : canAssign
         ? [{ to: "/attendance", label: "Attendance", hint: "The team's day", icon: MapPin, color: "#0A84FF" }]
         : []),
+    ...(sendsDailyUpdate(me) || canAssign
+      ? [{ to: "/updates", label: "Daily updates", hint: sendsDailyUpdate(me) ? "What you did today" : "What the team did", icon: ClipboardList, color: "#FF6B2C" }]
+      : []),
     ...(canAssign ? [{ to: "/workload", label: "Workload", hint: "Who has what", icon: BarChart3, color: "#BF5AF2" }] : []),
     { to: "/settings", label: "Settings", hint: "Notifications, password", icon: Settings, color: "#8E8E93" },
   ];

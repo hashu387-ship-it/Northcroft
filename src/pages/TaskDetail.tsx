@@ -39,6 +39,7 @@ import { ActivityFeed } from "./project/ActivityFeed";
 import { Checklist } from "./project/Checklist";
 import { useActivity, useWatchers } from "./project/api";
 import { useTaskMeeting } from "./calendar/ActionPoints";
+import { ProgressValue, TaskProgressCard } from "./updates/TaskProgress";
 import "@/styles/tasks.css";
 import "@/styles/meeting.css";
 
@@ -363,6 +364,8 @@ export default function TaskDetail() {
 
           <Checklist task={t} />
 
+          <TaskProgressCard taskId={t.id} />
+
           <div className="glass card">
             <div className="card-head">
               <h3>
@@ -539,6 +542,11 @@ export default function TaskDetail() {
           <Row label="Priority">
             <PriorityFlag priority={task.priority} />
           </Row>
+          {(task.progress_at || (task.progress ?? 0) > 0) && task.status !== "done" && (
+            <Row label="Progress">
+              <ProgressValue task={task} />
+            </Row>
+          )}
           <Row label="Project">
             <ProjectTag project={projects.get(task.project_id)} />
           </Row>

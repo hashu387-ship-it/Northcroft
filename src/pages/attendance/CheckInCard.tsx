@@ -1,13 +1,16 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CircleAlert, CircleCheck, Clock, Clock3, LocateFixed, LogIn, LogOut, MapPinOff, Navigation, RotateCcw, Trash2 } from "lucide-react";
+import { CircleAlert, CircleCheck, Clock, Clock3, LocateFixed, LogIn, LogOut, MapPinOff, Navigation, RotateCcw, Send, Trash2 } from "lucide-react";
 import { useInvalidate, useSettings } from "@/lib/api";
+import { celebrateEarlyStart } from "@/lib/celebrate";
+import { sendsDailyUpdate, useMyDailyUpdate } from "@/lib/dailyUpdates";
 import { useMe } from "@/lib/auth";
 import { getPosition, mapsLink, reverseGeocode } from "@/lib/geo";
 import { queueAttendance, removeItem, retryItem, usePendingAttendance, type OutboxAttendance } from "@/lib/outbox";
 import { errorMessage, isNetworkError, supabase } from "@/lib/supabase";
 import { DOW_LONG, fmtClock, fmtDuration, fmtLongDate, fmtTime12, isWorkday, todayISO } from "@/lib/time";
 import type { Attendance } from "@/lib/types";
-import { Pill, useToast } from "@/components/ui";
+import { Pill, Sheet, useToast } from "@/components/ui";
+import { UpdateForm } from "../updates/UpdateForm";
 import { MapBox, PlacePill, clockParts, useNow } from "./shared";
 import { SentLater } from "./SentLater";
 
@@ -45,6 +48,19 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
   const inAt = today?.check_in_at ?? pendingIn?.at ?? null;
   const outAt = today?.check_out_at ?? pendingOut?.at ?? null;
   const mode: "in" | "out" | "done" = !inAt ? "in" : outAt ? "done" : "out";
+  // Check-out asks for today's daily update first (they can still check out without it).
+  const asksUpdate = mode === "out" && sendsDailyUpdate(me);
+  const todayUpdate = useMyDailyUpdate(me.id, date, asksUpdate);
+  const [updateSheet, setUpdateSheet] = useState(false);
+
+  function tapMain() {
+    const needsUpdate = asksUpdate && !todayUpdate.data && !todayUpdate.isLoading && !todayUpdate.isError;
+    if (needsUpdate && navigator.onLine !== false) {
+      setUpdateSheet(true);
+      return;
+    }
+    void record(true);
+  }
 
   async function record(withLocation: boolean) {
     setLocError(null);
@@ -84,6 +100,8 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
       setNote("");
       setShowNote(false);
       await invalidate("attendance");
+      // In before 8:00 am: confetti and a "Great job" card with this week's early starts.
+      if (mode === "in") void celebrateEarlyStart(me.id, me.short_name, rec.check_in_at);
     } catch (e) {
       if (isNetworkError(e)) {
         // No signal: keep the time and place on the phone; it's sent, marked "sent later", once back online.
@@ -102,6 +120,7 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
           toast(`${mode === "in" ? "Checked in" : "Checked out"} at ${fmtTime12(tappedAt)}. There's no signal, so it's saved on this phone and goes out when you're back online.`);
           setNote("");
           setShowNote(false);
+          if (mode === "in") void celebrateEarlyStart(me.id, me.short_name, tappedAt);
         } catch {
           toast("There's no signal and this phone couldn't save it. Try again when you're back online.", "error");
         }
@@ -166,7 +185,7 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
           <div className="stack" style={{ gap: 10 }}>
             <button
               className={`btn large block checkin-btn ${mode === "in" ? "success" : "primary"}`}
-              onClick={() => record(true)}
+              onClick={tapMain}
               disabled={phase !== "idle"}
               type="button"
             >
@@ -227,6 +246,44 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
         )}
         {pending.length > 0 && <WaitingToSend items={pending} />}
       </div>
+
+      <Sheet open={updateSheet} onClose={() => setUpdateSheet(false)} title="Before you check out" wide>
+        <p className="muted small du-sheet-note">Say how far your tasks got today and what you did on them.</p>
+        <UpdateForm
+          existing={null}
+          footer={(send, busy) => (
+            <div className="stack" style={{ gap: 8 }}>
+              <button
+                className="btn primary large block"
+                type="button"
+                disabled={busy || phase !== "idle"}
+                onClick={async () => {
+                  if (await send()) {
+                    setUpdateSheet(false);
+                    void record(true);
+                  }
+                }}
+              >
+                <Send /> {busy ? "Sending..." : "Send update and check out"}
+              </button>
+              <button
+                className="btn ghost block"
+                type="button"
+                disabled={busy || phase !== "idle"}
+                onClick={() => {
+                  setUpdateSheet(false);
+                  void record(true);
+                }}
+              >
+                Check out without it
+              </button>
+              <p className="faint tiny" style={{ textAlign: "center", margin: 0 }}>
+                Managers see who checked out without sending one.
+              </p>
+            </div>
+          )}
+        />
+      </Sheet>
 
       {today && (
         <div className="glass card stack" style={{ gap: 14 }}>

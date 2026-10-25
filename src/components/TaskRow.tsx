@@ -7,6 +7,7 @@ import { peopleOn } from "@/lib/people";
 import { reviewLabel, useSignoff } from "@/lib/signoff";
 import type { Task } from "@/lib/types";
 import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing } from "./ui";
+import { ProgressChip } from "@/pages/updates/TaskProgress";
 
 export function TaskRow({
   task,
@@ -35,6 +36,7 @@ export function TaskRow({
           <DueLabel date={task.due_date} done={task.status === "done" || task.status === "in_review"} />
           <PriorityFlag priority={task.priority} />
           <EarlyBadge task={task} />
+          <ProgressChip task={task} />
           {checklist && checklist[1] > 0 && (
             <span className="row" style={{ gap: 3 }}>
               <ListChecks size={13} />

@@ -532,3 +532,45 @@ export interface PollVote {
   choices: number[];
   updated_at: string;
 }
+
+/* ---------------------------------------------------------------- daily updates (0028) */
+
+// Whether this person sends a daily update (on for the team; managers are off). Set in Settings > Team.
+export interface Profile {
+  daily_update?: boolean;
+}
+
+// How far each task has got (0 to 100), from the latest daily update.
+export interface Task {
+  progress?: number;
+  progress_at?: string | null;
+}
+
+/** One person's update for one day: what they did on each task, other work and anything blocking them. */
+export interface DailyUpdate {
+  id: string;
+  user_id: string;
+  work_date: string;
+  other_work: string | null;
+  blockers: string | null;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** One task in a daily update: where it was, where it is now, and what was done on it. */
+export interface DailyUpdateItem {
+  id: string;
+  update_id: string;
+  task_id: string;
+  /** The task's title when the update was sent. */
+  task_title: string;
+  project_id: string | null;
+  progress_before: number;
+  progress: number;
+  note: string | null;
+  /** Reached 100% in this update, so it went in for review. */
+  handed_in: boolean;
+  created_at: string;
+  updated_at: string;
+}

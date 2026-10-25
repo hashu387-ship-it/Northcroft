@@ -24,6 +24,7 @@ import { TaskRow } from "@/components/TaskRow";
 import { OngoingTasksCard } from "@/components/TeamTasks";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
+import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
 import { leaveByDay, useTeamLeave } from "@/lib/leave";
 import { VoiceNote } from "@/components/Voice";
 import { Avatar, CountUp, Empty, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
@@ -176,9 +177,11 @@ export default function Home() {
       <div className="home-grid">
         <div className="stack">
           {!me.attendance_exempt && <CheckInCard />}
+          <MyUpdateHomeCard />
           {!givesOnly && <FocusCard tasks={myOpen} loading={mine.isLoading} />}
           {canAssign && <ReviewCard tasks={toReview} loading={allOpen.isLoading} finalOk={signoff.on && signoff.final?.id === me.id} />}
           {canAssign && <LeaveToApproveCard />}
+          <TeamUpdatesHomeCard />
           {isManager && <OngoingTasksCard tasks={teamOpen} loading={allOpen.isLoading} linkTo={givesOnly ? "/my-tasks" : "/my-tasks?view=team"} />}
           {canAssign && (me.attendance_times === false ? <TeamTodayPresence /> : <TeamSnapshot />)}
         </div>

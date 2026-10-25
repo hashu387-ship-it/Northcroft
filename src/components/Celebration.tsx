@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarCheck, Rocket, Sparkles, Trophy } from "lucide-react";
+import { CalendarCheck, Rocket, Sparkles, Sunrise, Trophy } from "lucide-react";
 import clsx from "clsx";
 import { usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
@@ -102,7 +102,7 @@ function runConfetti(canvas: HTMLCanvasElement, amount: number): () => void {
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
 /* ---------------------------------------------------------------- the card */
-const ICON = { approved: Trophy, early: Rocket, on_time: CalendarCheck } as const;
+const ICON = { approved: Trophy, early: Rocket, on_time: CalendarCheck, early_start: Sunrise } as const;
 
 function Overlay({ c, onDone }: { c: Celebration; onDone: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);

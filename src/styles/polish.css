@@ -335,6 +335,14 @@
   border-color: rgba(120, 6, 14, 0.5);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 6px 18px rgba(232, 52, 62, 0.45), 0 0 0 6px rgba(243, 90, 98, 0.16);
 }
+/* Early start: a sunrise in warm orange. */
+.celebrate.early_start .celebrate-icon {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 46%, rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, #ffb340 0%, #e8590c 100%);
+  border-color: rgba(150, 60, 0, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 6px 18px rgba(232, 89, 12, 0.42), 0 0 0 6px rgba(255, 179, 64, 0.18);
+}
 .celebrate.small .celebrate-icon {
   width: 42px;
   height: 42px;

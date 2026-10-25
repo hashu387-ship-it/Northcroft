@@ -4,6 +4,7 @@ import {
   BarChart3,
   CalendarDays,
   ChevronLeft,
+  ClipboardList,
   FolderKanban,
   House,
   Inbox,
@@ -22,6 +23,7 @@ import { useAuth, useMe } from "@/lib/auth";
 import { useRealtime } from "@/lib/realtime";
 import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/push";
 import { useAppUpdates } from "@/lib/updates";
+import { sendsDailyUpdate } from "@/lib/dailyUpdates";
 import { supabase } from "@/lib/supabase";
 import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
@@ -146,6 +148,8 @@ export default function AppShell() {
     { to: "/announcements", label: "Announcements", icon: Megaphone, count: unacked },
     { to: "/calendar", label: "Calendar", icon: CalendarDays },
     { to: "/chats", label: "Chats", icon: MessagesSquare, count: chatUnread },
+    // The team sends a daily update; managers and seniors read everyone's.
+    ...(sendsDailyUpdate(me) || canAssign ? [{ to: "/updates", label: "Daily updates", icon: ClipboardList }] : []),
     // People who don't check in see "Attendance" (the team's board) if they manage, otherwise nothing.
     ...(!me.attendance_exempt
       ? [{ to: "/attendance", label: "Check in", icon: MapPin }]
@@ -269,7 +273,7 @@ export default function AppShell() {
           Inbox
           {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
         </NavLink>
-        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
+        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
           <Ellipsis />
           More
           {!!unacked && <span className="dot">{unacked}</span>}
