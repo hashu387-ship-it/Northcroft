@@ -118,3 +118,12 @@
 .leave-year { gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .leave-year .grow { min-width: 160px; }
 .leave-table { min-width: 420px; }
+
+/* Annual leave not open yet, and files on a request. */
+.leave-locked { display: flex; align-items: center; gap: 6px; margin: 4px 0 10px; padding: 8px 10px; border-radius: 10px; background: var(--fill); color: var(--text-2); }
+.leave-locked svg { flex-shrink: 0; }
+.leave-locked-note { display: flex; align-items: center; gap: 5px; margin-top: 6px; }
+.leave-kind.locked { opacity: 0.5; cursor: not-allowed; display: inline-flex; align-items: center; gap: 4px; }
+.leave-file-x { border: 0; background: none; padding: 0; color: inherit; display: grid; cursor: pointer; }
+.leave-missing { display: flex; align-items: center; gap: 5px; margin-top: 4px; color: var(--orange); font-weight: 600; }
+.leave-files .files { grid-template-columns: 1fr; }

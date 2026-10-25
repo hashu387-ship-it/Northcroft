@@ -36,6 +36,7 @@ export function Attachments({
   announcementId,
   hideWhenEmpty,
   uploadRef,
+  leaveId,
 }: {
   taskId?: string | null;
   projectId?: string | null;
@@ -57,6 +58,8 @@ export function Attachments({
   hideWhenEmpty?: boolean;
   /** Lets a bigger area around this list take dropped files (it calls the same upload). */
   uploadRef?: MutableRefObject<((files: File[]) => void) | null>;
+  /** Files on a leave request. */
+  leaveId?: string | null;
 }) {
   const me = useMe();
   const { canAssign } = useAuth();
@@ -71,7 +74,7 @@ export function Attachments({
   const driveOn = !!useSettings().data?.drive_connected_at;
 
   const q = useQuery({
-    queryKey: ["attachments", taskId ? "task" : variationId ? "vo" : announcementId ? "announcement" : "project", taskId ?? variationId ?? announcementId ?? projectId, repeatOf ?? null, voRound ?? null, voSide ?? null, (knownRounds ?? []).join(",")],
+    queryKey: ["attachments", taskId ? "task" : variationId ? "vo" : announcementId ? "announcement" : leaveId ? "leave" : "project", taskId ?? variationId ?? announcementId ?? leaveId ?? projectId, repeatOf ?? null, voRound ?? null, voSide ?? null, (knownRounds ?? []).join(",")],
     queryFn: async () => {
       let query = supabase.from("attachments").select("*");
       if (taskId && repeatOf) query = query.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
@@ -79,6 +82,7 @@ export function Attachments({
         query = query.eq("variation_id", variationId);
         if (voRound) query = query.eq("vo_round", voRound).eq("vo_side", voSide ?? "sent");
       } else if (announcementId) query = query.eq("announcement_id", announcementId);
+      else if (leaveId) query = query.eq("leave_id", leaveId);
       else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
       let rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(300));
       // Supporting files: no revision, or one that has been taken off.
@@ -101,6 +105,7 @@ export function Attachments({
           voRound: voRound ?? null,
           voSide: voRound ? voSide ?? "sent" : null,
           announcementId: announcementId ?? null,
+          leaveId: leaveId ?? null,
           userId: me.id,
           onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });

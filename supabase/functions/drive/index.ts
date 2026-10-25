@@ -296,6 +296,8 @@ type Target = {
   vo_side?: string | null;
   /** A file on an announcement (added by whoever posted it, or a manager or senior). */
   announcement_id?: string | null;
+  /** A file on a leave request (the person who asked, or a manager or senior). Never in a project folder. */
+  leave_id?: string | null;
 };
 
 async function checkTarget(t: Target, me: Me, req: Request): Promise<string | null> {
@@ -320,6 +322,12 @@ async function checkTarget(t: Target, me: Me, req: Request): Promise<string | nu
     if (!an) throw new UserError("That announcement no longer exists.", 404);
     if (an.author_id !== me.id && me.role !== "manager" && !me.can_assign) throw new UserError("Only whoever posted the announcement can add files to it.", 403);
     projectId = an.project_id;
+  } else if (t.leave_id) {
+    const { data: lr } = await admin.from("leave_requests").select("id, user_id").eq("id", t.leave_id).maybeSingle();
+    if (!lr) throw new UserError("That leave request no longer exists.", 404);
+    if (lr.user_id !== me.id && me.role !== "manager" && !me.can_assign) throw new UserError("Only the person who asked for the leave can add files to it.", 403);
+    // Leave files go in the General folder, never a project's.
+    projectId = null;
   }
   let conversation = t.conversation_id ?? null;
   if (t.comment_id) {
@@ -407,6 +415,7 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Re
       vo_round: body.task_id || !body.variation_id ? null : body.vo_round ?? null,
       vo_side: body.task_id || !body.variation_id || !body.vo_round ? null : body.vo_side ?? null,
       announcement_id: body.task_id || body.variation_id ? null : body.announcement_id ?? null,
+      leave_id: body.task_id || body.variation_id || body.announcement_id ? null : body.leave_id ?? null,
       uploaded_by: me.id,
     })
     .select()

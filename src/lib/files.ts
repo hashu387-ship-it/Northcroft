@@ -39,6 +39,8 @@ export interface UploadTarget {
   voSide?: "sent" | "assessment" | null;
   /** A file on an announcement. */
   announcementId?: string | null;
+  /** A file on a leave request: kept under leave/<id>/, seen only by the person and managers. */
+  leaveId?: string | null;
   userId: string;
   onProgress?: (fraction: number) => void;
 }
@@ -59,10 +61,13 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
     }
     // Drive isn't connected yet: keep the file in the app's storage for now.
   }
-  // Private chat files live under c/<chat id>/, which only the people in that chat can read.
+  // Private chat files live under c/<chat id>/, which only the people in that chat can read, and
+  // leave files under leave/<request id>/, which only the person and managers can read.
   const path = opts.conversationId
     ? `c/${opts.conversationId}/${crypto.randomUUID()}-${safeName(file.name)}`
-    : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : opts.variationId ? `vo-${opts.variationId}` : opts.announcementId ? `ann-${opts.announcementId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
+    : opts.leaveId
+      ? `leave/${opts.leaveId}/${crypto.randomUUID()}-${safeName(file.name)}`
+      : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : opts.variationId ? `vo-${opts.variationId}` : opts.announcementId ? `ann-${opts.announcementId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
@@ -76,7 +81,7 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
       mime: file.type || null,
       size: file.size,
       task_id: opts.taskId ?? null,
-      project_id: opts.projectId ?? null,
+      project_id: opts.leaveId ? null : opts.projectId ?? null,
       comment_id: opts.commentId ?? null,
       conversation_id: opts.conversationId ?? null,
       version_of: opts.versionOf ?? null,
@@ -85,6 +90,7 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
       vo_round: opts.taskId || !opts.variationId ? null : opts.voRound ?? null,
       vo_side: opts.taskId || !opts.variationId || !opts.voRound ? null : opts.voSide ?? null,
       announcement_id: opts.taskId || opts.variationId ? null : opts.announcementId ?? null,
+      leave_id: opts.taskId || opts.variationId || opts.announcementId ? null : opts.leaveId ?? null,
       uploaded_by: opts.userId,
     })
     .select()
