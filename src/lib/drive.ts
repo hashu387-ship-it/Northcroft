@@ -57,6 +57,8 @@ export interface DriveTarget {
   voSide?: "sent" | "assessment" | null;
   /** A file on an announcement. */
   announcementId?: string | null;
+  /** A file on a leave request (only the person and managers see it). */
+  leaveId?: string | null;
 }
 
 /**
@@ -75,6 +77,7 @@ export async function uploadToDrive(file: File, target: DriveTarget, onProgress?
     vo_round: target.voRound ?? null,
     vo_side: target.voSide ?? null,
     announcement_id: target.announcementId ?? null,
+    leave_id: target.leaveId ?? null,
   };
   const { upload_url } = await driveCall<{ upload_url: string }>("start_upload", {
     ...ids,

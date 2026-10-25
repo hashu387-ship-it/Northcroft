@@ -195,6 +195,8 @@ export interface Attachment {
   vo_side?: "sent" | "assessment" | null;
   /** Set for a file on an announcement. */
   announcement_id?: string | null;
+  /** Set for a file on a leave request (only the person and managers see it). */
+  leave_id?: string | null;
   created_at: string;
 }
 

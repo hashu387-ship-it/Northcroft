@@ -2,13 +2,15 @@
 // seeing who is away and everyone's annual leave. The database enforces the order and the rules
 // (leave_guard); this screen shows whose turn it is and the right buttons.
 import "@/styles/leave.css";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import clsx from "clsx";
-import { CalendarRange, ChevronLeft, ChevronRight, ClipboardCheck, Plus, TreePalm, TriangleAlert } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, ClipboardCheck, Lock, Paperclip, Plus, TreePalm, TriangleAlert, X } from "lucide-react";
 import { useInvalidate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
+  annualLeaveLocked,
+  annualOpensOn,
   daysText,
   firstStageFor,
   fmtLeaveDates,
@@ -20,6 +22,7 @@ import {
   leaveTurnLabel,
   LEAVE_KINDS,
   LEAVE_STATUS,
+  needsFile,
   requestLeave,
   setLeaveStatus,
   useLeaveBalances,
@@ -32,6 +35,9 @@ import { errorMessage } from "@/lib/supabase";
 import { addDays, dateOf, isWorkday, todayISO } from "@/lib/time";
 import type { LeaveBalance, LeaveKind, LeaveRequest } from "@/lib/types";
 import { Avatar, Empty, Field, Loading, Pill, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Attachments } from "@/components/Attachments";
+import { uploadFile } from "@/lib/files";
+import { fileSize } from "@/lib/format";
 
 const thisYear = () => Number(todayISO().slice(0, 4));
 
@@ -104,6 +110,12 @@ export function MyLeaveCard() {
           <span className="hint">for approval</span>
         </div>
       </div>
+
+      {annualLeaveLocked(me) && (
+        <div className="leave-locked small">
+          <Lock size={14} /> {annualLeaveLocked(me)}
+        </div>
+      )}
 
       {mine.isLoading ? (
         <Loading rows={2} />
@@ -279,7 +291,14 @@ export function TeamLeaveCard() {
                         <td>
                           <span className="row" style={{ gap: 8 }}>
                             <Avatar person={p} size={26} />
-                            <span className="bold">{p?.short_name ?? "Someone"}</span>
+                            <span style={{ minWidth: 0 }}>
+                              <span className="bold">{p?.short_name ?? "Someone"}</span>
+                              {annualOpensOn(p) && (
+                                <span className="faint tiny" style={{ display: "block" }}>
+                                  Annual leave from {annualOpensOn(p)}
+                                </span>
+                              )}
+                            </span>
                           </span>
                         </td>
                         <td className="r num">{b.allowance}</td>
@@ -310,19 +329,27 @@ function LeaveForm({ open, onClose, balance }: { open: boolean; onClose: () => v
   const { me, signoff, people, managers, workDays } = useLeaveContext();
   const toast = useToast();
   const invalidate = useInvalidate();
-  const [kind, setKind] = useState<LeaveKind>("annual");
+  // Annual leave opens 3 months after someone joined; until then the form starts on sick leave.
+  const locked = annualLeaveLocked(me);
+  const [kind, setKind] = useState<LeaveKind>(locked ? "sick" : "annual");
   const [from, setFrom] = useState(nextWorkday(workDays));
   const [to, setTo] = useState(nextWorkday(workDays));
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  // Files go up right after the request is sent (they need its id).
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadNote, setUploadNote] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const d = nextWorkday(workDays);
-    setKind("annual");
+    setKind(annualLeaveLocked(me) ? "sick" : "annual");
     setFrom(d);
     setTo(d);
     setNote("");
+    setFiles([]);
+    setUploadNote(null);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const days = workingDays(from, to, workDays);
@@ -336,6 +363,9 @@ function LeaveForm({ open, onClose, balance }: { open: boolean; onClose: () => v
         : days === 0
           ? "Those dates are all weekend days. Pick at least one working day."
           : null;
+  // What else stops it going: annual leave not open yet, or sick leave without its certificate.
+  const missing = kind === "annual" && locked ? locked : needsFile(kind) && files.length === 0 ? "Attach your medical certificate to send sick leave." : null;
+  const blocker = problem ?? missing;
   const sameYear = !from || Number(from.slice(0, 4)) === thisYear();
   const bal = kind === "annual" && sameYear ? balanceLine(balance, days, null) : null;
   const waitingOver = kind === "annual" && sameYear && balance && bal?.tone !== "red" && balance.pending > 0 && days > balance.remaining - balance.pending;
@@ -344,15 +374,27 @@ function LeaveForm({ open, onClose, balance }: { open: boolean; onClose: () => v
   const sentTo = firstApprovers.length === 1 ? people.get(firstApprovers[0])?.short_name : undefined;
 
   async function send() {
-    if (problem) {
-      toast(problem, "error");
+    if (blocker) {
+      toast(blocker, "error");
       return;
     }
     setBusy(true);
     try {
-      await requestLeave({ kind, start_date: from, end_date: to, note: note.trim() || null });
-      await invalidate("leave_requests");
-      toast(sentTo ? `Leave request sent to ${sentTo}` : "Leave request sent");
+      const made = await requestLeave({ kind, start_date: from, end_date: to, note: note.trim() || null });
+      // The request stands even if a file doesn't go up; it can be added again from the request.
+      const failed: string[] = [];
+      for (const [i, f] of files.entries()) {
+        setUploadNote(`Uploading ${f.name}${files.length > 1 ? ` (${i + 1} of ${files.length})` : ""}...`);
+        try {
+          await uploadFile(f, { leaveId: made.id, userId: me.id });
+        } catch {
+          failed.push(f.name);
+        }
+      }
+      setUploadNote(null);
+      await invalidate("leave_requests", "attachments");
+      if (failed.length) toast(`Request sent, but ${failed.join(", ")} didn't upload. Open the request and add ${failed.length === 1 ? "it" : "them"} again.`, "error");
+      else toast(sentTo ? `Leave request sent to ${sentTo}` : "Leave request sent");
       onClose();
     } catch (e) {
       toast(errorMessage(e), "error");
@@ -371,8 +413,8 @@ function LeaveForm({ open, onClose, balance }: { open: boolean; onClose: () => v
           <button className="btn" onClick={onClose} type="button">
             Cancel
           </button>
-          <button className="btn primary" onClick={send} disabled={busy || !!problem} type="button">
-            {busy ? "Sending..." : "Send request"}
+          <button className="btn primary" onClick={send} disabled={busy || !!blocker} type="button">
+            {busy ? uploadNote ?? "Sending..." : "Send request"}
           </button>
         </>
       }
@@ -380,12 +422,30 @@ function LeaveForm({ open, onClose, balance }: { open: boolean; onClose: () => v
       <div className="stack" style={{ gap: 16 }}>
         <Field label="Type of leave" group>
           <div className="leave-kinds" role="radiogroup" aria-label="Type of leave">
-            {LEAVE_KINDS.map((k) => (
-              <button key={k.value} type="button" role="radio" aria-checked={kind === k.value} className={clsx("leave-kind", kind === k.value && "on")} onClick={() => setKind(k.value)}>
-                {k.short}
-              </button>
-            ))}
+            {LEAVE_KINDS.map((k) => {
+              const off = k.value === "annual" && !!locked;
+              return (
+                <button
+                  key={k.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={kind === k.value}
+                  aria-disabled={off}
+                  disabled={off}
+                  title={off ? locked! : undefined}
+                  className={clsx("leave-kind", kind === k.value && "on", off && "locked")}
+                  onClick={() => setKind(k.value)}
+                >
+                  {off && <Lock size={12} />} {k.short}
+                </button>
+              );
+            })}
           </div>
+          {locked && (
+            <small className="muted tiny leave-locked-note">
+              <Lock size={12} /> {locked}
+            </small>
+          )}
         </Field>
         <div className="leave-dates">
           <Field label="First day">
@@ -422,11 +482,56 @@ function LeaveForm({ open, onClose, balance }: { open: boolean; onClose: () => v
                 </div>
               )}
               {kind !== "annual" && <div className="small muted">{leaveKindLabel(kind)} doesn't count against your annual leave.</div>}
+              {missing && (
+                <div className="small leave-missing">
+                  <Paperclip size={13} /> {missing}
+                </div>
+              )}
             </>
           )}
         </div>
 
-        <Field label="Note (optional)" hint={kind === "sick" ? "If you have a sick note, keep it to hand in to the office." : undefined}>
+        <Field
+          label={needsFile(kind) ? "Medical certificate" : "Files (optional)"}
+          group
+          hint={needsFile(kind) ? "Sick leave needs a medical certificate. Only you and the people who approve leave can see it." : "A ticket, a letter or anything that goes with it. Only you and the people who approve leave can see them."}
+        >
+          <div className="stack" style={{ gap: 8 }}>
+            {files.length > 0 && (
+              <div className="row wrap" style={{ gap: 6 }}>
+                {files.map((f, i) => (
+                  <span className="pill blue" key={`${f.name}-${i}`}>
+                    <Paperclip />
+                    <span className="ellipsis" style={{ maxWidth: 180 }}>
+                      {f.name}
+                    </span>
+                    <span className="faint">{fileSize(f.size)}</span>
+                    <button type="button" className="leave-file-x" onClick={() => setFiles((xs) => xs.filter((_, j) => j !== i))} aria-label={`Take ${f.name} off`}>
+                      <X size={13} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <button type="button" className={clsx("btn small", needsFile(kind) && files.length === 0 && "primary")} style={{ alignSelf: "flex-start" }} onClick={() => fileInput.current?.click()}>
+              <Paperclip /> {files.length ? "Add another file" : needsFile(kind) ? "Attach medical certificate" : "Add files"}
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              hidden
+              accept="image/*,application/pdf,.doc,.docx"
+              aria-label="Choose files for the leave request"
+              onChange={(e) => {
+                const picked = Array.from(e.target.files ?? []);
+                setFiles((xs) => [...xs, ...picked]);
+                e.target.value = "";
+              }}
+            />
+          </div>
+        </Field>
+        <Field label="Note (optional)">
           <textarea className="textarea" rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything they should know" />
         </Field>
         <div className="muted small">{route}</div>
@@ -581,6 +686,8 @@ export function LeaveDetail({ id, initial, onClose }: { id: string; initial?: Le
           </div>
         )}
 
+        <LeaveFiles r={r} mine={mine} />
+
         <div className="stack" style={{ gap: 4 }}>
           <span className="section-title">History</span>
           <ul className="leave-steps">
@@ -612,6 +719,17 @@ export function LeaveDetail({ id, initial, onClose }: { id: string; initial?: Le
         )}
       </div>
     </Sheet>
+  );
+}
+
+/** Files on a request: the person adds them while it's waiting; approvers and managers see them. */
+function LeaveFiles({ r, mine }: { r: LeaveRequest; mine: boolean }) {
+  const canAdd = mine && r.status === "pending";
+  return (
+    <div className="stack leave-files" style={{ gap: 6 }}>
+      <span className="section-title">{r.kind === "sick" ? "Medical certificate" : "Files"}</span>
+      <Attachments leaveId={r.id} canUpload={canAdd} compact emptyText={r.kind === "sick" ? "No certificate attached" : "No files attached"} />
+    </div>
   );
 }
 

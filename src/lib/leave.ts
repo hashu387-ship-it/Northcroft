@@ -7,7 +7,7 @@ import { unwrap, usePeople, useSettings } from "./api";
 import { useAuth, useMe } from "./auth";
 import { useSignoff, type Signoff } from "./signoff";
 import { supabase } from "./supabase";
-import { addDays, DOW_SHORT, dow, isWorkday, todayISO } from "./time";
+import { addDays, dateOf, DOW_SHORT, dow, isWorkday, todayISO } from "./time";
 import type { LeaveBalance, LeaveKind, LeaveRequest, LeaveStatus, Profile, TeamLeave } from "./types";
 
 export const LEAVE_KINDS: { value: LeaveKind; label: string; short: string }[] = [
@@ -53,6 +53,34 @@ export function fmtLeaveDates(from: string, to: string): string {
 }
 
 export const daysText = (n: number) => `${n} working ${n === 1 ? "day" : "days"}`;
+
+/** The first day someone can ask for annual leave: 3 months after their account was made (mirrors
+ *  annual_leave_opens; the month end is kept, so 30 Nov opens on 28 Feb). */
+export function annualLeaveOpens(createdAt: string | null | undefined): string | null {
+  if (!createdAt) return null;
+  const [y, m, d] = dateOf(createdAt).split("-").map(Number);
+  const total = m - 1 + 3;
+  const ty = y + Math.floor(total / 12);
+  const tm = (total % 12) + 1;
+  const last = new Date(Date.UTC(ty, tm, 0)).getUTCDate();
+  return `${ty}-${String(tm).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`;
+}
+
+/** "Annual leave opens on Fri 22 Jan 2027, 3 months after you joined." or null once it's open. */
+export function annualLeaveLocked(p: Pick<Profile, "created_at"> | null | undefined, who: string | null = null): string | null {
+  const opens = annualLeaveOpens(p?.created_at);
+  if (!opens || todayISO() >= opens) return null;
+  return `Annual leave opens on ${fmtLeaveDay(opens)}, 3 months after ${who ? `${who} joined` : "you joined"}.`;
+}
+
+/** "Fri 22 Jan 2027" while someone's annual leave isn't open yet, otherwise null. */
+export function annualOpensOn(p: Pick<Profile, "created_at"> | null | undefined): string | null {
+  const opens = annualLeaveOpens(p?.created_at);
+  return opens && todayISO() < opens ? fmtLeaveDay(opens) : null;
+}
+
+/** Sick leave needs a medical certificate attached before it can be sent. */
+export const needsFile = (kind: LeaveKind) => kind === "sick";
 
 /** Where a new request starts (mirrors leave_first_stage). */
 export function firstStageFor(userId: string, s: Signoff): "first" | "final" {
