@@ -340,3 +340,15 @@
 }
 .page .board { grid-template-columns: repeat(4, minmax(190px, 1fr)); gap: 12px; }
 .page .board-col { padding: 10px; }
+
+/* The VO log section of the variation form. */
+.vo-log { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; margin-top: 4px; border-top: 1px solid var(--separator); }
+.vo-log-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.vo-log-head h3 { font-size: 15px; font-weight: 650; margin: 0; }
+.vo-rounds { display: flex; flex-direction: column; gap: 10px; }
+.vo-rounds-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.vo-rounds-empty { margin: 0; }
+.vo-round { border: 1px solid var(--solid-border); background: var(--solid-2); border-radius: 12px; padding: 10px 12px 12px; }
+.vo-round-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.vo-round-n { font-weight: 650; font-size: 13px; }
+.vo-round .textarea { min-height: 0; }

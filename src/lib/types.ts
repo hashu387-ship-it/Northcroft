@@ -334,9 +334,28 @@ export interface Variation {
   owner_id: string | null;
   owners: string[];
   notes: string | null;
+  /* From the VO log (0027): the log's own reference and status, scope, key dates, QS remarks,
+     and each submission with ECJV's response. */
+  log_ref?: string | null;
+  log_status?: string | null;
+  scope?: string | null;
+  instruction_date?: string | null;
+  contract_due?: string | null;
+  expected_completion?: string | null;
+  qs_remarks?: string | null;
+  submissions?: VoSubmission[];
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** One round of a variation: what was sent to the main contractor and what they answered. */
+export interface VoSubmission {
+  sent: string | null;
+  /** When the log has words instead of a date ("Submitted under EI-210"). */
+  sent_note: string | null;
+  response: string | null;
+  response_on: string | null;
 }
 
 export interface BoqPackage {

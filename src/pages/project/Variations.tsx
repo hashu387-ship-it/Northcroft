@@ -12,6 +12,7 @@ import type { Priority, Project, Variation, VoStatus } from "@/lib/types";
 import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, PriorityFlag, PriorityPicker, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
 import { VO_APPROVED, VO_PENDING, dueInline, nextVoNumber, useVariations, voTotals } from "./api";
 import { ownersOf } from "@/lib/people";
+import { VoLogFields, voLogForm, voLogLine, voLogRow, type VoLogForm } from "./VoLog";
 
 type Filter = "all" | "pending" | "approved" | "closed_out";
 const INITIATORS = ["Client", "Engineer", "Contractor", "Consultant", "Other"];
@@ -155,7 +156,11 @@ export function Variations({ project }: { project: Project }) {
                         <td className="bold nowrap">{v.vo_number}</td>
                         <td style={{ maxWidth: 230 }}>
                           <div className="ellipsis" title={v.title}>{v.title}</div>
-                          {v.initiated_by && <div className="faint tiny">Raised by {v.initiated_by}</div>}
+                          {voLogLine(v) ? (
+                            <div className="faint tiny ellipsis" title={voLogLine(v)}>{voLogLine(v)}</div>
+                          ) : (
+                            v.initiated_by && <div className="faint tiny">Raised by {v.initiated_by}</div>
+                          )}
                         </td>
                         <td>
                           <Pill tone={VO_STATUS[v.status].tone}>{VO_STATUS[v.status].label}</Pill>
@@ -215,6 +220,7 @@ export function Variations({ project }: { project: Project }) {
                     )}
                   </div>
                   <div style={{ fontWeight: 550 }}>{v.title}</div>
+                  {voLogLine(v) && <div className="faint small">{voLogLine(v)}</div>}
                   <div className="vals">
                     <span>Submitted<b>{sar(v.submitted_value, { compact: true })}</b></span>
                     <span>Assessed<b>{sar(v.assessed_value, { compact: true })}</b></span>
@@ -278,10 +284,12 @@ function VoSheet({
     owners: [] as string[],
     notes: "",
   });
+  const [log, setLog] = useState<VoLogForm>(() => voLogForm(null));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setLog(voLogForm(vo));
     setF({
       vo_number: vo?.vo_number ?? suggestedNumber,
       title: vo?.title ?? "",
@@ -323,6 +331,7 @@ function VoSheet({
       response_due: f.response_due || null,
       owners: f.owners,
       notes: f.notes.trim() || null,
+      ...voLogRow(log),
     };
     try {
       const { error } = vo
@@ -422,6 +431,7 @@ function VoSheet({
         <Field label="Date approved">
           <input className="input" type="date" value={f.approved_date} onChange={(e) => set("approved_date", e.target.value)} />
         </Field>
+        <VoLogFields value={log} onChange={setLog} />
         <Field label="Details" className="full">
           <textarea className="textarea" value={f.description} onChange={(e) => set("description", e.target.value)} placeholder="Scope of the change, instruction reference, drawings" />
         </Field>
