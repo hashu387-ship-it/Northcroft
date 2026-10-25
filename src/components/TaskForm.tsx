@@ -5,6 +5,7 @@ import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
 import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
+import { checkOtherLink, linkMeta, normalizeUrl } from "@/lib/links";
 import { useSignoff } from "@/lib/signoff";
 import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
 import { fileSize } from "@/lib/format";
@@ -80,7 +81,7 @@ export function TaskForm({
   const [uploadNote, setUploadNote] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const driveOn = !!useSettings().data?.drive_connected_at;
-  // Google Drive links checked in the form; saved on the task once it exists.
+  // Links checked in the form (Google Drive, OneDrive or any web link); saved on the task once it exists.
   const [links, setLinks] = useState<(LinkInfo & { url: string })[]>([]);
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const [linkBusy, setLinkBusy] = useState(false);
@@ -246,11 +247,11 @@ export function TaskForm({
   }
 
   async function addLink() {
-    const v = (linkUrl ?? "").trim();
     setLinkError(null);
-    if (!v) return;
-    if (!looksLikeDriveLink(v)) {
-      setLinkError("That isn't a Google Drive link. In Drive, use Share > Copy link, then paste it here.");
+    if (!(linkUrl ?? "").trim()) return;
+    const v = normalizeUrl(linkUrl ?? "");
+    if (!v) {
+      setLinkError("That doesn't look like a link. Copy the whole address, starting with https://, then paste it here.");
       return;
     }
     if (links.some((l) => l.url === v)) {
@@ -259,7 +260,8 @@ export function TaskForm({
     }
     setLinkBusy(true);
     try {
-      const info = await checkDriveLink(v);
+      // Google Drive links are checked with Google; anything else becomes a card that opens it.
+      const info = looksLikeDriveLink(v) ? await checkDriveLink(v) : await checkOtherLink(v);
       setLinks((xs) => [...xs, { ...info, url: v }]);
       setLinkUrl(null);
     } catch (e) {
@@ -275,7 +277,7 @@ export function TaskForm({
     try {
       await addDriveLinks(links, where);
     } catch (e) {
-      toast(`The Drive ${links.length === 1 ? "link wasn't" : "links weren't"} saved (${errorMessage(e)}). Add ${links.length === 1 ? "it" : "them"} again from the task.`, "error");
+      toast(`The ${links.length === 1 ? "link wasn't" : "links weren't"} saved (${errorMessage(e)}). Add ${links.length === 1 ? "it" : "them"} again from the task.`, "error");
     }
   }
 
@@ -537,7 +539,7 @@ export function TaskForm({
                 <span className="tf-file" key={l.url}>
                   <span className="tf-file-icon drive">{l.kind === "folder" ? <Folder /> : <Link2 />}</span>
                   <span className="tf-file-name ellipsis">{l.title}</span>
-                  <span className="faint tiny">{l.kind === "folder" ? "Drive folder" : "Drive file"}</span>
+                  <span className="faint tiny">{l.provider && l.provider !== "google" ? linkMeta(l) : l.kind === "folder" ? "Drive folder" : "Drive file"}</span>
                   <button
                     type="button"
                     className="icon-btn small plain"
@@ -564,11 +566,11 @@ export function TaskForm({
                         void addLink();
                       }
                     }}
-                    placeholder="Paste a Google Drive folder or file link"
+                    placeholder="Paste a Google Drive, OneDrive or any link"
                     inputMode="url"
                     autoComplete="off"
                     spellCheck={false}
-                    aria-label="Google Drive link"
+                    aria-label="Link"
                     autoFocus
                   />
                   <button className="btn" type="button" onClick={addLink} disabled={linkBusy || !linkUrl.trim()}>
@@ -583,7 +585,7 @@ export function TaskForm({
                 </button>
                 {linkUrl === null && (
                   <button className="btn small" type="button" onClick={() => setLinkUrl("")} disabled={saving}>
-                    <Link2 /> Add Drive link
+                    <Link2 /> Add link
                   </button>
                 )}
               </div>

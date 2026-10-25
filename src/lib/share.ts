@@ -68,11 +68,16 @@ export async function clearShare() {
   }
 }
 
-/** A Google Drive link in the shared text or link, if there is one. */
+/** The link to make a card of: a Google Drive link if there is one, then the link that was shared,
+ *  then a OneDrive, SharePoint, Dropbox or WeTransfer link in the text. */
 export function driveLinkIn(s: Pick<Shared, "text" | "url" | "title">): string | null {
   const all = [s.url, s.text, s.title].join(" ");
-  const m = /https?:\/\/(?:drive|docs)\.google\.com\/[^\s<>"']+/i.exec(all);
-  return m ? m[0].replace(/[).,;]+$/, "") : null;
+  const tidy = (x: string) => x.replace(/[).,;]+$/, "");
+  const google = /https?:\/\/(?:drive|docs)\.google\.com\/[^\s<>"']+/i.exec(all);
+  if (google) return tidy(google[0]);
+  if (/^https?:\/\/\S+$/i.test(s.url.trim())) return tidy(s.url.trim());
+  const files = /https?:\/\/(?:1drv\.ms|onedrive\.live\.com|[\w-]+\.sharepoint\.com|(?:www\.)?dropbox\.com|db\.tt|(?:www\.)?wetransfer\.com|we\.tl)\/[^\s<>"']+/i.exec(all);
+  return files ? tidy(files[0]) : null;
 }
 
 /** The words to go with the message: the shared text and link, without repeating a Drive link. */

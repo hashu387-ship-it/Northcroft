@@ -352,3 +352,12 @@
 .vo-round-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .vo-round-n { font-weight: 650; font-size: 13px; }
 .vo-round .textarea { min-height: 0; }
+.vo-gap { margin: -2px 0 0; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.vo-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px; margin-top: 10px; }
+.vo-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px; border-radius: 10px; background: var(--fill); }
+.vo-side .files { gap: 6px; }
+.vo-files-later { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; }
+.vo-support { display: flex; flex-direction: column; gap: 8px; }
+.dl-section.compact { gap: 6px; }
+.dl-brand { color: #fff; }
+.dl-brand svg { color: #fff; }

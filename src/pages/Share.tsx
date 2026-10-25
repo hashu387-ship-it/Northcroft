@@ -11,6 +11,7 @@ import { unwrap, usePeople, useProjectMap } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { useChats, type ChatItem } from "@/lib/chats";
 import { checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
+import { checkOtherLink, describeLink, linkMeta, normalizeUrl } from "@/lib/links";
 import { keepFiles, queueMessage, type OutboxRow } from "@/lib/outbox";
 import { clearShare, driveLinkIn, pendingShare, sharedWords, type Shared } from "@/lib/share";
 import { supabase } from "@/lib/supabase";
@@ -48,12 +49,14 @@ export default function Share() {
       if (!s) return;
       const link = driveLinkIn(s);
       setMessage(sharedWords(s, link));
-      if (link && looksLikeDriveLink(link)) {
-        setDrive({ url: link, info: null, checking: navigator.onLine !== false });
+      // A Google Drive link is checked with Google; any other link becomes a card that opens it.
+      const url = link ? normalizeUrl(link) : null;
+      if (url) {
+        setDrive({ url, info: null, checking: navigator.onLine !== false });
         if (navigator.onLine !== false) {
-          checkDriveLink(link)
-            .then((info) => alive && setDrive({ url: link, info, checking: false }))
-            .catch(() => alive && setDrive({ url: link, info: null, checking: false }));
+          (looksLikeDriveLink(url) ? checkDriveLink(url) : checkOtherLink(url))
+            .then((info) => alive && setDrive({ url, info, checking: false }))
+            .catch(() => alive && setDrive({ url, info: null, checking: false }));
         }
       }
     });
@@ -163,7 +166,7 @@ export default function Share() {
     <div className="page share-page">
       <PageHead
         title="Share"
-        sub={count ? `${count === 1 ? "1 file" : `${count} files`}${drive ? " and a Drive link" : ""}. Pick where it goes.` : "Pick where it goes."}
+        sub={count ? `${count === 1 ? "1 file" : `${count} files`}${drive ? " and a link" : ""}. Pick where it goes.` : "Pick where it goes."}
         actions={
           <button className="btn ghost" type="button" onClick={cancel}>
             <X /> Cancel
@@ -196,14 +199,16 @@ export default function Share() {
                     <Link2 size={20} />
                   </span>
                   <div className="grow" style={{ minWidth: 0 }}>
-                    <div className="ellipsis bold small">{drive.info?.title ?? "Google Drive link"}</div>
+                    <div className="ellipsis bold small">{drive.info?.title ?? (looksLikeDriveLink(drive.url) ? "Google Drive link" : describeLink(drive.url).name)}</div>
                     <div className="faint tiny">
                       {drive.checking
                         ? "Checking the link..."
                         : drive.info
-                          ? drive.info.kind === "folder"
-                            ? "Folder: its files show in the message"
-                            : "File: it opens from the message"
+                          ? drive.info.provider && drive.info.provider !== "google"
+                            ? `${linkMeta({ kind: drive.info.kind, site: drive.info.site, title: drive.info.title, url: drive.url })}: it opens from the message`
+                            : drive.info.kind === "folder"
+                              ? "Folder: its files show in the message"
+                              : "File: it opens from the message"
                           : "It goes in the message as a link"}
                     </div>
                   </div>
@@ -314,7 +319,7 @@ export default function Share() {
 /** The message text when only files or a link are shared. */
 function sharedBody(names: string[], links: number): string {
   if (names.length === 1 && !links) return `Shared ${names[0]}`;
-  if (!names.length && links) return "Shared a Google Drive link";
-  const parts = [names.length ? (names.length === 1 ? "1 file" : `${names.length} files`) : null, links ? "a Drive link" : null].filter(Boolean);
+  if (!names.length && links) return "Shared a link";
+  const parts = [names.length ? (names.length === 1 ? "1 file" : `${names.length} files`) : null, links ? "a link" : null].filter(Boolean);
   return `Shared ${parts.join(" and ")}`;
 }

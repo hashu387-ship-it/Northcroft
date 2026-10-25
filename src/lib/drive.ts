@@ -51,6 +51,10 @@ export interface DriveTarget {
   conversationId?: string | null;
   versionOf?: string | null;
   recurringId?: string | null;
+  /** A file on a variation: a submission round's (sent or assessment side), or supporting (no round). */
+  variationId?: string | null;
+  voRound?: string | null;
+  voSide?: "sent" | "assessment" | null;
 }
 
 /**
@@ -65,6 +69,9 @@ export async function uploadToDrive(file: File, target: DriveTarget, onProgress?
     conversation_id: target.conversationId ?? null,
     version_of: target.versionOf ?? null,
     recurring_id: target.recurringId ?? null,
+    variation_id: target.variationId ?? null,
+    vo_round: target.voRound ?? null,
+    vo_side: target.voSide ?? null,
   };
   const { upload_url } = await driveCall<{ upload_url: string }>("start_upload", {
     ...ids,

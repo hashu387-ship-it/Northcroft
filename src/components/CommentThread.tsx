@@ -209,7 +209,7 @@ export function CommentThread({
   const reactions = useReactions(ids.filter((id) => !byId.get(id)?.event));
   // Polls sent as messages here.
   const polls = usePolls("comment", ids.filter((id) => !byId.get(id)?.event && byId.get(id)?.body.startsWith("Poll: ")));
-  // Google Drive links shared in these messages.
+  // Links (Google Drive, OneDrive or any web link) shared in these messages.
   const msgLinks = useMessageDriveLinks(ids.filter((id) => !byId.get(id)?.event));
   const reads = useChatReads(chatKey);
   useKeepRead(chatKey, latest?.id);
@@ -826,7 +826,7 @@ function Composer({
   const invalidate = useInvalidate();
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  // Google Drive links checked and waiting to go with the message.
+  // Links checked and waiting to go with the message.
   const [links, setLinks] = useState<(LinkInfo & { url: string })[]>([]);
   const [addingLink, setAddingLink] = useState(false);
   const [sending, setSending] = useState(false);
@@ -1137,7 +1137,7 @@ function Composer({
             <button className="icon-btn plain" type="button" onClick={() => fileRef.current?.click()} aria-label="Attach a file">
               <Paperclip />
             </button>
-            <button className="icon-btn plain" type="button" onClick={() => setAddingLink(true)} aria-label="Add a Google Drive link" title="Add a Google Drive link">
+            <button className="icon-btn plain" type="button" onClick={() => setAddingLink(true)} aria-label="Add a link" title="Add a link">
               <Link2 />
             </button>
             {onPoll && (
@@ -1185,7 +1185,7 @@ function sharedText(files: File[], links: { title: string }[]): string {
   if (files.length + links.length === 1) return `Shared ${files.length ? files[0].name : links[0].title}`;
   const parts = [
     files.length ? (files.length === 1 ? "1 file" : `${files.length} files`) : null,
-    links.length ? (links.length === 1 ? "1 Drive link" : `${links.length} Drive links`) : null,
+    links.length ? (links.length === 1 ? "1 link" : `${links.length} links`) : null,
   ].filter(Boolean);
   return `Shared ${parts.join(" and ")}`;
 }

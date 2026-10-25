@@ -189,6 +189,10 @@ export interface Attachment {
   version: number;
   /** Set for a file added with a repeating task: it shows on every copy of the task. */
   recurring_id?: string | null;
+  /** Set for a file on a variation; with vo_round, it belongs to that submission (sent or assessment side). */
+  variation_id?: string | null;
+  vo_round?: string | null;
+  vo_side?: "sent" | "assessment" | null;
   created_at: string;
 }
 
@@ -351,9 +355,18 @@ export interface Variation {
 
 /** One round of a variation: what was sent to the main contractor and what they answered. */
 export interface VoSubmission {
+  /** Set by the database when the round is saved; files and links on the round point to it. */
+  key?: string;
+  /** The revision's name ("Rev 0", "Rev 1"). */
+  rev?: string | null;
   sent: string | null;
   /** When the log has words instead of a date ("Submitted under EI-210"). */
   sent_note: string | null;
+  /** What we asked for in this revision (SAR). */
+  submitted_value?: number | null;
+  /** What ECJV assessed it at (SAR). */
+  assessed_value?: number | null;
+  /** ECJV's comments on this revision. */
   response: string | null;
   response_on: string | null;
 }

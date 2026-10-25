@@ -21,6 +21,7 @@
 //   link_list       the files in a linked Drive folder (or the one linked file)
 //   link_file       one file from a linked folder, for the app's file screen
 //   link_open       a 1-hour link that opens or downloads a file from a linked folder
+//   web_info        the name of any other web page (OneDrive, Dropbox, a website) for its link card
 // GET /drive/callback   Google sends the manager back here after they allow access
 // GET ?f=<id>&e=<expiry>&s=<signature>[&d=1]   stream the file (d=1 downloads instead of opening)
 // GET ?g=<drive file>&k=<resource key>&e=&s=[&d=1]   stream a file from a linked (shared) folder
@@ -289,6 +290,10 @@ type Target = {
   version_of?: string | null;
   /** A file set up with a repeating task: it comes with every copy of the task. */
   recurring_id?: string | null;
+  /** A file on a variation: a submission round's ("sent" or "assessment"), or supporting (no round). */
+  variation_id?: string | null;
+  vo_round?: string | null;
+  vo_side?: string | null;
 };
 
 async function checkTarget(t: Target, me: Me, req: Request): Promise<string | null> {
@@ -301,6 +306,13 @@ async function checkTarget(t: Target, me: Me, req: Request): Promise<string | nu
     const { data: rt } = await admin.from("recurring_tasks").select("id, project_id").eq("id", t.recurring_id).maybeSingle();
     if (!rt) throw new UserError("That repeating task no longer exists.", 404);
     projectId = rt.project_id;
+  } else if (t.variation_id) {
+    const { data: vo } = await admin.from("variations").select("id, project_id").eq("id", t.variation_id).maybeSingle();
+    if (!vo) throw new UserError("That variation no longer exists.", 404);
+    projectId = vo.project_id;
+    if (t.vo_side && !["sent", "assessment"].includes(t.vo_side)) throw new UserError("Pick where the file goes on the variation.");
+    if (t.vo_side && !t.vo_round) throw new UserError("Pick the submission the file belongs to.");
+    if (t.vo_round && String(t.vo_round).length > 64) throw new UserError("Pick the submission the file belongs to.");
   }
   let conversation = t.conversation_id ?? null;
   if (t.comment_id) {
@@ -384,6 +396,9 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Re
       conversation_id: body.conversation_id ?? null,
       version_of: body.version_of ?? null,
       recurring_id: body.task_id ? null : body.recurring_id ?? null,
+      variation_id: body.task_id ? null : body.variation_id ?? null,
+      vo_round: body.task_id || !body.variation_id ? null : body.vo_round ?? null,
+      vo_side: body.task_id || !body.variation_id || !body.vo_round ? null : body.vo_side ?? null,
       uploaded_by: me.id,
     })
     .select()
@@ -605,6 +620,72 @@ async function linkInfo(body: { url?: string }) {
   };
 }
 
+/* ---------------------------------------------------------------- other links */
+// A page's name for a link card (OneDrive, Dropbox, WeTransfer, a website). Best effort: when the
+// page won't say (sign-in pages, apps that build the page in the browser), the app names it from
+// the address and the person can change it.
+const GENERIC_TITLES = /^(onedrive|microsoft onedrive|sign in.*|sign-in.*|login|log in|dropbox|wetransfer|sharepoint|microsoft sharepoint|box|icloud|google drive|redirecting.*|just a moment.*|attention required.*|access denied|403 forbidden|404 not found|page not found|untitled)$/i;
+
+function privateHost(host: string) {
+  const h = host.toLowerCase();
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) return true;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) {
+    const [a, b] = h.split(".").map(Number);
+    return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+  }
+  return h.includes(":") || h.startsWith("[");
+}
+
+function decodeEntities(t: string) {
+  return t
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function webInfo(body: { url?: string }) {
+  let u: URL;
+  try {
+    u = new URL(String(body.url ?? "").trim());
+  } catch {
+    throw new UserError("That doesn't look like a web link. Copy the whole address, starting with https://");
+  }
+  if (!/^https?:$/.test(u.protocol) || privateHost(u.hostname)) throw new UserError("That doesn't look like a web link. Copy the whole address, starting with https://");
+  let title: string | null = null;
+  try {
+    const res = await fetch(u.toString(), {
+      redirect: "follow",
+      signal: AbortSignal.timeout(6000),
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; NorthcroftLinkCheck/1.0)", Accept: "text/html,application/xhtml+xml" },
+    });
+    if (res.ok && /html/i.test(res.headers.get("content-type") ?? "") && !privateHost(new URL(res.url).hostname)) {
+      // Read the start of the page only.
+      const reader = res.body?.getReader();
+      let html = "";
+      const dec = new TextDecoder();
+      while (reader && html.length < 300_000) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        html += dec.decode(value, { stream: true });
+        if (/<\/head>/i.test(html)) break;
+      }
+      reader?.cancel().catch(() => {});
+      const og = html.match(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+      const tt = html.match(/<title[^>]*>([^<]{1,300})<\/title>/i);
+      const found = decodeEntities((og?.[1] ?? tt?.[1] ?? "").slice(0, 200));
+      if (found && !GENERIC_TITLES.test(found)) title = found;
+    }
+  } catch {
+    title = null;
+  }
+  return { title };
+}
+
 /** The link, as the signed-in person can see it (so only team members, and only links still on). */
 async function visibleLink(id: unknown, req: Request) {
   const { data } = await asUser(req).from("drive_links").select("id, drive_id, resource_key, kind, removed_at").eq("id", String(id ?? "")).maybeSingle();
@@ -740,6 +821,8 @@ Deno.serve(async (req) => {
         return json(await linkFile(body, req));
       case "link_open":
         return json(await linkOpen(body, req));
+      case "web_info":
+        return json(await webInfo(body));
       default:
         return json({ error: "Unknown action" }, 400);
     }

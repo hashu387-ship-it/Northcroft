@@ -431,7 +431,7 @@ function VoSheet({
         <Field label="Date approved">
           <input className="input" type="date" value={f.approved_date} onChange={(e) => set("approved_date", e.target.value)} />
         </Field>
-        <VoLogFields value={log} onChange={setLog} />
+        <VoLogFields value={log} onChange={setLog} vo={vo} />
         <Field label="Details" className="full">
           <textarea className="textarea" value={f.description} onChange={(e) => set("description", e.target.value)} placeholder="Scope of the change, instruction reference, drawings" />
         </Field>

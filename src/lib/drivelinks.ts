@@ -23,7 +23,17 @@ export interface DriveLink {
   added_by: string;
   created_at: string;
   removed_at: string | null;
+  /** google: its files show in the app. onedrive and web: a card that opens the link. */
+  provider?: LinkProvider;
+  /** The name on the card for other links: OneDrive, SharePoint, Dropbox, or the website. */
+  site?: string | null;
+  /** Set for a link on a variation; with vo_round, it belongs to that submission (sent or assessment side). */
+  variation_id?: string | null;
+  vo_round?: string | null;
+  vo_side?: "sent" | "assessment" | null;
 }
+
+export type LinkProvider = "google" | "onedrive" | "web";
 
 /** A file or folder inside a linked folder. */
 export interface DriveItem {
@@ -46,6 +56,9 @@ export interface LinkInfo {
   title: string;
   mime: string | null;
   size: number | null;
+  /** Missing means a Google Drive link. */
+  provider?: LinkProvider;
+  site?: string | null;
 }
 
 /** A quick check before asking Google. */
@@ -73,15 +86,16 @@ export function driveWebUrl(l: Pick<DriveLink, "kind" | "drive_id" | "resource_k
   return l.url || (l.kind === "folder" ? `https://drive.google.com/drive/folders/${l.drive_id}` : `https://drive.google.com/file/d/${l.drive_id}/view`);
 }
 
-/** Links on a task (and its repeating task), or every link in a project. */
-export function useDriveLinks(where: { taskId?: string | null; projectId?: string | null; repeatOf?: string | null }) {
-  const { taskId, projectId, repeatOf } = where;
+/** Links on a task (and its repeating task), on a variation, or every link in a project. */
+export function useDriveLinks(where: { taskId?: string | null; projectId?: string | null; repeatOf?: string | null; variationId?: string | null }) {
+  const { taskId, projectId, repeatOf, variationId } = where;
   return useQuery({
-    queryKey: ["drive_links", taskId ? "task" : "project", taskId ?? projectId, repeatOf ?? null],
-    enabled: !!(taskId || projectId),
+    queryKey: ["drive_links", taskId ? "task" : variationId ? "vo" : "project", taskId ?? variationId ?? projectId, repeatOf ?? null],
+    enabled: !!(taskId || projectId || variationId),
     queryFn: async () => {
       let q = supabase.from("drive_links").select("*").is("removed_at", null);
       if (taskId && repeatOf) q = q.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
+      else if (variationId) q = q.eq("variation_id", variationId);
       else q = taskId ? q.eq("task_id", taskId) : q.eq("project_id", projectId!);
       const { data, error } = await q.order("created_at", { ascending: true });
       if (error) throw error;
@@ -90,27 +104,41 @@ export function useDriveLinks(where: { taskId?: string | null; projectId?: strin
   });
 }
 
-/** Save checked links on a task, a repeating task, a project, or a message. */
-export async function addDriveLinks(
-  links: (LinkInfo & { url: string })[],
-  where: { taskId?: string | null; projectId: string | null; recurringId?: string | null; commentId?: string | null },
-) {
+export interface LinkWhere {
+  taskId?: string | null;
+  projectId: string | null;
+  recurringId?: string | null;
+  commentId?: string | null;
+  /** A link on a variation: a submission round's (sent or assessment side), or supporting (no round). */
+  variationId?: string | null;
+  voRound?: string | null;
+  voSide?: "sent" | "assessment" | null;
+}
+
+/** Save checked links on a task, a repeating task, a project, a variation, or a message. */
+export async function addDriveLinks(links: (LinkInfo & { url: string })[], where: LinkWhere) {
   if (!links.length) return;
   // A link in a message belongs to the message only, so it doesn't also show in a task's or
   // project's Files list. Whoever can see the message can see the link.
   const inMessage = !!where.commentId;
+  const onVo = !inMessage && !where.taskId && !!where.variationId;
   const { error } = await supabase.from("drive_links").insert(
     links.map((l) => ({
       task_id: inMessage ? null : where.taskId ?? null,
       project_id: inMessage ? null : where.projectId,
       recurring_id: inMessage || where.taskId ? null : where.recurringId ?? null,
       comment_id: where.commentId ?? null,
+      variation_id: onVo ? where.variationId : null,
+      vo_round: onVo ? where.voRound ?? null : null,
+      vo_side: onVo && where.voRound ? where.voSide ?? null : null,
       url: l.url.trim(),
       drive_id: l.drive_id,
       resource_key: l.resource_key,
       kind: l.kind,
       title: l.title,
       mime: l.mime,
+      provider: l.provider ?? "google",
+      site: l.provider && l.provider !== "google" ? l.site ?? null : null,
     })),
   );
   if (error) throw error;

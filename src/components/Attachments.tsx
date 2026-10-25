@@ -17,19 +17,36 @@ function FileIcon({ a }: { a: Attachment }) {
 }
 
 /**
- * Files on a task (taskId) or every file in a project (projectId only). For a copy of a repeating
- * task, `repeatOf` also brings in the files that come with every copy.
+ * Files on a task (taskId), on a variation (variationId: one submission's side, or its supporting
+ * files), or every file in a project (projectId only). For a copy of a repeating task, `repeatOf`
+ * also brings in the files that come with every copy.
  */
 export function Attachments({
   taskId,
   projectId,
   repeatOf,
   canUpload = true,
+  variationId,
+  voRound,
+  voSide,
+  compact,
+  emptyText = "No files yet",
+  knownRounds,
 }: {
   taskId?: string | null;
   projectId?: string | null;
   repeatOf?: string | null;
   canUpload?: boolean;
+  variationId?: string | null;
+  /** With variationId: this submission's files (null: the supporting ones). */
+  voRound?: string | null;
+  voSide?: "sent" | "assessment" | null;
+  /** A smaller list without the big empty picture, for the variation form. */
+  compact?: boolean;
+  emptyText?: string;
+  /** For a variation's supporting files: its revisions' keys. Files from a revision that was taken
+   *  off show with the supporting files, so nothing goes missing. */
+  knownRounds?: string[];
 }) {
   const me = useMe();
   const { canAssign } = useAuth();
@@ -44,12 +61,17 @@ export function Attachments({
   const driveOn = !!useSettings().data?.drive_connected_at;
 
   const q = useQuery({
-    queryKey: ["attachments", taskId ? "task" : "project", taskId ?? projectId, repeatOf ?? null],
+    queryKey: ["attachments", taskId ? "task" : variationId ? "vo" : "project", taskId ?? variationId ?? projectId, repeatOf ?? null, voRound ?? null, voSide ?? null, (knownRounds ?? []).join(",")],
     queryFn: async () => {
       let query = supabase.from("attachments").select("*");
       if (taskId && repeatOf) query = query.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
-      else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
-      const rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(300));
+      else if (variationId) {
+        query = query.eq("variation_id", variationId);
+        if (voRound) query = query.eq("vo_round", voRound).eq("vo_side", voSide ?? "sent");
+      } else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
+      let rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(300));
+      // Supporting files: no revision, or one that has been taken off.
+      if (variationId && !voRound) rows = rows.filter((r) => !r.vo_round || !(knownRounds ?? []).includes(r.vo_round));
       const urls = await previewUrls(rows);
       return { rows, urls };
     },
@@ -64,6 +86,9 @@ export function Attachments({
         await uploadFile(f, {
           taskId: taskId ?? null,
           projectId: projectId ?? null,
+          variationId: variationId ?? null,
+          voRound: voRound ?? null,
+          voSide: voRound ? voSide ?? "sent" : null,
           userId: me.id,
           onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });
@@ -102,20 +127,22 @@ export function Attachments({
   return (
     <div className="stack">
       {canUpload && (
-        <div className="row">
+        <div className="row wrap">
           <button className="btn small" onClick={() => inputRef.current?.click()} disabled={busy} type="button">
             <Upload /> {busy ? "Uploading..." : "Add files"}
           </button>
-          <span className="faint tiny">
-            {progress ?? (driveOn ? "Drawings, BOQs, PDFs, photos. Saved to the team's Google Drive." : "Drawings, BOQs, PDFs, photos. Up to 50 MB each.")}
-          </span>
-          <input ref={inputRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
+          {(!compact || progress) && (
+            <span className="faint tiny">
+              {progress ?? (driveOn ? "Drawings, BOQs, PDFs, photos. Saved to the team's Google Drive." : "Drawings, BOQs, PDFs, photos. Up to 50 MB each.")}
+            </span>
+          )}
+          <input ref={inputRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} aria-label="Choose files" />
         </div>
       )}
       {q.isLoading ? (
-        <Loading />
+        compact ? null : <Loading />
       ) : rows.length === 0 ? (
-        <Empty icon={<Paperclip />} title="No files yet" />
+        compact ? <span className="faint tiny">{emptyText}</span> : <Empty icon={<Paperclip />} title={emptyText} />
       ) : (
         <div className="files">
           {rows.map((a) => (
@@ -131,6 +158,14 @@ export function Attachments({
                       <>
                         <span className="drive-tag">
                           <HardDrive size={11} /> Drive
+                        </span>
+                        {" · "}
+                      </>
+                    )}
+                    {!variationId && a.variation_id && (
+                      <>
+                        <span className="drive-tag repeat-tag" title="On a variation">
+                          VO
                         </span>
                         {" · "}
                       </>

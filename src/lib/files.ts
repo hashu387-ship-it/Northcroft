@@ -33,6 +33,10 @@ export interface UploadTarget {
   versionOf?: string | null;
   /** A file set up with a repeating task: it comes with every copy of the task. */
   recurringId?: string | null;
+  /** A file on a variation: a submission round's (sent or assessment side), or supporting (no round). */
+  variationId?: string | null;
+  voRound?: string | null;
+  voSide?: "sent" | "assessment" | null;
   userId: string;
   onProgress?: (fraction: number) => void;
 }
@@ -56,7 +60,7 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
   // Private chat files live under c/<chat id>/, which only the people in that chat can read.
   const path = opts.conversationId
     ? `c/${opts.conversationId}/${crypto.randomUUID()}-${safeName(file.name)}`
-    : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
+    : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : opts.variationId ? `vo-${opts.variationId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
@@ -75,6 +79,9 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
       conversation_id: opts.conversationId ?? null,
       version_of: opts.versionOf ?? null,
       recurring_id: opts.taskId ? null : opts.recurringId ?? null,
+      variation_id: opts.taskId ? null : opts.variationId ?? null,
+      vo_round: opts.taskId || !opts.variationId ? null : opts.voRound ?? null,
+      vo_side: opts.taskId || !opts.variationId || !opts.voRound ? null : opts.voSide ?? null,
       uploaded_by: opts.userId,
     })
     .select()

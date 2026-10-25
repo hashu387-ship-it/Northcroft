@@ -5,15 +5,19 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardPaste,
+  Cloud,
   Download,
   ExternalLink,
   FileSpreadsheet,
   FileText,
   Folder,
   FolderOpen,
+  Globe,
   Image as ImageIcon,
   Link2,
+  Package,
   RefreshCw,
+  Send,
   Settings,
   Trash2,
 } from "lucide-react";
@@ -33,7 +37,9 @@ import {
   type DriveItem,
   type DriveLink,
   type LinkInfo,
+  type LinkWhere,
 } from "@/lib/drivelinks";
+import { checkOtherLink, linkBrand, linkMeta, normalizeUrl } from "@/lib/links";
 import { fileKind } from "@/lib/files";
 import { fileSize } from "@/lib/format";
 import { isIOS } from "@/lib/push";
@@ -190,8 +196,54 @@ function FolderList({ link }: { link: DriveLink }) {
   );
 }
 
-/** One Drive link: a folder that opens into its file list, or a single file. `compact` is the
- *  smaller card inside a chat message (folders start closed). */
+/** The coloured tile for a OneDrive, Dropbox, WeTransfer or website link. */
+export function LinkBrandIcon({ site }: { site: string | null | undefined }) {
+  const b = linkBrand(site);
+  const Icon = site === "OneDrive" || site === "SharePoint" || site === "iCloud" ? Cloud : site === "Dropbox" || site === "Box" ? Package : site === "WeTransfer" ? Send : Globe;
+  return (
+    <span className="dl-drive dl-brand" style={{ background: b.color }} aria-hidden>
+      <Icon />
+    </span>
+  );
+}
+
+/** A OneDrive, SharePoint, Dropbox or website link: a card that opens it. */
+function OtherLinkCard({ link, showTaskNote, compact, canRemove, onRemove }: { link: DriveLink; showTaskNote?: boolean; compact?: boolean; canRemove: boolean; onRemove: () => void }) {
+  const people = usePeople();
+  const meta = compact
+    ? linkMeta(link)
+    : [linkMeta(link), `added by ${people.get(link.added_by)?.short_name ?? "someone"} ${timeAgo(link.created_at)}`].join(" · ");
+  return (
+    <div className={clsx("dl-card", compact && "compact")}>
+      <div className="dl-head">
+        <a className="dl-head-main" href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${link.title}${link.site ? ` on ${link.site}` : ""}`}>
+          <LinkBrandIcon site={link.site} />
+          <span className="dl-name">
+            <b className="ellipsis">{link.title}</b>
+            <span className="faint tiny">
+              {meta}
+              {showTaskNote && link.task_id ? " · on a task" : ""}
+              {showTaskNote && link.variation_id ? " · on a VO" : ""}
+              {link.recurring_id && !link.task_id ? " · every repeat" : ""}
+            </span>
+          </span>
+        </a>
+        <a className="icon-btn small plain" href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${link.title}`} title={link.site ? `Open on ${link.site}` : "Open the link"}>
+          <ExternalLink />
+        </a>
+        {canRemove && (
+          <button type="button" className="icon-btn small plain" onClick={onRemove} aria-label={`Take ${link.title} off`} title="Take off">
+            <Trash2 />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** One link: a Drive folder that opens into its file list, a single Drive file, or a card that
+ *  opens a OneDrive, Dropbox or website link. `compact` is the smaller card inside a chat message
+ *  (folders start closed). */
 export function LinkCard({ link, showTaskNote, compact }: { link: DriveLink; showTaskNote?: boolean; compact?: boolean }) {
   const me = useMe();
   const { canAssign } = useAuth();
@@ -212,23 +264,27 @@ export function LinkCard({ link, showTaskNote, compact }: { link: DriveLink; sho
     viewable: true,
   };
 
+  const other = !!link.provider && link.provider !== "google";
   async function remove() {
+    const nothing = other ? (link.site && !link.site.includes(".") ? `Nothing changes in ${link.site}.` : "Only the link goes from here.") : "Nothing changes in Google Drive.";
     const ok = await confirm({
       title: `Take "${link.title}" off?`,
       message: link.comment_id
-        ? "It goes from this message for everyone. Nothing changes in Google Drive."
+        ? `It goes from this message for everyone. ${nothing}`
         : link.recurring_id && !link.task_id
-          ? "It comes with every copy of this repeating task, so it goes from all of them. Nothing changes in Google Drive."
-          : "Nothing changes in Google Drive.",
+          ? `It comes with every copy of this repeating task, so it goes from all of them. ${nothing}`
+          : nothing,
       confirmLabel: "Take it off",
       danger: true,
     });
     if (!ok) return;
     const { error } = await supabase.from("drive_links").update({ removed_at: new Date().toISOString() }).eq("id", link.id);
     if (error) toast(errorMessage(error), "error");
-    else toast("Drive link taken off");
+    else toast("Link taken off");
     invalidate("drive_links");
   }
+
+  if (other) return <OtherLinkCard link={link} showTaskNote={showTaskNote} compact={compact} canRemove={canRemove} onRemove={remove} />;
 
   // In a message, who shared it and when is already on the message.
   const meta = compact
@@ -250,6 +306,7 @@ export function LinkCard({ link, showTaskNote, compact }: { link: DriveLink; sho
               <span className="faint tiny">
                 {meta}
                 {showTaskNote && link.task_id ? " · on a task" : ""}
+                {showTaskNote && link.variation_id ? " · on a VO" : ""}
                 {link.recurring_id && !link.task_id ? " · every repeat" : ""}
               </span>
             </span>
@@ -308,7 +365,8 @@ function FileHead({ link, file, meta }: { link: DriveLink; file: DriveItem; meta
   );
 }
 
-/** Paste a Drive link, check it with Google, then add it. */
+/** Paste a link: a Google Drive link is checked with Google (its files then show in the app); a
+ *  OneDrive, SharePoint, Dropbox or any web link gets a name and shows as a card that opens it. */
 export function AddDriveLinkSheet({
   open,
   onClose,
@@ -323,12 +381,16 @@ export function AddDriveLinkSheet({
   const { isManager } = useAuth();
   const [url, setUrl] = useState("");
   const [info, setInfo] = useState<LinkInfo | null>(null);
+  // The name on the card, for links that aren't Google Drive.
+  const [name, setName] = useState("");
   const [error, setError] = useState<{ text: string; code: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const other = !!info?.provider && info.provider !== "google";
 
   function reset() {
     setUrl("");
     setInfo(null);
+    setName("");
     setError(null);
     setBusy(false);
   }
@@ -342,13 +404,19 @@ export function AddDriveLinkSheet({
     setInfo(null);
     setError(null);
     if (!v) return;
-    if (!looksLikeDriveLink(v)) {
-      setError({ text: "That isn't a Google Drive link. In Drive, use Share > Copy link, then paste it here.", code: "format" });
+    const link = normalizeUrl(v);
+    if (!link) {
+      setError({ text: "That doesn't look like a link. Copy the whole address, starting with https://, then paste it here.", code: "format" });
       return;
     }
     setBusy(true);
     try {
-      setInfo(await checkDriveLink(v));
+      if (looksLikeDriveLink(link)) setInfo(await checkDriveLink(link));
+      else {
+        const found = await checkOtherLink(link);
+        setInfo(found);
+        setName(found.title);
+      }
     } catch (e) {
       setError({ text: errorMessage(e), code: e instanceof DriveError ? e.code : "error" });
     } finally {
@@ -370,7 +438,8 @@ export function AddDriveLinkSheet({
     if (!info) return;
     setBusy(true);
     try {
-      await onAdd({ ...info, url: url.trim() });
+      const link = normalizeUrl(url) ?? url.trim();
+      await onAdd(other ? { ...info, title: name.trim().slice(0, 200) || info.title, url: link } : { ...info, url: link });
       close();
     } catch (e) {
       setError({ text: errorMessage(e), code: "error" });
@@ -382,7 +451,7 @@ export function AddDriveLinkSheet({
     <Sheet
       open={open}
       onClose={close}
-      title="Add a Google Drive link"
+      title="Add a link"
       footer={
         <>
           <button className="btn" type="button" onClick={close}>
@@ -401,7 +470,7 @@ export function AddDriveLinkSheet({
       }
     >
       <div className="stack" style={{ gap: 12 }}>
-        <Field label="Google Drive link" hint='Share the folder or file in Drive as "Anyone with the link", then copy the link.'>
+        <Field label="Link" hint='Google Drive, OneDrive, SharePoint, Dropbox or any website. A Google Drive folder shared as "Anyone with the link" shows its files here.'>
           <div className="row" style={{ gap: 8 }}>
             <input
               className="input"
@@ -416,11 +485,11 @@ export function AddDriveLinkSheet({
                 if (text) setTimeout(() => void check(text), 0);
               }}
               onKeyDown={(e) => e.key === "Enter" && void check()}
-              placeholder="https://drive.google.com/drive/folders/..."
+              placeholder="Paste the link"
               inputMode="url"
               autoComplete="off"
               spellCheck={false}
-              aria-label="Google Drive link"
+              aria-label="Link"
             />
             {typeof navigator !== "undefined" && typeof navigator.clipboard?.readText === "function" && (
               <button className="btn" type="button" onClick={paste} title="Paste">
@@ -431,10 +500,24 @@ export function AddDriveLinkSheet({
         </Field>
         {busy && !info && (
           <div className="dl-note">
-            <Spinner size={16} /> Checking with Google Drive...
+            <Spinner size={16} /> Checking the link...
           </div>
         )}
-        {info && (
+        {info && other && (
+          <>
+            <div className="dl-preview">
+              <LinkBrandIcon site={info.site} />
+              <span className="dl-name">
+                <b className="ellipsis">{name.trim() || info.title}</b>
+                <span className="faint tiny">{linkMeta({ kind: info.kind, site: info.site, title: info.title, url: normalizeUrl(url) ?? url })} · opens the link</span>
+              </span>
+            </div>
+            <Field label="Name on the card" hint="What the team sees. Change it if it isn't clear.">
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} placeholder="What this link is" />
+            </Field>
+          </>
+        )}
+        {info && !other && (
           <div className="dl-preview">
             <span className="dl-drive">{info.kind === "folder" ? <Folder /> : <ItemIcon item={{ folder: false, mime: info.mime ?? "", name: info.title }} />}</span>
             <span className="dl-name">
@@ -460,41 +543,66 @@ export function AddDriveLinkSheet({
   );
 }
 
-/** Drive links on a task (with its repeating task's) or on a project. */
+/** Links on a task (with its repeating task's), on a project, or on a variation (one submission's
+ *  side, or its supporting links). */
 export function DriveLinks({
   taskId,
   projectId,
   repeatOf,
+  variationId,
+  voRound,
+  voSide,
+  compact,
+  hint = true,
+  knownRounds,
 }: {
   taskId?: string | null;
   projectId?: string | null;
   repeatOf?: string | null;
+  variationId?: string | null;
+  /** With variationId: this submission's links (null: the supporting ones). */
+  voRound?: string | null;
+  voSide?: "sent" | "assessment" | null;
+  /** Smaller cards, for the variation form. */
+  compact?: boolean;
+  hint?: boolean;
+  /** For a variation's supporting links: its revisions' keys (links from a revision taken off show here). */
+  knownRounds?: string[];
 }) {
   const toast = useToast();
   const invalidate = useInvalidate();
   const keySet = !!useSettings().data?.drive_key_added_at;
-  const q = useDriveLinks({ taskId, projectId, repeatOf });
+  const q = useDriveLinks({ taskId, projectId, repeatOf, variationId });
   const [adding, setAdding] = useState(false);
-  const links = q.data ?? [];
+  const all = q.data ?? [];
+  const links = variationId
+    ? all.filter((l) => (voRound ? l.vo_round === voRound && l.vo_side === voSide : !l.vo_round || !(knownRounds ?? []).includes(l.vo_round)))
+    : all;
 
   async function save(link: LinkInfo & { url: string }) {
-    await addDriveLinks([link], { taskId: taskId ?? null, projectId: projectId ?? null });
+    const where: LinkWhere = { taskId: taskId ?? null, projectId: projectId ?? null, variationId: variationId ?? null, voRound: voRound ?? null, voSide: voSide ?? null };
+    await addDriveLinks([link], where);
     await invalidate("drive_links");
-    toast(link.kind === "folder" ? `"${link.title}" added. Its files show here.` : `"${link.title}" added`);
+    const google = !link.provider || link.provider === "google";
+    toast(google && link.kind === "folder" ? `"${link.title}" added. Its files show here.` : `"${link.title}" added`);
   }
 
   return (
-    <div className="dl-section">
+    <div className={clsx("dl-section", compact && "compact")}>
       <div className="row wrap" style={{ gap: 8 }}>
         <button className="btn small" type="button" onClick={() => setAdding(true)}>
-          <Link2 /> Add Drive link
+          <Link2 /> Add link
         </button>
-        <span className="faint tiny">
-          {keySet ? "Paste a Google Drive folder or file link; its files show here to open or download." : "Paste a Google Drive folder or file link (needs a one-time set-up in Settings > Google Drive)."}
-        </span>
+        {hint && (
+          <span className="faint tiny">
+            {keySet
+              ? "Google Drive, OneDrive, Dropbox or any link. A Google Drive folder's files show here to open or download."
+              : "Google Drive, OneDrive, Dropbox or any link. Showing a Google Drive folder's files needs a one-time set-up in Settings > Google Drive."}
+          </span>
+        )}
       </div>
       {links.map((l) => (
-        <LinkCard key={l.id} link={l} showTaskNote={!taskId} />
+        <LinkCard key={l.id} link={l} showTaskNote={!taskId && !variationId} compact={compact} />
       ))}
       <AddDriveLinkSheet open={adding} onClose={() => setAdding(false)} onAdd={save} />
     </div>

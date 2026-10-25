@@ -1,10 +1,25 @@
 // The VO log details of a variation: the log's reference and status, scope, key dates, each
-// submission to the main contractor with their response, and the QS remarks. Edited in the VO form
-// and shown in the register, so the team keeps the log here instead of in a spreadsheet.
-import { Plus, X } from "lucide-react";
+// revision submitted to the main contractor with our amount, ECJV's assessment and comments, and
+// the files and links on both sides, then the supporting documents and the QS remarks. Edited in
+// the VO form and shown in the register, so the team keeps the log here instead of in a spreadsheet.
+import { Paperclip, Plus, X } from "lucide-react";
+import { Attachments } from "@/components/Attachments";
+import { DriveLinks } from "@/components/DriveLinks";
 import { Field } from "@/components/ui";
+import { parseMoney, sar } from "@/lib/format";
 import { addDays, fmtDate } from "@/lib/time";
 import type { Variation, VoSubmission } from "@/lib/types";
+
+interface RoundForm {
+  key: string;
+  rev: string;
+  sent: string;
+  sent_note: string;
+  submitted_value: string;
+  assessed_value: string;
+  response: string;
+  response_on: string;
+}
 
 export interface VoLogForm {
   log_ref: string;
@@ -14,8 +29,11 @@ export interface VoLogForm {
   contract_due: string;
   expected_completion: string;
   qs_remarks: string;
-  submissions: { sent: string; sent_note: string; response: string; response_on: string }[];
+  submissions: RoundForm[];
 }
+
+const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+const money = (n: number | null | undefined) => (n == null ? "" : String(n));
 
 /** Days the contract allows from the instruction to the submission. */
 export const CONTRACT_DAYS = 35;
@@ -30,8 +48,12 @@ export function voLogForm(vo: Variation | null): VoLogForm {
     expected_completion: vo?.expected_completion ?? "",
     qs_remarks: vo?.qs_remarks ?? "",
     submissions: (vo?.submissions ?? []).map((x) => ({
+      key: x.key || newKey(),
+      rev: x.rev ?? "",
       sent: x.sent ?? "",
       sent_note: x.sent_note ?? "",
+      submitted_value: money(x.submitted_value),
+      assessed_value: money(x.assessed_value),
       response: x.response ?? "",
       response_on: x.response_on ?? "",
     })),
@@ -42,8 +64,17 @@ export function voLogForm(vo: Variation | null): VoLogForm {
 export function voLogRow(f: VoLogForm) {
   const t = (s: string) => s.trim() || null;
   const submissions: VoSubmission[] = f.submissions
-    .map((x) => ({ sent: x.sent || null, sent_note: t(x.sent_note), response: t(x.response), response_on: x.response_on || null }))
-    .filter((x) => x.sent || x.sent_note || x.response || x.response_on);
+    .map((x) => ({
+      key: x.key,
+      rev: t(x.rev),
+      sent: x.sent || null,
+      sent_note: t(x.sent_note),
+      submitted_value: parseMoney(x.submitted_value),
+      assessed_value: parseMoney(x.assessed_value),
+      response: t(x.response),
+      response_on: x.response_on || null,
+    }))
+    .filter((x) => x.rev || x.sent || x.sent_note || x.response || x.response_on || x.submitted_value != null || x.assessed_value != null);
   return {
     log_ref: t(f.log_ref),
     log_status: t(f.log_status),
@@ -58,7 +89,27 @@ export function voLogRow(f: VoLogForm) {
 
 const rowsFor = (text: string, min = 2) => Math.min(14, Math.max(min, Math.ceil(text.length / 90) + text.split("\n").length));
 
-export function VoLogFields({ value, onChange }: { value: VoLogForm; onChange: (v: VoLogForm) => void }) {
+/** Our amount against ECJV's: "SAR 12,500 less than we asked (8%)". */
+export function roundGap(submitted: number | null | undefined, assessed: number | null | undefined): string | null {
+  if (submitted == null || assessed == null) return null;
+  const d = submitted - assessed;
+  if (d === 0) return "Assessed at what we asked";
+  const pct = submitted ? Math.round((Math.abs(d) / Math.abs(submitted)) * 100) : null;
+  return `${sar(Math.abs(d))} ${d > 0 ? "less" : "more"} than we asked${pct != null ? ` (${pct}%)` : ""}`;
+}
+
+export function VoLogFields({
+  value,
+  onChange,
+  vo,
+}: {
+  value: VoLogForm;
+  onChange: (v: VoLogForm) => void;
+  /** The saved variation, so files and links can be added (a new one has to be saved first). */
+  vo?: Pick<Variation, "id" | "project_id" | "submissions"> | null;
+}) {
+  // Files go on revisions that are saved; a revision added just now gets them after saving.
+  const savedKeys = (vo?.submissions ?? []).map((x) => x.key).filter((k): k is string => !!k);
   const set = <K extends keyof VoLogForm>(k: K, v: VoLogForm[K]) => onChange({ ...value, [k]: v });
   const setRound = (i: number, patch: Partial<VoLogForm["submissions"][number]>) =>
     set("submissions", value.submissions.map((x, j) => (j === i ? { ...x, ...patch } : x)));
@@ -105,41 +156,98 @@ export function VoLogFields({ value, onChange }: { value: VoLogForm; onChange: (
 
       <div className="vo-rounds">
         <div className="vo-rounds-head">
-          <span className="field-label">Submissions and ECJV responses</span>
+          <span className="field-label">Revisions: what we sent and ECJV's assessment</span>
           <button
             type="button"
             className="btn small"
-            onClick={() => set("submissions", [...value.submissions, { sent: "", sent_note: "", response: "", response_on: "" }])}
+            onClick={() =>
+              set("submissions", [
+                ...value.submissions,
+                { key: newKey(), rev: `Rev ${value.submissions.length}`, sent: "", sent_note: "", submitted_value: "", assessed_value: "", response: "", response_on: "" },
+              ])
+            }
             disabled={value.submissions.length >= 20}
           >
-            <Plus /> Add submission
+            <Plus /> Add revision
           </button>
         </div>
-        {value.submissions.length === 0 && <p className="faint small vo-rounds-empty">Nothing sent yet. Add a submission when it goes to ECJV.</p>}
-        {value.submissions.map((x, i) => (
-          <div className="vo-round" key={i}>
-            <div className="vo-round-top">
-              <span className="vo-round-n">{ordinal(i + 1)} submission</span>
-              <button type="button" className="icon-btn small plain" onClick={() => set("submissions", value.submissions.filter((_, j) => j !== i))} aria-label={`Take the ${ordinal(i + 1)} submission off`}>
-                <X />
-              </button>
+        {value.submissions.length === 0 && <p className="faint small vo-rounds-empty">Nothing sent yet. Add a revision when it goes to ECJV.</p>}
+        {value.submissions.map((x, i) => {
+          const label = x.rev.trim() || `${ordinal(i + 1)} submission`;
+          const gap = roundGap(parseMoney(x.submitted_value), parseMoney(x.assessed_value));
+          const saved = !!vo && savedKeys.includes(x.key);
+          return (
+            <div className="vo-round" key={x.key}>
+              <div className="vo-round-top">
+                <span className="vo-round-n">{label}</span>
+                <button type="button" className="icon-btn small plain" onClick={() => set("submissions", value.submissions.filter((_, j) => j !== i))} aria-label={`Take ${label} off`}>
+                  <X />
+                </button>
+              </div>
+              <div className="form-grid">
+                <Field label="Revision">
+                  <input className="input" value={x.rev} onChange={(e) => setRound(i, { rev: e.target.value })} placeholder={`Rev ${i}`} maxLength={40} />
+                </Field>
+                <Field label="Sent on">
+                  <input className="input" type="date" value={x.sent} onChange={(e) => setRound(i, { sent: e.target.value })} />
+                </Field>
+                <Field label="Or a note instead of a date" className="full">
+                  <input className="input" value={x.sent_note} onChange={(e) => setRound(i, { sent_note: e.target.value })} placeholder="What the log says when there's no date" />
+                </Field>
+                <Field label="Our amount (SAR)">
+                  <input className="input" inputMode="decimal" value={x.submitted_value} onChange={(e) => setRound(i, { submitted_value: e.target.value })} placeholder="What we submitted" />
+                </Field>
+                <Field label="ECJV assessed (SAR)">
+                  <input className="input" inputMode="decimal" value={x.assessed_value} onChange={(e) => setRound(i, { assessed_value: e.target.value })} placeholder="What they assessed" />
+                </Field>
+                {gap && <p className="vo-gap full">{gap}</p>}
+                <Field label="ECJV response and comments" className="full">
+                  <textarea className="textarea" rows={rowsFor(x.response)} value={x.response} onChange={(e) => setRound(i, { response: e.target.value })} placeholder="What ECJV replied and their assessment comments" />
+                </Field>
+                <Field label="Response date">
+                  <input className="input" type="date" value={x.response_on} onChange={(e) => setRound(i, { response_on: e.target.value })} />
+                </Field>
+              </div>
+              {saved ? (
+                <div className="vo-sides">
+                  <div className="vo-side">
+                    <span className="field-label">What we sent</span>
+                    <Attachments variationId={vo!.id} projectId={vo!.project_id} voRound={x.key} voSide="sent" compact emptyText="No files yet" />
+                    <DriveLinks variationId={vo!.id} projectId={vo!.project_id} voRound={x.key} voSide="sent" compact hint={false} />
+                  </div>
+                  <div className="vo-side">
+                    <span className="field-label">ECJV's assessment</span>
+                    <Attachments variationId={vo!.id} projectId={vo!.project_id} voRound={x.key} voSide="assessment" compact emptyText="No files yet" />
+                    <DriveLinks variationId={vo!.id} projectId={vo!.project_id} voRound={x.key} voSide="assessment" compact hint={false} />
+                  </div>
+                </div>
+              ) : (
+                <p className="faint tiny vo-files-later">
+                  <Paperclip size={13} /> {vo ? "Save changes, then add this revision's files and links." : "Add the VO first, then add files and links to each revision."}
+                </p>
+              )}
             </div>
-            <div className="form-grid">
-              <Field label="Sent on">
-                <input className="input" type="date" value={x.sent} onChange={(e) => setRound(i, { sent: e.target.value })} />
-              </Field>
-              <Field label="Or a note instead of a date">
-                <input className="input" value={x.sent_note} onChange={(e) => setRound(i, { sent_note: e.target.value })} placeholder="What the log says when there's no date" />
-              </Field>
-              <Field label="ECJV response" className="full">
-                <textarea className="textarea" rows={rowsFor(x.response)} value={x.response} onChange={(e) => setRound(i, { response: e.target.value })} placeholder="What ECJV replied" />
-              </Field>
-              <Field label="Response date">
-                <input className="input" type="date" value={x.response_on} onChange={(e) => setRound(i, { response_on: e.target.value })} />
-              </Field>
-            </div>
-          </div>
-        ))}
+          );
+        })}
+      </div>
+
+      <div className="vo-support">
+        <div className="vo-rounds-head">
+          <span className="field-label">Supporting documents</span>
+        </div>
+        {vo ? (
+          <>
+            <p className="faint tiny" style={{ margin: 0 }}>
+              Quotations, drawings, site photos, calculations and anything else behind this VO.
+            </p>
+            <Attachments variationId={vo.id} projectId={vo.project_id} voRound={null} compact emptyText="No supporting files yet" knownRounds={savedKeys} />
+            <DriveLinks variationId={vo.id} projectId={vo.project_id} voRound={null} compact hint={false} knownRounds={savedKeys} />
+          </>
+        ) : (
+          <p className="faint tiny" style={{ margin: 0 }}>
+            Add the VO first, then add its supporting files and links.
+          </p>
+        )}
       </div>
 
       <Field label="QS remarks" className="full">
@@ -153,10 +261,12 @@ export function ordinal(n: number) {
   return n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`;
 }
 
-/** One line for the register: the log's status, the latest submission and the expected completion. */
+/** One line for the register: the log's status, the latest revision (and ECJV's figure), and the expected completion. */
 export function voLogLine(v: Variation): string {
   const subs = v.submissions ?? [];
   const last = subs[subs.length - 1];
-  const sent = last ? (last.sent ? `${ordinal(subs.length)} sent ${fmtDate(last.sent)}` : last.sent_note) : null;
-  return [v.log_status, sent, v.expected_completion ? `Expected ${fmtDate(v.expected_completion)}` : null].filter(Boolean).join(" · ");
+  const name = last?.rev?.trim() || ordinal(subs.length);
+  const sent = last ? (last.sent ? `${name} sent ${fmtDate(last.sent)}` : last.sent_note || (last.rev ? name : null)) : null;
+  const assessed = last?.assessed_value != null ? `ECJV ${sar(last.assessed_value, { compact: true })}` : null;
+  return [v.log_status, sent, assessed, v.expected_completion ? `Expected ${fmtDate(v.expected_completion)}` : null].filter(Boolean).join(" · ");
 }
