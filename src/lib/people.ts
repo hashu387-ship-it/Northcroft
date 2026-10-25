@@ -16,3 +16,11 @@ export function nameList(names: string[]): string {
   if (names.length <= 1) return names.join("");
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
+
+/** People who show their job title instead of a Manager label (Hassan shows Senior QS). Their rights stay a manager's. */
+const TITLE_NOT_MANAGER = new Set(["3b537d99-9b94-4d26-9485-8c373605b55d"]);
+
+/** True when the app should label this person "Manager". */
+export function showsManagerLabel(p: { id: string; role: string }): boolean {
+  return p.role === "manager" && !TITLE_NOT_MANAGER.has(p.id);
+}

@@ -16,6 +16,7 @@ import { PlacesSection } from "./settings/PlacesSection";
 import { DriveSection } from "./settings/DriveSection";
 import { AboutSection } from "./settings/AboutSection";
 import "@/styles/admin.css";
+import { showsManagerLabel } from "@/lib/people";
 
 interface SectionDef {
   id: string;
@@ -118,7 +119,7 @@ export default function Settings() {
                   </div>
                   <div className="muted small">
                     {me.title}
-                    {isManager ? " · Manager" : canAssign ? " · Can assign tasks" : ""}
+                    {isManager ? (showsManagerLabel(me) ? " · Manager" : "") : canAssign ? " · Can assign tasks" : ""}
                   </div>
                 </div>
                 <ChevronRight size={18} className="faint" />

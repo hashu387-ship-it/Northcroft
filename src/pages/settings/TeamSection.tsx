@@ -9,9 +9,11 @@ import type { Profile } from "@/lib/types";
 import { PhoneInput, WhatsAppButton, openPersonCard } from "@/components/People";
 import { Avatar, Field, Pill, PersonSelect, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
 import { Section, adminCall, copyText } from "./common";
+import { showsManagerLabel } from "@/lib/people";
 
 function RoleBadge({ p }: { p: Profile }) {
   if (!p.active) return <Pill tone="red">Access off</Pill>;
+  if (p.role === "manager" && !showsManagerLabel(p)) return <Pill tone="blue">{p.title}</Pill>;
   if (p.role === "manager") return <Pill tone="blue">{p.assignable === false ? "Manager · gives tasks" : "Manager"}</Pill>;
   if (p.can_assign) return <Pill tone="purple">Can assign</Pill>;
   return <Pill>Member</Pill>;

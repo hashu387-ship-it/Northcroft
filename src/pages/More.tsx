@@ -7,6 +7,7 @@ import { useAuth, useMe } from "@/lib/auth";
 import { signOutWarning } from "@/lib/outbox";
 import { sendsDailyUpdate } from "@/lib/dailyUpdates";
 import { needsMyAck, useAnnouncementsWithAcks } from "./home/data";
+import { showsManagerLabel } from "@/lib/people";
 
 interface Tile {
   to: string;
@@ -57,7 +58,7 @@ export default function More() {
           <b>{me.full_name}</b>
           <span className="muted small" style={{ display: "block" }}>
             {me.title}
-            {me.role === "manager" ? " · Manager" : me.can_assign ? " · Can assign tasks" : ""}
+            {me.role === "manager" ? (showsManagerLabel(me) ? " · Manager" : "") : me.can_assign ? " · Can assign tasks" : ""}
           </span>
           <span className="faint tiny ellipsis" style={{ display: "block" }}>
             {me.email}

@@ -12,6 +12,7 @@ import { useMe } from "@/lib/auth";
 import { COUNTRY_CODE, formatPhone, localDigits, whatsappLink } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
 import { Avatar, Pill, Sheet, useToast } from "./ui";
+import { showsManagerLabel } from "@/lib/people";
 
 /* ---------------------------------------------------------------- WhatsApp */
 export function WhatsAppIcon({ size = 18 }: { size?: number }) {
@@ -175,7 +176,7 @@ export function PersonCardHost() {
           <div className="pc-name">{p.full_name}</div>
           <div className="pc-title">
             {p.title}
-            {p.role === "manager" ? <Pill tone="blue">Manager</Pill> : p.can_assign ? <Pill tone="purple">Can assign</Pill> : null}
+            {showsManagerLabel(p) ? <Pill tone="blue">Manager</Pill> : p.role !== "manager" && p.can_assign ? <Pill tone="purple">Can assign</Pill> : null}
           </div>
 
           {!isMe && (

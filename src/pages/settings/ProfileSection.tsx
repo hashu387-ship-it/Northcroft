@@ -8,6 +8,7 @@ import { errorMessage, supabase } from "@/lib/supabase";
 import { PhoneInput } from "@/components/People";
 import { Avatar, Field, Pill, Spinner, useToast } from "@/components/ui";
 import { Section } from "./common";
+import { showsManagerLabel } from "@/lib/people";
 
 export function ProfileSection() {
   const me = useMe();
@@ -93,7 +94,7 @@ export function ProfileSection() {
           </div>
           <div className="muted small">{me.title}</div>
           <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
-            {isManager ? <Pill tone="blue">Manager</Pill> : canAssign ? <Pill tone="purple">Can assign tasks</Pill> : <Pill>Team member</Pill>}
+            {isManager ? <Pill tone="blue">{showsManagerLabel(me) ? "Manager" : me.title}</Pill> : canAssign ? <Pill tone="purple">Can assign tasks</Pill> : <Pill>Team member</Pill>}
           </div>
           <div className="row wrap" style={{ gap: 8, marginTop: 10 }}>
             <button className="btn small" type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy}>
