@@ -1,0 +1,55 @@
+/* The all-projects VO log: filters, a wide table that scrolls sideways inside its own box, and
+   cards on phones. */
+
+.vlog-page { display: flex; flex-direction: column; gap: 14px; }
+.vlog-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 899px) {
+  .vlog-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.vlog-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; }
+.vlog-filters .select { width: auto; min-width: 180px; max-width: 100%; flex: 0 1 240px; }
+.vlog-search { position: relative; display: flex; align-items: center; flex: 1 1 260px; min-width: 0; }
+.vlog-search > svg { position: absolute; left: 11px; width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
+.vlog-search .input { padding-left: 34px; padding-right: 36px; width: 100%; }
+.vlog-search .icon-btn { position: absolute; right: 4px; }
+.vlog-search .input::-webkit-search-cancel-button { display: none; }
+.vlog-groups { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.vlog-groups .faint { margin-left: auto; }
+
+.clamp-2, .clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.clamp-2 { -webkit-line-clamp: 2; }
+.clamp-3 { -webkit-line-clamp: 3; }
+
+/* The table: its own box scrolls both ways, so the page never scrolls sideways and the
+   headings stay in view. */
+.vlog-table { padding: 0; overflow: hidden; border-radius: var(--r-lg, 14px); }
+.vlog-wrap { overflow: auto; max-height: calc(100dvh - 300px); min-height: 260px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.table.vlog { min-width: 2050px; font-size: 12.5px; }
+.table.vlog th { z-index: 2; white-space: normal; line-height: 1.25; vertical-align: bottom; min-width: 86px; }
+.table.vlog td { vertical-align: top; padding: 9px 10px; }
+.table.vlog .c-sr { width: 44px; min-width: 44px; text-align: right; color: var(--text-2); }
+.table.vlog .c-ref { min-width: 150px; max-width: 170px; }
+.table.vlog .c-long { min-width: 230px; max-width: 280px; }
+.table.vlog .c-mid { min-width: 120px; max-width: 160px; }
+.table.vlog .nowrap { white-space: nowrap; }
+/* The first two columns stay put while the rest scrolls sideways. */
+.table.vlog .c-sr { position: sticky; left: 0; background: var(--solid); z-index: 1; }
+.table.vlog .c-ref { position: sticky; left: 44px; background: var(--solid); z-index: 1; box-shadow: 1px 0 0 var(--separator); }
+.table.vlog thead .c-sr, .table.vlog thead .c-ref { z-index: 3; background: var(--solid-2); }
+.table.vlog tbody tr.clickable:hover td { background: color-mix(in srgb, var(--fill) 70%, var(--solid)); }
+.table.vlog tbody tr:focus-visible td { outline: 2px solid var(--accent); outline-offset: -2px; }
+.table.vlog tfoot td { position: sticky; bottom: 0; z-index: 1; }
+.vlog-ref { display: block; overflow-wrap: anywhere; white-space: normal; }
+.vlog-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; flex-shrink: 0; }
+.vlog-files { display: inline-flex; align-items: center; gap: 4px; font-weight: 650; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+.vlog-cards { display: none; }
+@media (max-width: 699px) {
+  .vlog-table { display: none; }
+  .vlog-cards { display: flex; flex-direction: column; gap: 10px; }
+  .vlog-filters .select { flex: 1 1 100%; }
+  .vlog-filters .btn { flex: 1 1 100%; justify-content: center; }
+}
+.vlog-card { min-width: 0; }
+.vlog-card .vals span { min-width: 0; overflow-wrap: anywhere; }

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ClipboardList,
+  FileSpreadsheet,
   FolderKanban,
   House,
   Inbox,
@@ -144,6 +145,8 @@ export default function AppShell() {
     // Someone who only gives out tasks sees every assigned task there instead of their own.
     { to: "/my-tasks", label: me.assignable === false ? "Assigned tasks" : "My tasks", icon: SquareCheckBig },
     { to: "/projects", label: "Projects", icon: FolderKanban },
+    // Every project's VOs in one table, laid out like the VO log spreadsheet.
+    { to: "/vo-log", label: "VO log", icon: FileSpreadsheet },
     { to: "/inbox", label: "Inbox", icon: Inbox, count: unread },
     { to: "/announcements", label: "Announcements", icon: Megaphone, count: unacked },
     { to: "/calendar", label: "Calendar", icon: CalendarDays },
@@ -273,7 +276,7 @@ export default function AppShell() {
           Inbox
           {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
         </NavLink>
-        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
+        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/vo-log", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
           <Ellipsis />
           More
           {!!unacked && <span className="dot">{unacked}</span>}
