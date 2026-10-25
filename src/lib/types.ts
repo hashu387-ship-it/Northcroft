@@ -532,3 +532,62 @@ export interface PollVote {
   choices: number[];
   updated_at: string;
 }
+
+/* ---------------------------------------------------------------- lunch breaks and the office check (0029) */
+
+export interface AppSettings {
+  /** Lunch break rules and the 12:35 office check are on. */
+  break_rules_on?: boolean;
+  /** When lunch starts, team time ("12:00:00"). */
+  break_start?: string;
+  /** How long lunch is, in minutes. */
+  break_minutes?: number;
+  /** When people who haven't gone out are asked to confirm they're in the office ("12:35:00"). */
+  break_confirm_at?: string;
+}
+
+export interface Profile {
+  /** Follows the lunch break rules and the office check (off for Hassan). */
+  break_rules?: boolean;
+}
+
+/** One person's lunch on one day: the office check and the break, each with where it was tapped. */
+export interface LunchBreak {
+  user_id: string;
+  work_date: string;
+  prompted_at: string | null;
+  confirm_asked_at: string | null;
+  missed_at: string | null;
+  confirmed_at: string | null;
+  confirm_lat: number | null;
+  confirm_lng: number | null;
+  confirm_accuracy: number | null;
+  confirm_address: string | null;
+  confirm_place_name: string | null;
+  confirm_place_kind: Attendance["in_place_kind"] | null;
+  confirm_in_office: boolean | null;
+  confirm_distance_m: number | null;
+  /** First time they confirmed from outside the office (the watchers were told then). */
+  outside_at: string | null;
+  break_start_at: string | null;
+  start_lat: number | null;
+  start_lng: number | null;
+  start_accuracy: number | null;
+  start_address: string | null;
+  start_place_name: string | null;
+  start_place_kind: Attendance["in_place_kind"] | null;
+  break_end_at: string | null;
+  end_lat: number | null;
+  end_lng: number | null;
+  end_accuracy: number | null;
+  end_address: string | null;
+  end_place_name: string | null;
+  end_place_kind: Attendance["in_place_kind"] | null;
+  end_in_office: boolean | null;
+  end_distance_m: number | null;
+  reminded_left_at: string | null;
+  reminded_over_at: string | null;
+  watchers_told_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

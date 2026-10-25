@@ -205,3 +205,29 @@
 
 .status-row { align-items: flex-start; }
 .status-row > svg { flex-shrink: 0; margin-top: 2px; }
+
+/* Lunch break card on the Check in page */
+.break-card.asked { box-shadow: 0 0 0 2px var(--accent), var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.08)); }
+.break-timer { display: flex; flex-direction: column; gap: 2px; }
+.break-timer .big { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.break-timer.over .big { color: var(--red); }
+.break-bar { height: 8px; border-radius: 99px; background: var(--fill, rgba(120, 120, 128, 0.16)); overflow: hidden; }
+.break-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--orange); transition: width 0.6s ease; }
+.break-bar.over > span { background: var(--red); }
+.break-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.break-actions .btn { min-height: 44px; justify-content: center; }
+.break-actions .btn:only-child { grid-column: 1 / -1; }
+@media (max-width: 520px) { .break-actions { grid-template-columns: 1fr; } }
+.break-ask { padding: 12px 14px; border-radius: 10px; border-left: 3px solid var(--accent); }
+.break-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; }
+.break-note > svg { flex-shrink: 0; margin-top: 1px; }
+.break-note.good > svg { color: var(--green); }
+.break-note.warn { background: var(--orange-soft); }
+.break-note.warn > svg { color: var(--orange); }
+
+/* Working hours: lunch break settings */
+.break-settings { padding: 14px 16px; border-radius: 10px; gap: 12px; margin-top: 4px; }
+
+/* Lunch line on the team board and in history */
+.lunch-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); font-weight: 600; }
+.lunch-tag svg { width: 14px; height: 14px; }

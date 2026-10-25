@@ -315,6 +315,22 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
               </button>
             </div>
           )}
+          {!person.attendance_exempt && (
+            <div className="setting-row">
+              <div className="grow">
+                <b>Follows break rules</b>
+                <small>Taps Start break and Close break when going out at lunch, and confirms they're in the office when staying in.</small>
+              </div>
+              <Switch
+                checked={person.break_rules !== false}
+                disabled={busy || !person.active}
+                onChange={(v) =>
+                  update({ break_rules: v }, v ? `${person.short_name} now follows break rules` : `${person.short_name} no longer follows break rules`)
+                }
+                label="Follows break rules"
+              />
+            </div>
+          )}
           {(isManagerRow || person.can_assign) && (
             <div className="setting-row">
               <div className="grow">

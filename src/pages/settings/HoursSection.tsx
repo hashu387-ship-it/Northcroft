@@ -4,7 +4,7 @@ import { useInvalidate, useSettings } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { DOW_SHORT, fmtClock } from "@/lib/time";
-import { Field, Loading, useToast } from "@/components/ui";
+import { Field, Loading, Switch, useToast } from "@/components/ui";
 import { Section } from "./common";
 
 const hm = (t: string) => t.slice(0, 5);
@@ -19,6 +19,11 @@ export function HoursSection() {
   const [grace, setGrace] = useState(10);
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4]);
   const [capacity, setCapacity] = useState(8);
+  // Lunch break rules and the office check.
+  const [breakOn, setBreakOn] = useState(true);
+  const [breakStart, setBreakStart] = useState("12:00");
+  const [breakMins, setBreakMins] = useState(60);
+  const [breakConfirm, setBreakConfirm] = useState("12:35");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -28,6 +33,10 @@ export function HoursSection() {
     setGrace(s.grace_minutes);
     setDays(s.work_days);
     setCapacity(s.weekly_task_capacity);
+    setBreakOn(s.break_rules_on !== false);
+    setBreakStart(hm(s.break_start ?? "12:00"));
+    setBreakMins(s.break_minutes ?? 60);
+    setBreakConfirm(hm(s.break_confirm_at ?? "12:35"));
   }, [s]);
 
   if (error) return <Section title="Working hours"><p className="muted">{errorMessage(error)}</p></Section>;
@@ -38,16 +47,34 @@ export function HoursSection() {
     end !== hm(s.work_end) ||
     grace !== s.grace_minutes ||
     capacity !== s.weekly_task_capacity ||
+    breakOn !== (s.break_rules_on !== false) ||
+    breakStart !== hm(s.break_start ?? "12:00") ||
+    breakMins !== (s.break_minutes ?? 60) ||
+    breakConfirm !== hm(s.break_confirm_at ?? "12:35") ||
     [...days].sort().join() !== [...s.work_days].sort().join();
 
   async function save() {
     if (end <= start) return toast("The finish time needs to be after the start time", "error");
     if (!days.length) return toast("Pick at least one working day", "error");
+    const breakEnd = addMinutes(breakStart, breakMins);
+    if (breakStart < "10:00" || breakStart > "15:00") return toast("Lunch can start between 10:00 am and 3:00 pm", "error");
+    if (breakConfirm <= breakStart || breakConfirm >= breakEnd)
+      return toast(`The office check needs to be between ${fmtClock(breakStart)} and ${fmtClock(breakEnd)}`, "error");
     setSaving(true);
     try {
       const { error } = await supabase
         .from("app_settings")
-        .update({ work_start: start, work_end: end, grace_minutes: grace, work_days: [...days].sort((a, b) => a - b), weekly_task_capacity: capacity })
+        .update({
+          work_start: start,
+          work_end: end,
+          grace_minutes: grace,
+          work_days: [...days].sort((a, b) => a - b),
+          weekly_task_capacity: capacity,
+          break_rules_on: breakOn,
+          break_start: breakStart,
+          break_minutes: breakMins,
+          break_confirm_at: breakConfirm,
+        })
         .eq("id", 1);
       if (error) throw error;
       await invalidate("app_settings");
@@ -93,6 +120,32 @@ export function HoursSection() {
             ))}
           </div>
         </div>
+      </div>
+      <div className="solid break-settings stack">
+        <div className="row" style={{ alignItems: "flex-start", gap: 12 }}>
+          <div className="grow">
+            <b>Lunch break rules</b>
+            <div className="muted small">
+              {breakOn
+                ? `At ${fmtClock(breakStart)} everyone who follows break rules is reminded to tap Start break before going out. Anyone who hasn't gone out is asked at ${fmtClock(breakConfirm)} to confirm they're in the office.`
+                : "Off. Nobody is asked to start a break or confirm they're in the office."}
+            </div>
+          </div>
+          <Switch checked={breakOn} onChange={setBreakOn} disabled={!isManager} label="Lunch break rules" />
+        </div>
+        {breakOn && (
+          <div className="form-grid">
+            <Field label="Lunch starts">
+              <input className="input" type="time" min="10:00" max="15:00" value={breakStart} onChange={(e) => setBreakStart(e.target.value)} disabled={!isManager} />
+            </Field>
+            <Field label="Break length (minutes)" hint={`Lunch runs to ${fmtClock(addMinutes(breakStart, breakMins))}`}>
+              <input className="input" type="number" min={15} max={120} inputMode="numeric" value={breakMins} onChange={(e) => setBreakMins(clamp(Number(e.target.value), 15, 120))} disabled={!isManager} />
+            </Field>
+            <Field label="Office check" hint="When people who stayed in confirm they're in the office">
+              <input className="input" type="time" value={breakConfirm} onChange={(e) => setBreakConfirm(e.target.value)} disabled={!isManager} />
+            </Field>
+          </div>
+        )}
       </div>
       {isManager && (
         <div className="row" style={{ justifyContent: "flex-end" }}>

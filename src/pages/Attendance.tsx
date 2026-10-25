@@ -4,6 +4,7 @@ import { useAuth, useMe } from "@/lib/auth";
 import { todayISO } from "@/lib/time";
 import { PageHead } from "@/components/PageHead";
 import { CheckInCard } from "./attendance/CheckInCard";
+import { BreakCard } from "./attendance/BreakCard";
 import { MyHistory } from "./attendance/MyHistory";
 import { TeamBoard } from "./attendance/TeamBoard";
 import { MonthlyReport } from "./attendance/MonthlyReport";
@@ -84,7 +85,9 @@ export default function Attendance() {
 
       <div className="attendance-grid">
         <div className="stack" style={{ gap: 16 }}>
+          <BreakCard today={today} slot="top" />
           <CheckInCard today={today} />
+          <BreakCard today={today} slot="after" />
           <MyLeaveCard />
           <MyHistory rows={mine.data ?? []} loading={mine.isLoading} />
         </div>

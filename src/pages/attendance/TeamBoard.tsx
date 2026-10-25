@@ -7,8 +7,9 @@ import type { Attendance, Profile, TeamLeave } from "@/lib/types";
 import { leaveByDay, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 import { PersonAvatar, WhatsAppButton } from "@/components/People";
 import { Empty, Loading, Pill } from "@/components/ui";
-import { MapBox, PlacePill, isOffsite, useAttendanceRange } from "./shared";
+import { MapBox, PlacePill, isOffsite, useAttendanceRange, useNow } from "./shared";
 import { SentLater } from "./SentLater";
+import { LunchLine, lunchBadges, lunchRules, useLunchRange, type LunchBadge } from "./lunch";
 
 export function TeamBoard() {
   const people = usePeople();
@@ -19,6 +20,11 @@ export function TeamBoard() {
   const working = settings ? isWorkday(date, settings.work_days) : true;
 
   const byUser = useMemo(() => new Map(rows.map((r) => [r.user_id, r])), [rows]);
+  // Lunch breaks and the office check for this day (refreshes each minute so "Over by" keeps up).
+  const lunch = useLunchRange(date, date);
+  const lunchByUser = useMemo(() => new Map((lunch.data ?? []).map((b) => [b.user_id, b])), [lunch.data]);
+  const minute = useNow(60_000);
+  const rules = lunchRules(settings);
   // Approved leave and Leave entries on the Calendar for this day.
   const away = useTeamLeave(date, date);
   const leave = useMemo(() => leaveByDay(away.data ?? [], date, date, settings?.work_days), [away.data, date, settings?.work_days]);
@@ -89,7 +95,17 @@ export function TeamBoard() {
         <div className="list">
           {list.map((p) => {
             const r = byUser.get(p.id);
-            return <TeamRow key={p.id} person={p} r={r} working={working} isToday={isToday} leave={leave.get(`${p.id}|${date}`)} />;
+            return (
+              <TeamRow
+                key={p.id}
+                person={p}
+                r={r}
+                working={working}
+                isToday={isToday}
+                leave={leave.get(`${p.id}|${date}`)}
+                lunch={lunchBadges(lunchByUser.get(p.id), rules, isToday, minute)}
+              />
+            );
           })}
         </div>
       )}
@@ -122,12 +138,14 @@ function TeamRow({
   working,
   isToday,
   leave,
+  lunch,
 }: {
   person: Profile;
   r: Attendance | undefined;
   working: boolean;
   isToday: boolean;
   leave?: TeamLeave;
+  lunch: LunchBadge[];
 }) {
   return (
     <div className="list-item" style={{ alignItems: "flex-start" }}>
@@ -153,6 +171,7 @@ function TeamRow({
                 {r.out_sent_later && <SentLater receivedAt={r.out_received_at} />}
               </div>
             )}
+            <LunchLine badges={lunch} />
             {r.in_address && <div className="tiny faint">{r.in_address}</div>}
             {r.note && <div className="tiny muted">Note: {r.note}</div>}
           </div>
