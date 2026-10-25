@@ -16,6 +16,7 @@ import { PollCard, PollFields, emptyPoll, type PollDraft } from "@/components/Po
 import { addAnnouncementPoll, pollProblem, usePolls, type PollWithVotes } from "@/lib/polls";
 import { Attachments } from "@/components/Attachments";
 import { AddDriveLinkSheet, DriveLinks } from "@/components/DriveLinks";
+import { DropZone } from "@/components/DropZone";
 import { addDriveLinks, type LinkInfo } from "@/lib/drivelinks";
 import { deleteAttachment, uploadFile } from "@/lib/files";
 import { linkMeta } from "@/lib/links";
@@ -538,7 +539,7 @@ function AnnouncementForm({
               <DriveLinks announcementId={announcement.id} projectId={announcement.project_id} compact hint={false} />
             </div>
           ) : (
-            <div className="stack" style={{ gap: 8 }}>
+            <DropZone className="stack ann-drop" onFiles={(fs) => setFiles((xs) => [...xs, ...fs])} disabled={saving}>
               {(files.length > 0 || links.length > 0) && (
                 <div className="row wrap" style={{ gap: 6 }}>
                   {files.map((f, i) => (
@@ -585,7 +586,7 @@ function AnnouncementForm({
                   e.target.value = "";
                 }}
               />
-            </div>
+            </DropZone>
           )}
         </Field>
         <AddDriveLinkSheet open={addingLink} onClose={() => setAddingLink(false)} onAdd={(l) => setLinks((xs) => (xs.some((x) => x.url === l.url) ? xs : [...xs, l]))} />

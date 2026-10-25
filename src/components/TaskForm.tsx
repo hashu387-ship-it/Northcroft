@@ -5,6 +5,7 @@ import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
 import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
+import { DropZone } from "./DropZone";
 import { checkOtherLink, linkMeta, normalizeUrl } from "@/lib/links";
 import { useSignoff } from "@/lib/signoff";
 import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
@@ -209,7 +210,7 @@ export function TaskForm({
     onClose();
   }
 
-  function pickFiles(list: FileList | null) {
+  function pickFiles(list: FileList | File[] | null) {
     if (!list?.length) return;
     const picked = Array.from(list);
     // Without Google Drive, the app's own storage takes files up to 50 MB.
@@ -516,7 +517,7 @@ export function TaskForm({
                   : "Drawings, BOQs, PDFs, photos. Up to 50 MB each.")
             }
           >
-            <div className="tf-files">
+            <DropZone className="tf-files" onFiles={pickFiles} disabled={saving}>
               {files.map((f) => (
                 <span className="tf-file" key={f.name + f.size}>
                   <span className="tf-file-icon">
@@ -590,7 +591,7 @@ export function TaskForm({
                 )}
               </div>
               <input ref={fileInput} type="file" multiple hidden aria-label="Choose files" onChange={(e) => pickFiles(e.target.files)} />
-            </div>
+            </DropZone>
           </Field>
         )}
 

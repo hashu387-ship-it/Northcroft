@@ -35,6 +35,7 @@ import { CelebrationHost } from "@/components/Celebration";
 import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
 import { openSearch } from "@/lib/search";
 import { OfflineBar, OutboxRunner } from "@/components/Offline";
+import { blockStrayDrops } from "@/components/DropZone";
 
 function useUnackedCount(userId: string) {
   return useQuery({
@@ -97,6 +98,8 @@ export default function AppShell() {
   const chatUnread = useChats(me.id, people).unread;
 
   useRealtime(me.id);
+  // A file dropped outside an attach area doesn't open in the browser.
+  useEffect(() => blockStrayDrops(), []);
   const appUpdate = useAppUpdates();
 
   useEffect(() => {

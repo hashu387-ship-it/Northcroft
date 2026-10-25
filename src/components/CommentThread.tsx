@@ -1,5 +1,5 @@
 import "@/styles/chats.css";
-import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type MutableRefObject } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import clsx from "clsx";
@@ -43,6 +43,7 @@ import { PersonAvatar, openPersonCard } from "./People";
 import { RecorderBar, VoiceNote } from "./Voice";
 import { useOpenFile } from "./useOpenFile";
 import { AddDriveLinkSheet, LinkCard } from "./DriveLinks";
+import { DropZone } from "./DropZone";
 import { PollCard, PollSheet } from "./Polls";
 import { ForwardSheet } from "./Forward";
 import { PinnedBar } from "./PinnedBar";
@@ -353,9 +354,11 @@ export function CommentThread({
   const typingText = typingLine(typers);
   let lastDay = "";
   let prev: Comment | undefined;
+  // Files dropped anywhere on the thread go into the message box.
+  const dropFiles = useRef<((files: File[]) => void) | null>(null);
 
   return (
-    <div className={clsx("chat-thread", fill && "fill")}>
+    <DropZone className={clsx("chat-thread", fill && "fill")} onFiles={(fs) => dropFiles.current?.(fs)} label="Drop to add to your message">
       {isChat && pinned.length > 0 && (
         <PinnedBar
           pins={pinned}
@@ -558,6 +561,7 @@ export function CommentThread({
         onTyping={typing.typing}
         onStopTyping={typing.stopped}
         onPoll={isChat && chatKey ? () => setPollOpen(true) : undefined}
+        dropFiles={dropFiles}
       />
 
       <Sheet open={!!menuFor} onClose={() => setMenuFor(null)} title="Message">
@@ -632,7 +636,7 @@ export function CommentThread({
         />
       )}
       {pollOpen && chatKey && <PollSheet open onClose={() => setPollOpen(false)} chat={chatKey} />}
-    </div>
+    </DropZone>
   );
 }
 
@@ -808,6 +812,7 @@ function Composer({
   onTyping,
   onStopTyping,
   onPoll,
+  dropFiles,
 }: {
   scope: Scope;
   mentionable: Profile[];
@@ -819,6 +824,8 @@ function Composer({
   onStopTyping: () => void;
   /** Chats only: start a poll. */
   onPoll?: () => void;
+  /** Filled in here so files dropped on the thread land in this message. */
+  dropFiles?: MutableRefObject<((files: File[]) => void) | null>;
 }) {
   const me = useMe();
   const people = usePeople();
@@ -836,6 +843,16 @@ function Composer({
   const [active, setActive] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!dropFiles) return;
+    dropFiles.current = (fs) => {
+      setFiles((xs) => [...xs, ...fs]);
+      ref.current?.focus();
+    };
+    return () => {
+      dropFiles.current = null;
+    };
+  });
   const [sendingVoice, setSendingVoice] = useState(false);
   const recorder = useRecorder({ onDone: (r) => void sendVoice(r) });
   const recording = recorder.state !== "idle";

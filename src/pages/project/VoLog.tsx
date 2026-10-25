@@ -2,9 +2,11 @@
 // revision submitted to the main contractor with our amount, ECJV's assessment and comments, and
 // the files and links on both sides, then the supporting documents and the QS remarks. Edited in
 // the VO form and shown in the register, so the team keeps the log here instead of in a spreadsheet.
+import { useRef } from "react";
 import { Paperclip, Plus, X } from "lucide-react";
 import { Attachments } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
+import { DropZone } from "@/components/DropZone";
 import { Field } from "@/components/ui";
 import { parseMoney, sar } from "@/lib/format";
 import { addDays, fmtDate } from "@/lib/time";
@@ -211,16 +213,8 @@ export function VoLogFields({
               </div>
               {saved ? (
                 <div className="vo-sides">
-                  <div className="vo-side">
-                    <span className="field-label">What we sent</span>
-                    <Attachments variationId={vo!.id} projectId={vo!.project_id} voRound={x.key} voSide="sent" compact emptyText="No files yet" />
-                    <DriveLinks variationId={vo!.id} projectId={vo!.project_id} voRound={x.key} voSide="sent" compact hint={false} />
-                  </div>
-                  <div className="vo-side">
-                    <span className="field-label">ECJV's assessment</span>
-                    <Attachments variationId={vo!.id} projectId={vo!.project_id} voRound={x.key} voSide="assessment" compact emptyText="No files yet" />
-                    <DriveLinks variationId={vo!.id} projectId={vo!.project_id} voRound={x.key} voSide="assessment" compact hint={false} />
-                  </div>
+                  <VoFileBox title="What we sent" variationId={vo!.id} projectId={vo!.project_id} round={x.key} side="sent" />
+                  <VoFileBox title="ECJV's assessment" variationId={vo!.id} projectId={vo!.project_id} round={x.key} side="assessment" />
                 </div>
               ) : (
                 <p className="faint tiny vo-files-later">
@@ -241,8 +235,7 @@ export function VoLogFields({
             <p className="faint tiny" style={{ margin: 0 }}>
               Quotations, drawings, site photos, calculations and anything else behind this VO.
             </p>
-            <Attachments variationId={vo.id} projectId={vo.project_id} voRound={null} compact emptyText="No supporting files yet" knownRounds={savedKeys} />
-            <DriveLinks variationId={vo.id} projectId={vo.project_id} voRound={null} compact hint={false} knownRounds={savedKeys} />
+            <VoFileBox variationId={vo.id} projectId={vo.project_id} round={null} knownRounds={savedKeys} emptyText="No supporting files yet" />
           </>
         ) : (
           <p className="faint tiny" style={{ margin: 0 }}>
@@ -255,6 +248,34 @@ export function VoLogFields({
         <textarea className="textarea" rows={rowsFor(value.qs_remarks)} value={value.qs_remarks} onChange={(e) => set("qs_remarks", e.target.value)} placeholder="Where it stands and what's next" />
       </Field>
     </div>
+  );
+}
+
+/** One revision side (or the supporting documents): files and links, and the whole box takes dropped files. */
+function VoFileBox({
+  title,
+  variationId,
+  projectId,
+  round,
+  side,
+  knownRounds,
+  emptyText = "No files yet",
+}: {
+  title?: string;
+  variationId: string;
+  projectId: string;
+  round: string | null;
+  side?: "sent" | "assessment";
+  knownRounds?: string[];
+  emptyText?: string;
+}) {
+  const upload = useRef<((files: File[]) => void) | null>(null);
+  return (
+    <DropZone className={title ? "vo-side" : "vo-support-box"} onFiles={(fs) => upload.current?.(fs)}>
+      {title && <span className="field-label">{title}</span>}
+      <Attachments variationId={variationId} projectId={projectId} voRound={round} voSide={side ?? null} compact emptyText={emptyText} knownRounds={knownRounds} uploadRef={upload} />
+      <DriveLinks variationId={variationId} projectId={projectId} voRound={round} voSide={side ?? null} compact hint={false} knownRounds={knownRounds} />
+    </DropZone>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileSpreadsheet, FileText, HardDrive, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
@@ -10,6 +10,7 @@ import { timeAgo } from "@/lib/time";
 import type { Attachment } from "@/lib/types";
 import { Empty, Loading, useConfirm, useToast } from "./ui";
 import { useOpenFile } from "./useOpenFile";
+import { DropZone } from "./DropZone";
 
 function FileIcon({ a }: { a: Attachment }) {
   if (/\.(xlsx?|csv)$/i.test(a.name)) return <FileSpreadsheet />;
@@ -34,6 +35,7 @@ export function Attachments({
   knownRounds,
   announcementId,
   hideWhenEmpty,
+  uploadRef,
 }: {
   taskId?: string | null;
   projectId?: string | null;
@@ -53,6 +55,8 @@ export function Attachments({
   announcementId?: string | null;
   /** Show nothing at all when there are no files (and no upload button). */
   hideWhenEmpty?: boolean;
+  /** Lets a bigger area around this list take dropped files (it calls the same upload). */
+  uploadRef?: MutableRefObject<((files: File[]) => void) | null>;
 }) {
   const me = useMe();
   const { canAssign } = useAuth();
@@ -84,8 +88,8 @@ export function Attachments({
     },
   });
 
-  async function onFiles(list: FileList | null) {
-    if (!list?.length) return;
+  async function onFiles(list: FileList | File[] | null) {
+    if (!list?.length || busy) return;
     setBusy(true);
     try {
       for (const f of Array.from(list)) {
@@ -112,6 +116,15 @@ export function Attachments({
     }
   }
 
+  // A bigger drop area (the VO revision box) hands its files to the same upload.
+  useEffect(() => {
+    if (!uploadRef) return;
+    uploadRef.current = canUpload ? (fs) => void onFiles(fs) : null;
+    return () => {
+      uploadRef.current = null;
+    };
+  });
+
   const open = useOpenFile();
 
   async function remove(a: Attachment) {
@@ -134,7 +147,7 @@ export function Attachments({
   const rows = q.data?.rows ?? [];
   if (hideWhenEmpty && !canUpload && rows.length === 0) return null;
   return (
-    <div className="stack">
+    <DropZone className="stack" onFiles={(fs) => void onFiles(fs)} disabled={!canUpload || busy || !!uploadRef}>
       {canUpload && (
         <div className="row wrap">
           <button className="btn small" onClick={() => inputRef.current?.click()} disabled={busy} type="button">
@@ -209,6 +222,6 @@ export function Attachments({
           ))}
         </div>
       )}
-    </div>
+    </DropZone>
   );
 }
