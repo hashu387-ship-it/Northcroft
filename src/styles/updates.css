@@ -1,5 +1,8 @@
 /* Daily updates: the form, each update, and the team's day. */
 
+/* Titles take the space and the % sits at the right edge. */
+:is(.du-page, .du-form, .du-card, .du-person-card) .grow { flex: 1; min-width: 0; }
+
 .du-section-head { display: flex; align-items: center; gap: 10px; }
 .du-section-head h2 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -0.005em; }
 .du-section-head .faint { margin-left: auto; }
