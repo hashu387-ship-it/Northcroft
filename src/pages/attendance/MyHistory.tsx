@@ -1,13 +1,23 @@
 import { CalendarClock } from "lucide-react";
-import { fmtDate, fmtDuration, fmtTime12, todayISO } from "@/lib/time";
+import { useMemo } from "react";
+import { useSettings } from "@/lib/api";
+import { useMe } from "@/lib/auth";
+import { addDays, fmtDate, fmtDuration, fmtTime12, todayISO } from "@/lib/time";
 import type { Attendance } from "@/lib/types";
 import { Empty, Loading, Pill } from "@/components/ui";
 import { PlacePill } from "./shared";
 import { SentLater } from "./SentLater";
+import { LunchLine, lunchBadges, lunchRules, useMyLunchHistory } from "./lunch";
 
 export function MyHistory({ rows, loading }: { rows: Attendance[]; loading: boolean }) {
   const past = rows.filter((r) => r.work_date !== todayISO()).slice(0, 30);
   const late = past.filter((r) => r.late_minutes > 0).length;
+  // Lunch breaks and office checks for the same days.
+  const me = useMe();
+  const { data: settings } = useSettings();
+  const lunch = useMyLunchHistory(me.id, addDays(todayISO(), -45));
+  const lunchByDay = useMemo(() => new Map((lunch.data ?? []).map((b) => [b.work_date, b])), [lunch.data]);
+  const rules = lunchRules(settings);
   return (
     <div className="glass card">
       <div className="card-head">
@@ -54,6 +64,7 @@ export function MyHistory({ rows, loading }: { rows: Attendance[]; loading: bool
                     <span className="small faint">No check-out recorded</span>
                   )}
                 </div>
+                <LunchLine badges={lunchBadges(lunchByDay.get(r.work_date), rules, false)} />
               </div>
               <div className="num bold small nowrap" style={{ textAlign: "right" }}>
                 {r.check_out_at ? fmtDuration(r.check_in_at, r.check_out_at) : "–"}

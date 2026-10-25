@@ -7,6 +7,7 @@ import { Avatar, Loading, useToast } from "@/components/ui";
 import { hhmm, hoursWorked, isOffsite, useAttendanceRange, useTrackingStart } from "./shared";
 import { leaveByDay, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 import { sentLaterText } from "./SentLater";
+import { breakLength, officeCheckText, useLunchRange } from "./lunch";
 
 interface Summary {
   person: Profile;
@@ -35,6 +36,8 @@ export function MonthlyReport() {
   const to = lastDay < todayISO() ? lastDay : todayISO();
   const { data: rows = [], isLoading } = useAttendanceRange(from, lastDay);
   const { data: trackingStart } = useTrackingStart();
+  // Lunch breaks and office checks for the export.
+  const lunch = useLunchRange(from, lastDay);
   // Days on leave (approved requests and Leave entries) aren't absences.
   const away = useTeamLeave(from, lastDay);
   const leave = useMemo(() => leaveByDay(away.data ?? [], from, lastDay, settings?.work_days), [away.data, from, lastDay, settings?.work_days]);
@@ -74,9 +77,10 @@ export function MonthlyReport() {
   }, [people.attenders, rows, absenceDays, workdays, leave]);
 
   function download() {
-    const header = ["Date", "Name", "Check in", "In place", "In address", "Check out", "Out place", "Out address", "Hours", "Late minutes", "Early minutes", "Note", "Check in sent later", "Check out sent later"];
+    const header = ["Date", "Name", "Check in", "In place", "In address", "Check out", "Out place", "Out address", "Hours", "Late minutes", "Early minutes", "Note", "Check in sent later", "Check out sent later", "Break start", "Break end", "Break minutes", "Closed away", "Office confirmation"];
     const lines = [header.join(",")];
     const byKey = new Map<string, Attendance>(rows.map((r) => [`${r.work_date}|${r.user_id}`, r]));
+    const lunchByKey = new Map((lunch.data ?? []).map((b) => [`${b.work_date}|${b.user_id}`, b]));
     const leaveDays = [...leave.keys()].map((k) => k.split("|")[1]).filter((d) => d <= to);
     const allDays = new Set<string>([...absenceDays, ...rows.map((r) => r.work_date), ...leaveDays]);
     const days = [...allDays].sort();
@@ -85,11 +89,13 @@ export function MonthlyReport() {
         const r = byKey.get(`${d}|${p.id}`);
         if (!r) {
           const off = leave.get(`${p.id}|${d}`);
-          if (off) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", off.kind ? leaveKindLabel(off.kind) : "On leave", "", ""].map(csvCell).join(","));
-          else if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent", "", ""].map(csvCell).join(","));
+          if (off) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", off.kind ? leaveKindLabel(off.kind) : "On leave", "", "", "", "", "", "", ""].map(csvCell).join(","));
+          else if (absenceDays.includes(d)) lines.push([d, p.full_name, "", "", "", "", "", "", "", "", "", "Absent", "", "", "", "", "", "", ""].map(csvCell).join(","));
           continue;
         }
         const h = hoursWorked(r);
+        const b = lunchByKey.get(`${d}|${p.id}`);
+        const mins = b ? breakLength(b) : null;
         lines.push(
           [
             d,
@@ -106,6 +112,11 @@ export function MonthlyReport() {
             r.note,
             sentLaterText(r.in_sent_later, r.in_received_at),
             sentLaterText(r.out_sent_later, r.out_received_at),
+            hhmm(b?.break_start_at),
+            b?.break_start_at ? (b.break_end_at ? hhmm(b.break_end_at) : "Not closed") : "",
+            mins === null ? "" : b?.break_end_at ? mins : "",
+            b?.break_end_at ? (b.end_in_office === false ? `Yes, ${b.end_place_name ?? "Elsewhere"}` : "No") : "",
+            officeCheckText(b),
           ]
             .map(csvCell)
             .join(","),
