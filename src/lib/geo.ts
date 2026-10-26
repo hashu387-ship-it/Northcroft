@@ -62,3 +62,20 @@ export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number
 export function mapsLink(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
+
+/** "about 350 m" or "about 1.2 km", the way the server says it. */
+export function roughDistance(m: number): string {
+  if (m < 1000) return `about ${Math.max(10, Math.round(m / 10) * 10)} m`;
+  return `about ${(Math.round(m / 100) / 10).toFixed(1)} km`;
+}
+
+/** The nearest active office to a spot, with the distance to it. */
+export function nearestOffice<P extends { lat: number; lng: number; kind: string; active: boolean }>(fix: { lat: number; lng: number }, places: P[]): { place: P; distance: number } | null {
+  let best: { place: P; distance: number } | null = null;
+  for (const p of places) {
+    if (!p.active || p.kind !== "office") continue;
+    const d = distanceMeters(fix, p);
+    if (!best || d < best.distance) best = { place: p, distance: d };
+  }
+  return best;
+}

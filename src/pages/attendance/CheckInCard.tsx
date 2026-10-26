@@ -4,14 +4,14 @@ import { useInvalidate, useSettings } from "@/lib/api";
 import { celebrateEarlyStart } from "@/lib/celebrate";
 import { sendsDailyUpdate, useMyDailyUpdate } from "@/lib/dailyUpdates";
 import { useMe } from "@/lib/auth";
-import { getPosition, mapsLink, reverseGeocode } from "@/lib/geo";
+import { getPosition, mapsLink, nearestOffice, reverseGeocode, roughDistance } from "@/lib/geo";
 import { queueAttendance, removeItem, retryItem, usePendingAttendance, type OutboxAttendance } from "@/lib/outbox";
 import { errorMessage, isNetworkError, supabase } from "@/lib/supabase";
 import { DOW_LONG, fmtClock, fmtDuration, fmtLongDate, fmtTime12, isWorkday, todayISO } from "@/lib/time";
 import type { Attendance } from "@/lib/types";
 import { Pill, Sheet, useToast } from "@/components/ui";
 import { UpdateForm } from "../updates/UpdateForm";
-import { MapBox, PlacePill, clockParts, useNow } from "./shared";
+import { MapBox, PlacePill, clockParts, useNow, usePlaces } from "./shared";
 import { SentLater } from "./SentLater";
 
 type Phase = "idle" | "locating" | "saving";
@@ -34,6 +34,9 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
   const now = useNow(1000);
   const [phase, setPhase] = useState<Phase>("idle");
   const [locError, setLocError] = useState<string | null>(null);
+  // Refused because they're not at the office (or the server said so).
+  const [placeError, setPlaceError] = useState<string | null>(null);
+  const places = usePlaces();
   const [note, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
 
@@ -52,6 +55,9 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
   const asksUpdate = mode === "out" && sendsDailyUpdate(me);
   const todayUpdate = useMyDailyUpdate(me.id, date, asksUpdate);
   const [updateSheet, setUpdateSheet] = useState(false);
+  // Check in and out only at the office (Settings > Places), unless a manager has switched it off.
+  const officeOnly = settings?.office_only_checkin !== false;
+  const office = (places.data ?? []).find((p) => p.active && p.kind === "office");
 
   function tapMain() {
     const needsUpdate = asksUpdate && !todayUpdate.data && !todayUpdate.isLoading && !todayUpdate.isError;
@@ -64,6 +70,9 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
 
   async function record(withLocation: boolean) {
     setLocError(null);
+    setPlaceError(null);
+    const verb = mode === "in" ? "check in" : "check out";
+    if (officeOnly) withLocation = true;
     // With no signal, this is the time that's recorded.
     const tappedAt = new Date().toISOString();
     const offline = navigator.onLine === false;
@@ -75,6 +84,16 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
         fix = await getPosition();
       } catch (e) {
         setLocError(errorMessage(e));
+        setPhase("idle");
+        return;
+      }
+      // Not at the office: say so straight away (with no signal too), rather than saving it to be refused later.
+      const near = officeOnly ? nearestOffice(fix, places.data ?? []) : null;
+      if (near && near.distance > near.place.radius_m) {
+        setPlaceError(
+          `You're ${roughDistance(near.distance)} from ${near.place.name}. You can only ${verb} at the office.` +
+            (fix.accuracy > near.place.radius_m ? ` Your location was only accurate to about ${Math.round(fix.accuracy)} m, so step near a window and try again.` : ""),
+        );
         setPhase("idle");
         return;
       }
@@ -124,7 +143,12 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
         } catch {
           toast("There's no signal and this phone couldn't save it. Try again when you're back online.", "error");
         }
-      } else toast(errorMessage(e), "error");
+      } else {
+        const msg = errorMessage(e);
+        // The office rule's answers stay on the card, so they can read it and try again.
+        if (/at the office|office location isn't set up|Turn on location/.test(msg)) setPlaceError(msg);
+        else toast(msg, "error");
+      }
     } finally {
       setPhase("idle");
     }
@@ -224,7 +248,9 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
                     <b>We couldn't get your location.</b>
                     <div className="muted">{locError}</div>
                     <div className="muted" style={{ marginTop: 4 }}>
-                      You can still {mode === "in" ? "check in" : "check out"}. It will be recorded as "Location unavailable" so Hassan knows why.
+                      {officeOnly
+                        ? `You can only ${mode === "in" ? "check in" : "check out"} at the office, so the app needs your location. Turn location on for Northcroft and try again.`
+                        : `You can still ${mode === "in" ? "check in" : "check out"}. It will be recorded as "Location unavailable" so Hassan knows why.`}
                     </div>
                   </div>
                 </div>
@@ -232,10 +258,33 @@ export function CheckInCard({ today }: { today: Attendance | undefined }) {
                   <button className="btn small primary" onClick={() => record(true)} type="button" disabled={phase !== "idle"}>
                     Try again
                   </button>
-                  <button className="btn small" onClick={() => record(false)} type="button" disabled={phase !== "idle"}>
-                    {mode === "in" ? "Check in" : "Check out"} without location
+                  {!officeOnly && (
+                    <button className="btn small" onClick={() => record(false)} type="button" disabled={phase !== "idle"}>
+                      {mode === "in" ? "Check in" : "Check out"} without location
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            {placeError && (
+              <div className="solid stack office-refused" style={{ padding: 14, gap: 10, borderRadius: 10 }} role="alert">
+                <div className="row" style={{ alignItems: "flex-start" }}>
+                  <MapPinOff size={20} className="danger-text" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div className="small">
+                    <b>{mode === "in" ? "Not checked in" : "Not checked out"}</b>
+                    <div className="muted">{placeError}</div>
+                  </div>
+                </div>
+                <div className="row wrap">
+                  <button className="btn small primary" onClick={() => record(true)} type="button" disabled={phase !== "idle"}>
+                    Try again
                   </button>
                 </div>
+              </div>
+            )}
+            {officeOnly && office && !locError && !placeError && (
+              <div className="muted small office-only-hint" style={{ textAlign: "center" }}>
+                {mode === "in" ? "Check in" : "Check out"} at {office.name}, within {office.radius_m} m.
               </div>
             )}
           </div>

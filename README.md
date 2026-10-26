@@ -75,8 +75,12 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Files go with a request: *Add files* in the form (a ticket, a letter, a photo or a PDF), and more can be added while it's waiting. Sick leave needs a medical certificate: *Send request* stays greyed out until one is attached. The files show on the request for the person and for whoever approves it. Only they and managers and seniors can open them, never the rest of the team, and they never show on a project's Files tab.
   - Approved leave counts like a Leave entry on the Calendar: it shows on the Calendar, the attendance board and Home show "On leave" instead of "Not in yet", the monthly report counts it as leave rather than absence, and the check-in and check-out reminders skip those days.
   - Managers and seniors see *Team leave*: who's away or asking from today on, and everyone's balance for the year. Other team members see on the Calendar who is away, but not the type of leave or any notes.
-- **Check in and check out** with location:
-  - Each check-in is labelled Office, a project site or Elsewhere.
+- **Check in and check out** with location, at the office only:
+  - Check-in and check-out only work inside the office's radius in Settings > Places (Northcroft Office, 100 m). Anywhere else, project sites included, the card says "Not checked in: You're about 1.2 km from Northcroft Office. You can only check in at the office." with Try again. If the phone's location was rough (accurate to more than the radius), it also says to step near a window and try again.
+  - Location has to be on: with location switched off or blocked, the card explains why it's needed and there's no way round it.
+  - With no signal, a tap away from the office is refused on the spot instead of being saved to send later. The database checks every check-in and check-out too, including ones saved with no signal, so the rule holds whatever sends it. A manager fixing someone else's day isn't affected.
+  - The card shows where you can check in ("Check in at Northcroft Office, within 100 m.").
+  - A manager can switch the rule off in **Settings > Places** (*Check in only at the office*), for an office move or a day everyone works from a site. While it's off, check-in works anywhere as before, labelled Office, a project site or Elsewhere.
   - Late arrivals and early finishes are flagged against 8:30 am to 5:30 pm.
   - Managers get a team board with a map and a monthly CSV export.
 - **Workload**: open tasks per person per week, shown in red when someone has too much.

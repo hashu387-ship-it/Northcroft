@@ -51,6 +51,8 @@ export interface AppSettings {
   /** Task sign-off: who checks handed-in work first, and who gives the final OK after them. */
   first_checker_id?: string | null;
   final_checker_id?: string | null;
+  /** Check in and check out only inside an office's radius in Settings > Places (on unless a manager turns it off). */
+  office_only_checkin?: boolean;
   updated_at: string;
 }
 

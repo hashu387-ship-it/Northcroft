@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, HardHat, LocateFixed, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
-import { useInvalidate, useProjectMap, useProjects } from "@/lib/api";
+import { useInvalidate, useProjectMap, useProjects, useSettings } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { getPosition, reverseGeocode } from "@/lib/geo";
 import { errorMessage, supabase } from "@/lib/supabase";
 import type { Place, PlaceKind } from "@/lib/types";
-import { Empty, Field, Loading, Pill, ProjectSelect, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Empty, Field, Loading, Pill, ProjectSelect, Segmented, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
 import { MapBox, usePlaces } from "../attendance/shared";
 import { Section } from "./common";
 
@@ -17,6 +17,23 @@ export function PlacesSection() {
   const confirm = useConfirm();
   const invalidate = useInvalidate();
   const [editing, setEditing] = useState<Place | "new" | null>(null);
+  const { data: settings } = useSettings();
+  const officeOnly = settings?.office_only_checkin !== false;
+  const [savingRule, setSavingRule] = useState(false);
+
+  async function setOfficeOnly(on: boolean) {
+    setSavingRule(true);
+    try {
+      const { error } = await supabase.from("app_settings").update({ office_only_checkin: on }).eq("id", 1);
+      if (error) throw error;
+      await invalidate("app_settings");
+      toast(on ? "Check-in now only works at the office" : "Check-in works anywhere again");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setSavingRule(false);
+    }
+  }
 
   const list = places.data ?? [];
   const points = useMemo(
@@ -25,7 +42,11 @@ export function PlacesSection() {
   );
 
   async function remove(p: Place) {
-    if (!(await confirm({ title: `Delete ${p.name}?`, message: "Past check-ins keep their place name. New check-ins here will show as Elsewhere.", confirmLabel: "Delete", danger: true }))) return;
+    const lastOffice = p.kind === "office" && officeOnly && list.filter((x) => x.kind === "office" && x.active).length <= 1;
+    const message = lastOffice
+      ? "Past check-ins keep their place name. This is the only office, so nobody can check in or out until another office is added (or the office-only rule is switched off)."
+      : "Past check-ins keep their place name. New check-ins here will show as Elsewhere.";
+    if (!(await confirm({ title: `Delete ${p.name}?`, message, confirmLabel: "Delete", danger: true }))) return;
     const { error } = await supabase.from("places").delete().eq("id", p.id);
     if (error) toast(errorMessage(error), "error");
     else {
@@ -37,7 +58,11 @@ export function PlacesSection() {
   return (
     <Section
       title="Office and sites"
-      sub="Check-ins within a place's radius are labelled with its name. Anywhere else shows as Elsewhere, in amber."
+      sub={
+        officeOnly
+          ? "Check-in and check-out only work inside the office's radius. Check-ins are labelled with the place's name."
+          : "Check-ins within a place's radius are labelled with its name. Anywhere else shows as Elsewhere, in amber."
+      }
       actions={
         isManager ? (
           <button className="btn small primary" onClick={() => setEditing("new")} type="button">
@@ -46,6 +71,19 @@ export function PlacesSection() {
         ) : undefined
       }
     >
+      <div className="solid break-settings stack office-rule">
+        <div className="row" style={{ alignItems: "flex-start", gap: 12 }}>
+          <div className="grow">
+            <b>Check in only at the office</b>
+            <div className="muted small">
+              {officeOnly
+                ? "On. Everyone who checks in can only check in and check out inside the office's radius, with location on. Anywhere else, project sites included, is refused with how far away they are."
+                : "Off. Check-in and check-out work anywhere, and a spot outside every place shows as Elsewhere."}
+            </div>
+          </div>
+          <Switch checked={officeOnly} onChange={(v) => void setOfficeOnly(v)} disabled={!isManager || savingRule || !settings} label="Check in only at the office" />
+        </div>
+      </div>
       {places.isLoading ? (
         <Loading />
       ) : list.length === 0 ? (
