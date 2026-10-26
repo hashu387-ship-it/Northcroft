@@ -15,6 +15,7 @@ import { DOW_LONG, addDays, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Task } from "@/lib/types";
 import { Field, PeopleSelect, PersonSelect, PriorityPicker, ProjectSelect, Segmented, Sheet, useToast } from "./ui";
 import { RecorderBar, VoicePlayer } from "./Voice";
+import { CheckWording } from "@/components/CheckWording";
 
 /** A voice note recorded in the form: its English text goes into Details, the recording onto the task. */
 interface FormVoice {
@@ -475,6 +476,7 @@ export function TaskForm({
             placeholder="What needs doing, drawings to use, anything to watch for"
             aria-label="Details"
           />
+          <CheckWording value={description} onUse={setDescription} kind="task" />
           {canRecord() && (
             <div className="tf-voice">
               {recording ? (

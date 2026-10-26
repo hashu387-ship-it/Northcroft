@@ -11,6 +11,7 @@ import { Field } from "@/components/ui";
 import { parseMoney, sar } from "@/lib/format";
 import { addDays, fmtDate } from "@/lib/time";
 import type { Variation, VoSubmission } from "@/lib/types";
+import { CheckWording } from "@/components/CheckWording";
 
 interface RoundForm {
   key: string;
@@ -207,6 +208,7 @@ export function VoLogFields({
                 <Field label="ECJV response and comments" className="full">
                   <textarea className="textarea" rows={rowsFor(x.response)} value={x.response} onChange={(e) => setRound(i, { response: e.target.value })} placeholder="What ECJV replied and their assessment comments" />
                 </Field>
+                <CheckWording value={x.response} onUse={(v) => setRound(i, { response: v })} kind="vo" className="full" />
                 <Field label="Response date">
                   <input className="input" type="date" value={x.response_on} onChange={(e) => setRound(i, { response_on: e.target.value })} />
                 </Field>
@@ -247,6 +249,7 @@ export function VoLogFields({
       <Field label="QS remarks" className="full">
         <textarea className="textarea" rows={rowsFor(value.qs_remarks)} value={value.qs_remarks} onChange={(e) => set("qs_remarks", e.target.value)} placeholder="Where it stands and what's next" />
       </Field>
+      <CheckWording value={value.qs_remarks} onUse={(v) => set("qs_remarks", v)} kind="vo" className="full" />
     </div>
   );
 }

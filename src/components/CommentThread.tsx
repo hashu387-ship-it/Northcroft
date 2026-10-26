@@ -48,6 +48,8 @@ import { PollCard, PollSheet } from "./Polls";
 import { ForwardSheet } from "./Forward";
 import { PinnedBar } from "./PinnedBar";
 import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
+import { CheckWording } from "@/components/CheckWording";
+import { WORDING_MIN } from "@/lib/wording";
 
 export type Scope =
   | { kind: "task"; taskId: string; projectId: string | null }
@@ -1173,6 +1175,17 @@ function Composer({
               }}
             />
             <textarea ref={ref} rows={1} value={body} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onKeyDown={onKey} aria-label={placeholder} />
+            {body.trim().length >= WORDING_MIN && (
+              <CheckWording
+                compact
+                value={body}
+                kind={scope.kind === "task" ? "comment" : "chat"}
+                onUse={(v) => {
+                  onChange(v);
+                  ref.current?.focus();
+                }}
+              />
+            )}
             {showMic ? (
               <button className="icon-btn plain mic-btn" type="button" onClick={startRecording} aria-label="Record a voice note" title="Record a voice note">
                 <Mic />

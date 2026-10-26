@@ -32,6 +32,7 @@ function whenPhrase(ts: string) {
 }
 import type { Announcement } from "@/lib/types";
 import { acknowledge, needsMyAck, useAnnouncementsWithAcks, type AnnouncementWithAcks } from "./home/data";
+import { CheckWording } from "@/components/CheckWording";
 
 export default function Announcements() {
   const me = useMe();
@@ -470,6 +471,7 @@ function AnnouncementForm({
         <Field label={hasVoice ? "Message (optional with a voice note)" : pollOn || hasPoll ? "Message (optional with a poll)" : "Message"}>
           <textarea className="textarea" style={{ minHeight: hasVoice ? 90 : 160 }} value={body} onChange={(e) => setBody(e.target.value)} placeholder="What does the team need to know?" />
         </Field>
+        <CheckWording value={body} onUse={setBody} kind="announcement" />
         {canRecord() && (
           <div className="voice-field">
             {recorder.state !== "idle" ? (

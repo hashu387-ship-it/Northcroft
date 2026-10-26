@@ -11,6 +11,7 @@ import { errorMessage } from "@/lib/supabase";
 import { fmtDate } from "@/lib/time";
 import type { Task } from "@/lib/types";
 import { DueLabel, Field, Loading, ProjectTag, useToast } from "@/components/ui";
+import { CheckWording } from "@/components/CheckWording";
 
 interface Line {
   progress: number;
@@ -157,6 +158,7 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
           placeholder="What you did on it today"
           maxLength={1000}
         />
+        <CheckWording value={l.note} onUse={(v) => set(t.id, { note: v.slice(0, 1000) })} kind="update" />
       </div>
     );
   };
@@ -207,6 +209,7 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
           maxLength={2000}
         />
       </Field>
+      <CheckWording value={other} onUse={(v) => setOther(v.slice(0, 2000))} kind="update" />
       <Field label="Anything blocking you?">
         <textarea
           className="textarea"
@@ -217,6 +220,7 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
           maxLength={2000}
         />
       </Field>
+      <CheckWording value={blockers} onUse={(v) => setBlockers(v.slice(0, 2000))} kind="update" />
 
       {footer ? (
         footer(send, busy)

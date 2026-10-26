@@ -1641,3 +1641,29 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .drop-hint svg { width: 26px; height: 26px; }
 @keyframes drop-in { from { opacity: 0; } to { opacity: 1; } }
 .vo-support-box { display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
+
+/* ------------------------------------------------------------------ check wording */
+.check-wording-row { display: flex; justify-content: flex-end; margin-top: -6px; }
+.field .check-wording-row { margin-top: 4px; }
+.check-wording-row .btn { gap: 6px; }
+.check-wording svg { width: 16px; height: 16px; }
+.wording-spin {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+.wording-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  max-height: 50vh;
+  overflow: auto;
+}
+.wording-changes { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
