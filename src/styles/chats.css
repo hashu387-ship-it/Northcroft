@@ -269,6 +269,7 @@
 .chat-pane-head b { font-size: 15.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-pane-head .sub { font-size: 12.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-pane-head .sub.typing { color: var(--green); font-weight: 600; }
+.chat-pane-head .sub.online { color: var(--green); font-weight: 600; }
 .chat-pane-head .who { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; border: 0; background: none; padding: 0; text-align: left; color: inherit; cursor: pointer; font: inherit; }
 .chat-pane-body { flex: 1; min-height: 0; padding: 8px 10px 10px; display: flex; flex-direction: column; }
 .chat-pane-empty { flex: 1; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--text-2); }

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useInvalidate, usePeople, useProjectMap } from "@/lib/api";
 import { useMe } from "@/lib/auth";
+import { useOnlineLine } from "@/lib/online";
 import {
   addGroupMembers,
   createGroup,
@@ -281,7 +282,7 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
         <ChatTile item={{ kind: c.kind, conversation_id: c.id, title }} person={other} small />
         <span className="grow">
           <b>{title}</b>
-          <TypingOr chat={`conv:${c.id}`} fallback={direct ? other?.title ?? "" : `${names}${names ? ", " : ""}You`} />
+          <TypingOr chat={`conv:${c.id}`} fallback={direct ? other?.title ?? "" : `${names}${names ? ", " : ""}You`} person={direct ? other?.id : undefined} />
         </span>
         <Info className="faint" size={18} />
       </button>
@@ -306,13 +307,17 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
   );
 }
 
-/** The chat's subtitle, replaced by "Saheeb is typing..." while someone types. */
-function TypingOr({ chat, fallback }: { chat: string; fallback: string }) {
+/**
+ * The chat's subtitle, replaced by "Saheeb is typing..." while someone types. In a one-to-one chat
+ * it says "Online" or when they were last on, like WhatsApp.
+ */
+function TypingOr({ chat, fallback, person }: { chat: string; fallback: string; person?: string }) {
   const me = useMe();
   const people = usePeople();
   const { typers } = useTyping(chat, me.id);
+  const seen = useOnlineLine(person);
   const line = typingLine(typers.map((id) => people.get(id)?.short_name).filter((n): n is string => !!n));
-  return <span className={clsx("sub", line && "typing")}>{line ?? fallback}</span>;
+  return <span className={clsx("sub", line && "typing", !line && seen.online && "online")}>{line ?? seen.text ?? fallback}</span>;
 }
 
 /* ---------------------------------------------------------------- starting chats */

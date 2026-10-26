@@ -15,18 +15,40 @@ import { Check, ChevronDown, ChevronsUp, ChevronUp, CircleAlert, CircleCheck, Cl
 import { daysText, earlyDays } from "@/lib/celebrate";
 import { initials } from "@/lib/format";
 import { dueState, fmtDue } from "@/lib/time";
+import { useIsOnline } from "@/lib/online";
 import { PRIORITY, PRIORITY_ORDER, TASK_STATUS } from "@/lib/constants";
 import type { Priority, Profile, Project, Task, TaskStatus } from "@/lib/types";
 import { artForIcon, Illustration, type ArtName } from "./Illustrations";
 
 /* ---------------------------------------------------------------- avatar */
+/** A person's photo (or initials), with a green dot while they have the app open. */
 export function Avatar({
   person,
   size = 32,
   title,
 }: {
-  person?: (Pick<Profile, "short_name" | "full_name" | "color"> & { avatar_url?: string | null }) | null;
+  person?: (Pick<Profile, "short_name" | "full_name" | "color"> & { avatar_url?: string | null; id?: string }) | null;
   size?: number;
+  title?: string;
+}) {
+  const online = useIsOnline(person?.id);
+  const pic = <AvatarPicture person={person} size={size} title={title} />;
+  if (!online) return pic;
+  return (
+    <span className="avatar-on" style={{ ["--size" as string]: `${size}px` }}>
+      {pic}
+      <i className="online-dot" role="img" aria-label="Online" title="Online" />
+    </span>
+  );
+}
+
+function AvatarPicture({
+  person,
+  size,
+  title,
+}: {
+  person?: (Pick<Profile, "short_name" | "full_name" | "color"> & { avatar_url?: string | null }) | null;
+  size: number;
   title?: string;
 }) {
   const [broken, setBroken] = useState(false);

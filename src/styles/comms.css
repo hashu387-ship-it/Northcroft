@@ -57,6 +57,19 @@
 .team-snap .person .who { min-width: 0; flex: 1; }
 .team-snap .person .who b { display: block; font-size: 14px; }
 .team-snap .person .who span { display: block; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Who's online (Home): each person is a button that opens their profile card */
+.online-card .team-snap .person {
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.online-card .team-snap .person:hover { background: var(--fill-2); }
+.online-card .team-snap .person:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.online-card .team-snap .person .who span.on { color: var(--green); font-weight: 600; }
+.online-card .team-snap .person .who span { white-space: normal; }
 .status-dot {
   width: 9px;
   height: 9px;

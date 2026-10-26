@@ -22,6 +22,7 @@ import { usePeople, useUnreadCount } from "@/lib/api";
 import { useChats } from "@/lib/chats";
 import { useAuth, useMe } from "@/lib/auth";
 import { useRealtime } from "@/lib/realtime";
+import { useOnlineTracking } from "@/lib/online";
 import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/push";
 import { useAppUpdates } from "@/lib/updates";
 import { sendsDailyUpdate } from "@/lib/dailyUpdates";
@@ -98,6 +99,7 @@ export default function AppShell() {
   const chatUnread = useChats(me.id, people).unread;
 
   useRealtime(me.id);
+  useOnlineTracking(me.id);
   // A file dropped outside an attach area doesn't open in the browser.
   useEffect(() => blockStrayDrops(), []);
   const appUpdate = useAppUpdates();

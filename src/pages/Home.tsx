@@ -22,6 +22,7 @@ import { InstallBanner } from "@/components/InstallBanner";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
 import { OngoingTasksCard } from "@/components/TeamTasks";
+import { OnlineCard } from "@/components/OnlineCard";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
 import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
@@ -186,6 +187,7 @@ export default function Home() {
           {canAssign && (me.attendance_times === false ? <TeamTodayPresence /> : <TeamSnapshot />)}
         </div>
         <div className="stack">
+          <OnlineCard />
           <AnnouncementCard />
           <QsAlertsCard />
           <EventsCard />

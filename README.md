@@ -140,6 +140,13 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Staying in? At 12:35 you're asked to confirm you're in the office, which takes your location. Confirming from outside the office radius (or the place you checked in at) tells Hassan.
   - At 12:50 Hassan gets one list of anyone who hasn't confirmed or gone out, and they get a reminder.
   - The team board shows everyone's lunch, your history shows your breaks, and the monthly export has break start, end, minutes, closed away and the office check. Managers who only see present or absent don't see any of it. Location is never tracked in the background.
+- **Who's online and last online**:
+  - You count as online while the app is open on your screen and you've used it (tapped, typed or scrolled) in the last 10 minutes. Putting the app away, locking the phone, closing the tab or losing signal takes you off straight away; 10 minutes without using it takes you off too, and then your last online time is when you last used it.
+  - Anyone online has a green dot on their photo everywhere in the app: tasks, chats, the team, updates and their profile card. You never see the dot on your own photo.
+  - A one-to-one chat says **Online** under the person's name, or **Last online today at 3:42 pm** (yesterday at, Mon at, or the date for older times), like WhatsApp.
+  - Tapping someone's photo shows the same line on their profile card.
+  - Home has a **Who's online** card: everyone online first, then when everyone else was last on (12 min ago, Today 3:42 pm, Yesterday 6:05 pm). Tap a person to message, WhatsApp or call them.
+  - Everyone on the team sees everyone's status, and it can't be switched off. Only the time is saved (every minute while you're online); nothing about where you are.
 - **Works without signal** (on site, in a basement, on a plane):
   - The app opens with no signal, and screens show what they last loaded: Home, My tasks, task pages, projects, chats, announcements, calendar and check-in. Every screen's code is fetched once per version, so even screens you haven't opened yet work. A navy bar says "No signal. You're seeing what was saved, and anything you send goes out when you're back online." When the signal returns, "Back online" shows for a moment and screens refresh.
   - Messages, voice notes, files and Drive links sent with no signal (or when the signal drops mid-send) show straight away with a small clock instead of the tick. They go out by themselves, in order, when the signal is back, and a message is never posted twice. If the server refuses one, it shows "Not sent" with the reason, and Try again or Remove.

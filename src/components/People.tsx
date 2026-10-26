@@ -13,6 +13,7 @@ import { COUNTRY_CODE, formatPhone, localDigits, whatsappLink } from "@/lib/phon
 import type { Profile } from "@/lib/types";
 import { Avatar, Pill, Sheet, useToast } from "./ui";
 import { showsManagerLabel } from "@/lib/people";
+import { useOnlineLine } from "@/lib/online";
 
 /* ---------------------------------------------------------------- WhatsApp */
 export function WhatsAppIcon({ size = 18 }: { size?: number }) {
@@ -178,6 +179,7 @@ export function PersonCardHost() {
             {p.title}
             {showsManagerLabel(p) ? <Pill tone="blue">Manager</Pill> : p.role !== "manager" && p.can_assign ? <Pill tone="purple">Can assign</Pill> : null}
           </div>
+          {!isMe && <OnlineLine id={p.id} />}
 
           {!isMe && (
             <div className="pc-actions">
@@ -218,4 +220,11 @@ export function PersonCardHost() {
       )}
     </Sheet>
   );
+}
+
+/** "Online" in green, or when they were last on. Nothing while there's no time yet. */
+function OnlineLine({ id }: { id: string }) {
+  const { online, text } = useOnlineLine(id);
+  if (!text) return null;
+  return <div className={online ? "pc-online on" : "pc-online"}>{text}</div>;
 }
