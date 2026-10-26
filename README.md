@@ -5,6 +5,12 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 ## What it does
 
 - **Projects**: an overview, a task list and board, the variation (VO) register, BOQ package stages, project chat, files and a full history.
+- **Project teams**: each project has its own team, set by Hassan or a senior with *Edit team* on the project page.
+  - The team shows on the project page (with each person's open and late tasks, and anyone else who has tasks there underneath) and as photos and names on the project's card in Projects.
+  - In the New task form, picking a project lists its team first in *Assign to* ("KSU team"), then everyone else.
+  - Your own projects come first in Projects, marked *Your project*.
+  - The first teams: KSU Rimash and Hameed; Capella Najeefar and Imthath; HOAS Saheeb and Inzam; Bawabah Riswan.
+- **Signing in with an old email**: when someone's email changes, their old one can keep signing them in with the same password. The app tries the email as typed, and only if that fails asks the database (`login_email`) whether it's an old email of an active person. Rimash's email is now arrimash@northcroftme.com (shown as his contact everywhere); rimaashahamed@gmail.com still signs him in.
 - **Tasks**: you assign work with due dates, priorities and checklists, to one person or several. Everyone on a task sees it in My tasks and gets its notifications; any of them can start it, edit its details, steps and files, and submit it for review. Hassan or a senior approves it or sends it back with a note, and only managers and seniors change who's on a task. Tasks can also repeat daily, weekly or monthly.
 - **Celebrations**:
   - When Hassan or a senior approves a task (or marks it done), confetti in navy, red and gold bursts across the screen with a glossy card: "Approved. Great work, Imthath and Najeefar."
@@ -183,6 +189,7 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 | See everyone's attendance | Yes (Fawaz: present, absent or on leave only) | Yes | Own only |
 | Add people, reset passwords, set hours, office pins | Yes | No | No |
 | Change who's on a task, delete tasks | Yes | Yes | No |
+| Set a project's team | Yes | Yes | No |
 | Edit a task's details, steps and files, and submit it | Yes | Yes | When they're on the task |
 | Update VOs and BOQ packages, comment, chat, upload files | Yes | Yes | Yes |
 | Ask for leave | Yes (Hassan; Fawaz doesn't check in) | Yes | Yes |

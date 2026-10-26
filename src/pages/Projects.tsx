@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Building2, FolderKanban, MapPin, Plus, Trash2 } from "lucide-react";
-import { useInvalidate, useProjects, useTasks } from "@/lib/api";
+import { useInvalidate, usePeople, useProjects, useTasks } from "@/lib/api";
+import { useProjectTeams } from "@/lib/projectTeam";
+import { nameList } from "@/lib/people";
 import { useAuth, useMe } from "@/lib/auth";
 import { SAMPLE_PROJECT_IDS, removeSampleData } from "@/lib/sampleData";
 import { errorMessage } from "@/lib/supabase";
@@ -9,7 +11,7 @@ import { sar } from "@/lib/format";
 import { todayISO } from "@/lib/time";
 import type { Project } from "@/lib/types";
 import { PageHead } from "@/components/PageHead";
-import { Empty, Loading, Pill, Progress, Segmented, useConfirm, useToast } from "@/components/ui";
+import { AvatarStack, Empty, Loading, Pill, Progress, Segmented, useConfirm, useToast } from "@/components/ui";
 import { ProjectCover } from "@/components/ProjectCover";
 import { ProjectForm } from "./project/ProjectForm";
 import { useVariations, voTotals } from "./project/api";
@@ -25,6 +27,7 @@ export default function Projects() {
   const [filter, setFilter] = useState<Filter>("active");
   const [formOpen, setFormOpen] = useState(false);
   const me = useMe();
+  const people = usePeople();
   const { isManager } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();
@@ -74,7 +77,12 @@ export default function Projects() {
     on_hold: projects.filter((p) => p.status === "on_hold").length,
     completed: projects.filter((p) => p.status === "completed").length,
   };
-  const shown = projects.filter((p) => p.status === filter);
+  // Your own projects (the ones you're on the team of) come first.
+  const teams = useProjectTeams();
+  const mine = new Set(teams.projectsOf(me.id));
+  const shown = projects
+    .filter((p) => p.status === filter)
+    .sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || a.name.localeCompare(b.name));
 
   return (
     <div className="page">
@@ -137,8 +145,15 @@ export default function Projects() {
                     {p.code && <div className="code">{p.code}</div>}
                     <h3>{p.name}</h3>
                   </div>
+                  {mine.has(p.id) && <Pill tone="blue">Your project</Pill>}
                   {s.overdue > 0 && <Pill tone="red">{s.overdue} overdue</Pill>}
                 </div>
+                {teams.team(p.id).length > 0 && (
+                  <div className="row project-team-row" style={{ gap: 8 }}>
+                    <AvatarStack people={teams.team(p.id).map((id) => people.get(id))} size={26} max={5} />
+                    <span className="small muted ellipsis">{nameList(teams.team(p.id).map((id) => people.get(id)?.short_name ?? "someone"))}</span>
+                  </div>
+                )}
                 <div className="row wrap muted small" style={{ gap: "4px 14px" }}>
                   {p.city && (
                     <span className="row" style={{ gap: 5 }}>

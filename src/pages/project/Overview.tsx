@@ -1,13 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarClock, History, Users } from "lucide-react";
+import { CalendarClock, History, UserPen, Users } from "lucide-react";
 import clsx from "clsx";
-import { usePeople, useTasks } from "@/lib/api";
+import { useInvalidate, usePeople, useTasks } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { saveProjectTeam, useProjectTeams } from "@/lib/projectTeam";
+import { errorMessage } from "@/lib/supabase";
+import { PersonAvatar } from "@/components/People";
 import { BOQ_STATUS, VO_STATUS } from "@/lib/constants";
 import { pct, sar } from "@/lib/format";
 import { addDays, dueState, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Project } from "@/lib/types";
-import { Avatar, Empty, Loading, Pill, PriorityFlag, StatusRing } from "@/components/ui";
+import { Avatar, Empty, Loading, Pill, PriorityFlag, Sheet, StatusRing, useToast } from "@/components/ui";
 import { ActivityFeed } from "./ActivityFeed";
 import { VoMeter } from "./Variations";
 import { VO_PENDING, useActivity, useBoq, useVariations, voTotals } from "./api";
@@ -138,33 +142,7 @@ export function Overview({ project }: { project: Project }) {
           <div className="glass card">
             <VoMeter approved={v.approved} pending={v.pending} contract={project.contract_value} />
           </div>
-          <div className="glass card">
-            <div className="card-head">
-              <h3>
-                <Users /> Who's on it
-              </h3>
-            </div>
-            {team.length === 0 ? (
-              <Empty title="Nobody has open tasks here" />
-            ) : (
-              <div className="list">
-                {team.map(([pid, c]) => {
-                  const p = people.get(pid);
-                  return (
-                    <div key={pid} className="list-item">
-                      <Avatar person={p} size={30} />
-                      <div className="grow">
-                        <div className="title">{p?.short_name ?? "Someone"}</div>
-                        <div className="meta">{p?.title}</div>
-                      </div>
-                      <span className="small muted">{c.open} open</span>
-                      {c.overdue > 0 && <Pill tone="red">{c.overdue} late</Pill>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <ProjectTeamCard project={project} workload={team} />
         </div>
       </div>
 
@@ -198,5 +176,128 @@ export function Overview({ project }: { project: Project }) {
         {activity.isLoading ? <Loading /> : <ActivityFeed items={activity.data ?? []} taskTitles={titles} />}
       </div>
     </div>
+  );
+}
+
+/**
+ * The project's team (set by managers and seniors), with each person's open and late tasks here.
+ * Anyone else with open tasks on the project shows under "Also has tasks here".
+ */
+function ProjectTeamCard({ project, workload }: { project: Project; workload: [string, { open: number; overdue: number }][] }) {
+  const people = usePeople();
+  const { canAssign } = useAuth();
+  const teams = useProjectTeams();
+  const members = teams.team(project.id);
+  const counts = new Map(workload);
+  const others = workload.filter(([id]) => !members.includes(id)).map(([id]) => id);
+  const [editing, setEditing] = useState(false);
+
+  const row = (id: string) => {
+    const p = people.get(id);
+    const c = counts.get(id);
+    return (
+      <div key={id} className="list-item">
+        <PersonAvatar person={p} size={30} />
+        <div className="grow">
+          <div className="title">{p?.short_name ?? "Former team member"}</div>
+          <div className="meta">{p?.title}</div>
+        </div>
+        {c ? <span className="small muted">{c.open} open</span> : <span className="small muted">No open tasks</span>}
+        {c && c.overdue > 0 && <Pill tone="red">{c.overdue} late</Pill>}
+      </div>
+    );
+  };
+
+  return (
+    <div className="glass card project-team">
+      <div className="card-head">
+        <h3>
+          <Users /> Project team
+        </h3>
+        {canAssign && (
+          <button type="button" className="btn small" onClick={() => setEditing(true)}>
+            <UserPen /> Edit team
+          </button>
+        )}
+      </div>
+      {members.length === 0 ? (
+        <Empty title="No team yet">{canAssign ? "Tap Edit team to add who works on this project." : "Hassan or a senior adds the team."}</Empty>
+      ) : (
+        <div className="list">{members.map(row)}</div>
+      )}
+      {others.length > 0 && (
+        <>
+          <div className="small bold project-team-also">Also has tasks here</div>
+          <div className="list">{others.map(row)}</div>
+        </>
+      )}
+      {canAssign && <TeamEditor open={editing} onClose={() => setEditing(false)} project={project} current={members} />}
+    </div>
+  );
+}
+
+function TeamEditor({ open, onClose, project, current }: { open: boolean; onClose: () => void; project: Project; current: string[] }) {
+  const people = usePeople();
+  const toast = useToast();
+  const invalidate = useInvalidate();
+  const [picked, setPicked] = useState<string[]>(current);
+  const [saving, setSaving] = useState(false);
+  // Start from the current team each time the sheet opens. Done while rendering, not in an effect,
+  // so the right people are ticked from the first frame.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setPicked(current);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveProjectTeam(project.id, current, picked);
+      await invalidate("project_members");
+      toast(`${project.name} team saved`);
+      onClose();
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={`${project.name} team`}
+      footer={
+        <>
+          <button className="btn" type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn primary" type="button" onClick={save} disabled={saving}>
+            {saving ? "Saving..." : "Save team"}
+          </button>
+        </>
+      }
+    >
+      <p className="small muted" style={{ marginTop: 0 }}>
+        The team shows on the project and its card, and comes first in Assign to for this project's tasks.
+      </p>
+      <div className="list team-pick">
+        {people.active.map((p) => {
+          const on = picked.includes(p.id);
+          return (
+            <label key={p.id} className={clsx("list-item team-pick-row", on && "on")}>
+              <input type="checkbox" checked={on} onChange={() => setPicked((xs) => (on ? xs.filter((x) => x !== p.id) : [...xs, p.id]))} />
+              <Avatar person={p} size={30} />
+              <div className="grow">
+                <div className="title">{p.short_name}</div>
+                <div className="meta">{p.title}</div>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+    </Sheet>
   );
 }

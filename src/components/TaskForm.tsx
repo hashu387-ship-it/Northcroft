@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileSpreadsheet, FileText, Folder, Image as ImageIcon, Link2, Mic, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
 import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
+import { useProjectTeams } from "@/lib/projectTeam";
 import { useAuth, useMe } from "@/lib/auth";
 import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
 import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
@@ -67,6 +68,9 @@ export function TaskForm({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [projectId, setProjectId] = useState<string | null>(null);
+  // The chosen project's team is listed first in Assign to.
+  const teams = useProjectTeams();
+  const projectTeam = teams.team(projectId);
   const [assignees, setAssignees] = useState<string[]>([]);
   const [reviewerId, setReviewerId] = useState<string | null>(me.id);
   const [dueDate, setDueDate] = useState("");
@@ -418,6 +422,7 @@ export function TaskForm({
             people={people.assignableBy(me.id).concat(people.active.filter((p) => assignees.includes(p.id) && p.assignable === false && p.id !== me.id))}
             empty="Nobody yet"
             disabled={lockPeople}
+            first={projectTeam.length ? { label: `${projects.find((x) => x.id === projectId)?.name ?? "Project"} team`, ids: projectTeam } : undefined}
           />
         </Field>
         <Field label="Project">

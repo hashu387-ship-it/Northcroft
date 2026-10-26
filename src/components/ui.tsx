@@ -392,6 +392,7 @@ export function PeopleSelect({
   empty = "Nobody yet",
   disabled,
   label = "Add a person",
+  first,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
@@ -399,9 +400,19 @@ export function PeopleSelect({
   empty?: string;
   disabled?: boolean;
   label?: string;
+  /** People to list first under their own heading (a project's team), then everyone else. */
+  first?: { label: string; ids: string[] };
 }) {
   const byId = new Map(people.map((p) => [p.id, p]));
   const rest = people.filter((p) => !value.includes(p.id));
+  const top = first ? first.ids.map((id) => rest.find((p) => p.id === id)).filter((p): p is Profile => !!p) : [];
+  const others = top.length ? rest.filter((p) => !top.includes(p)) : rest;
+  const option = (p: Profile) => (
+    <option key={p.id} value={p.id}>
+      {p.short_name}
+      {p.title ? ` · ${p.title}` : ""}
+    </option>
+  );
   return (
     <div className="people-select">
       <div className="people-chips">
@@ -431,12 +442,14 @@ export function PeopleSelect({
           }}
         >
           <option value="">{value.length ? "Add another person" : label}</option>
-          {rest.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.short_name}
-              {p.title ? ` · ${p.title}` : ""}
-            </option>
-          ))}
+          {top.length > 0 ? (
+            <>
+              <optgroup label={first!.label}>{top.map(option)}</optgroup>
+              {others.length > 0 && <optgroup label="Everyone else">{others.map(option)}</optgroup>}
+            </>
+          ) : (
+            rest.map(option)
+          )}
         </select>
       )}
     </div>

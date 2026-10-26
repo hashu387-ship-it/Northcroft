@@ -1671,3 +1671,10 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 
 /* Placeholders in boxes use the soft navy too, not the browser's grey. */
 ::placeholder { color: var(--text-3); opacity: 1; }
+
+/* ------------------------------------------------------------------ project teams */
+.project-team-row { min-width: 0; }
+.project-team-also { margin: 14px 0 4px; color: var(--text-2); }
+.team-pick-row { cursor: pointer; gap: 12px; }
+.team-pick-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+.team-pick-row.on { background: var(--accent-soft); }

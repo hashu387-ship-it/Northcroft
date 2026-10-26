@@ -69,7 +69,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isManager: profile?.role === "manager",
       canAssign: !!profile && (profile.role === "manager" || profile.can_assign),
       signIn: async (email, password) => {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+        const typed = email.trim().toLowerCase();
+        let { data, error } = await supabase.auth.signInWithPassword({ email: typed, password });
+        if (error && /invalid login credentials/i.test(error.message)) {
+          // An old email someone used to sign in with (their email has changed since): sign in to
+          // the same account with its main email. Same password.
+          const { data: main } = await supabase.rpc("login_email", { p_email: typed });
+          if (typeof main === "string" && main && main !== typed) {
+            ({ data, error } = await supabase.auth.signInWithPassword({ email: main, password }));
+          }
+        }
         if (error) throw error;
         await loadProfile(data.user?.id);
       },
