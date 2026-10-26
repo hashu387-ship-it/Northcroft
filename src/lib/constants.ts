@@ -48,7 +48,7 @@ export const EVENT_KIND: Record<EventKind, { label: string; color: string }> = {
   site_visit: { label: "Site visit", color: "#FF9F0A" },
   meeting: { label: "Meeting", color: "#0A84FF" },
   submission: { label: "Submission", color: "#BF5AF2" },
-  leave: { label: "Leave", color: "#8E8E93" },
+  leave: { label: "Leave", color: "#5B74A8" },
   other: { label: "Other", color: "#30B0C7" },
 };
 

@@ -14,8 +14,9 @@
   --blob-5: #b9c7de;
 
   --text: #0f172a;
-  --text-2: #4b5567;
-  --text-3: #8a94a6;
+  /* Secondary text and hints are navy shades, never grey. */
+  --text-2: #233a6b;
+  --text-3: #4a64a0;
   --separator: rgba(15, 23, 42, 0.09);
   --fill: rgba(15, 23, 42, 0.05);
   --fill-2: rgba(15, 23, 42, 0.09);
@@ -54,7 +55,7 @@
   --teal-soft: rgba(48, 176, 199, 0.15);
   --yellow: #b88a00;
   --yellow-soft: rgba(255, 204, 0, 0.2);
-  --gray: #8e8e93;
+  --gray: #5b74a8;
 
   --r-xl: 18px;
   --r-lg: 14px;
@@ -83,8 +84,8 @@
     --brand-soft: rgba(143, 176, 240, 0.12);
     --nav-active: #24427f;
     --text: #f5f5f7;
-    --text-2: rgba(235, 235, 245, 0.7);
-    --text-3: rgba(235, 235, 245, 0.42);
+    --text-2: #c9d7f5;
+    --text-3: #93aadb;
     --separator: rgba(84, 84, 88, 0.55);
     --fill: rgba(118, 118, 128, 0.24);
     --fill-2: rgba(118, 118, 128, 0.34);
@@ -130,8 +131,8 @@
   --brand-soft: rgba(143, 176, 240, 0.12);
   --nav-active: #24427f;
   --text: #f5f5f7;
-  --text-2: rgba(235, 235, 245, 0.7);
-  --text-3: rgba(235, 235, 245, 0.42);
+  --text-2: #c9d7f5;
+  --text-3: #93aadb;
   --separator: rgba(84, 84, 88, 0.55);
   --fill: rgba(118, 118, 128, 0.24);
   --fill-2: rgba(118, 118, 128, 0.34);
@@ -1667,3 +1668,6 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
   overflow: auto;
 }
 .wording-changes { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+
+/* Placeholders in boxes use the soft navy too, not the browser's grey. */
+::placeholder { color: var(--text-3); opacity: 1; }

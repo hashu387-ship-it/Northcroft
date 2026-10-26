@@ -225,7 +225,7 @@ function CheckInCard() {
   );
 
   if (!row && !workday) {
-    tone = "#8E8E93";
+    tone = "#5B74A8";
     headline = "It's the weekend";
     sub = "Check in only if you're working today.";
     button = (
@@ -245,7 +245,7 @@ function CheckInCard() {
       </Link>
     );
   } else if (row) {
-    tone = "#8E8E93";
+    tone = "#5B74A8";
     icon = <LogOut />;
     headline = `Checked out at ${fmtTime12(row.check_out_at)}`;
     sub = `In at ${fmtTime12(row.check_in_at)} · ${fmtDuration(row.check_in_at, row.check_out_at)} on the day`;

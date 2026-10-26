@@ -78,7 +78,7 @@ const TYPE_META: Record<string, { icon: LucideIcon; color: string; label: string
   leave_update: { icon: TreePalm, color: "#30B0C7", label: "Leave" },
   leave_approved: { icon: TreePalm, color: "#30D158", label: "Leave approved" },
   leave_declined: { icon: TreePalm, color: "#FF3B30", label: "Leave declined" },
-  leave_cancelled: { icon: TreePalm, color: "#8E8E93", label: "Leave cancelled" },
+  leave_cancelled: { icon: TreePalm, color: "#5B74A8", label: "Leave cancelled" },
   break_prompt: { icon: Coffee, color: "#FF9F0A", label: "Lunch break" },
   break_left: { icon: Coffee, color: "#FF9F0A", label: "Lunch break" },
   break_over: { icon: Coffee, color: "#FF3B30", label: "Lunch break" },
@@ -88,12 +88,12 @@ const TYPE_META: Record<string, { icon: LucideIcon; color: string; label: string
   office_missed: { icon: Building2, color: "#FF9F0A", label: "Office check" },
   office_outside: { icon: MapPin, color: "#FF9F0A", label: "Office check" },
   lunch_digest: { icon: Building2, color: "#FF9F0A", label: "Office check" },
-  test: { icon: Bell, color: "#8E8E93", label: "Test" },
+  test: { icon: Bell, color: "#5B74A8", label: "Test" },
 };
 const ASSIGNED = new Set(["task_assigned", "checklist_assigned", "vo_assigned", "boq_assigned"]);
 
 function meta(type: string) {
-  return TYPE_META[type] ?? { icon: Bell, color: "#8E8E93", label: "Update" };
+  return TYPE_META[type] ?? { icon: Bell, color: "#5B74A8", label: "Update" };
 }
 
 export default function Inbox() {

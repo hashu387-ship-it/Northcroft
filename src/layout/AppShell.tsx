@@ -22,6 +22,7 @@ import { usePeople, useUnreadCount } from "@/lib/api";
 import { useChats } from "@/lib/chats";
 import { useAuth, useMe } from "@/lib/auth";
 import { useRealtime } from "@/lib/realtime";
+import { MENU_COLOR, tileBackground } from "@/lib/menu";
 import { useOnlineTracking } from "@/lib/online";
 import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/push";
 import { useAppUpdates } from "@/lib/updates";
@@ -145,30 +146,67 @@ export default function AppShell() {
   if (!me.avatar_url || !me.phone) return <ProfileSetup />;
 
   const isRoot = TAB_ROOTS.includes(location.pathname);
-  const nav = [
-    { to: "/", label: "Home", icon: House, end: true },
-    // Someone who only gives out tasks sees every assigned task there instead of their own.
-    { to: "/my-tasks", label: me.assignable === false ? "Assigned tasks" : "My tasks", icon: SquareCheckBig },
-    { to: "/projects", label: "Projects", icon: FolderKanban },
-    // Every project's VOs in one table, laid out like the VO log spreadsheet.
-    { to: "/vo-log", label: "VO log", icon: FileSpreadsheet },
-    { to: "/inbox", label: "Inbox", icon: Inbox, count: unread },
-    { to: "/announcements", label: "Announcements", icon: Megaphone, count: unacked },
-    { to: "/calendar", label: "Calendar", icon: CalendarDays },
-    { to: "/chats", label: "Chats", icon: MessagesSquare, count: chatUnread },
-    // The team sends a daily update; managers and seniors read everyone's.
-    ...(sendsDailyUpdate(me) || canAssign ? [{ to: "/updates", label: "Daily updates", icon: ClipboardList }] : []),
-    // People who don't check in see "Attendance" (the team's board) if they manage, otherwise nothing.
-    ...(!me.attendance_exempt
-      ? [{ to: "/attendance", label: "Check in", icon: MapPin }]
-      : canAssign
-        ? [{ to: "/attendance", label: "Attendance", icon: MapPin }]
-        : []),
+  // The side menu, in sections. Each item has its own colour (shared with the tab bar and More).
+  type Item = { to: string; label: string; icon: typeof House; color: string; end?: boolean; count?: number };
+  const home: Item = { to: "/", label: "Home", icon: House, color: MENU_COLOR.home, end: true };
+  const sections: { label: string; items: Item[] }[] = [
+    {
+      label: "Work",
+      items: [
+        // Someone who only gives out tasks sees every assigned task there instead of their own.
+        { to: "/my-tasks", label: me.assignable === false ? "Assigned tasks" : "My tasks", icon: SquareCheckBig, color: MENU_COLOR.tasks },
+        { to: "/projects", label: "Projects", icon: FolderKanban, color: MENU_COLOR.projects },
+        // Every project's VOs in one table, laid out like the VO log spreadsheet.
+        { to: "/vo-log", label: "VO log", icon: FileSpreadsheet, color: MENU_COLOR.volog },
+        // The team sends a daily update; managers and seniors read everyone's.
+        ...(sendsDailyUpdate(me) || canAssign ? [{ to: "/updates", label: "Daily updates", icon: ClipboardList, color: MENU_COLOR.updates }] : []),
+      ],
+    },
+    {
+      label: "Team",
+      items: [
+        { to: "/chats", label: "Chats", icon: MessagesSquare, color: MENU_COLOR.chats, count: chatUnread },
+        { to: "/announcements", label: "Announcements", icon: Megaphone, color: MENU_COLOR.announcements, count: unacked },
+        { to: "/calendar", label: "Calendar", icon: CalendarDays, color: MENU_COLOR.calendar },
+        { to: "/inbox", label: "Inbox", icon: Inbox, color: MENU_COLOR.inbox, count: unread },
+      ],
+    },
+    {
+      label: "Attendance",
+      // People who don't check in see "Attendance" (the team's board) if they manage, otherwise nothing.
+      items: !me.attendance_exempt
+        ? [{ to: "/attendance", label: "Check in", icon: MapPin, color: MENU_COLOR.attendance }]
+        : canAssign
+          ? [{ to: "/attendance", label: "Attendance", icon: MapPin, color: MENU_COLOR.attendance }]
+          : [],
+    },
+    {
+      label: "Manage",
+      items: [
+        ...(canAssign ? [{ to: "/workload", label: "Workload", icon: BarChart3, color: MENU_COLOR.workload }] : []),
+        { to: "/settings", label: "Settings", icon: Settings, color: MENU_COLOR.settings },
+      ],
+    },
   ];
-  const manage = [
-    ...(canAssign ? [{ to: "/workload", label: "Workload", icon: BarChart3 }] : []),
-    { to: "/settings", label: "Settings", icon: Settings },
-  ];
+  const navLink = (n: Item) => (
+    <NavLink
+      key={n.to}
+      to={n.to}
+      end={n.end}
+      className={({ isActive }) => (isActive || (n.to === "/chats" && /^\/chats?(\/|$)/.test(location.pathname)) ? "active" : "")}
+    >
+      <span className="nav-ic" style={{ background: tileBackground(n.color) }}>
+        <n.icon />
+      </span>
+      {n.label}
+      {!!n.count && <span className="count">{n.count > 99 ? "99+" : n.count}</span>}
+    </NavLink>
+  );
+  const tabIcon = (Icon: typeof House, color: string) => (
+    <span className="tab-ic" style={{ background: tileBackground(color) }}>
+      <Icon />
+    </span>
+  );
 
   return (
     <div className="app">
@@ -190,25 +228,15 @@ export default function AppShell() {
           <kbd>{SEARCH_SHORTCUT}</kbd>
         </button>
         <nav className="nav">
-          {nav.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.end}
-              className={({ isActive }) => (isActive || (n.to === "/chats" && /^\/chats?(\/|$)/.test(location.pathname)) ? "active" : "")}
-            >
-              <n.icon />
-              {n.label}
-              {!!n.count && <span className="count">{n.count > 99 ? "99+" : n.count}</span>}
-            </NavLink>
-          ))}
-          <div className="nav-label">Manage</div>
-          {manage.map((n) => (
-            <NavLink key={n.to} to={n.to}>
-              <n.icon />
-              {n.label}
-            </NavLink>
-          ))}
+          {navLink(home)}
+          {sections
+            .filter((sec) => sec.items.length > 0)
+            .map((sec) => (
+              <div className="nav-section" key={sec.label} role="group" aria-label={sec.label}>
+                <div className="nav-label">{sec.label}</div>
+                {sec.items.map(navLink)}
+              </div>
+            ))}
         </nav>
         <Link to="/settings" className="sidebar-user">
           <Avatar person={me} size={36} />
@@ -260,29 +288,29 @@ export default function AppShell() {
 
       <nav className="tabbar glass-strong" aria-label="Main">
         <NavLink to="/" end>
-          <House />
+          {tabIcon(House, MENU_COLOR.home)}
           Home
         </NavLink>
         <NavLink to="/my-tasks">
-          <SquareCheckBig />
+          {tabIcon(SquareCheckBig, MENU_COLOR.tasks)}
           Tasks
         </NavLink>
         <NavLink to="/projects">
-          <FolderKanban />
+          {tabIcon(FolderKanban, MENU_COLOR.projects)}
           Projects
         </NavLink>
         <NavLink to="/chats" className={() => (/^\/chats?(\/|$)/.test(location.pathname) ? "active" : "")}>
-          <MessagesSquare />
+          {tabIcon(MessagesSquare, MENU_COLOR.chats)}
           Chats
           {!!chatUnread && <span className="dot">{chatUnread > 99 ? "99+" : chatUnread}</span>}
         </NavLink>
         <NavLink to="/inbox">
-          <Inbox />
+          {tabIcon(Inbox, MENU_COLOR.inbox)}
           Inbox
           {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
         </NavLink>
         <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/vo-log", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
-          <Ellipsis />
+          {tabIcon(Ellipsis, MENU_COLOR.more)}
           More
           {!!unacked && <span className="dot">{unacked}</span>}
         </NavLink>

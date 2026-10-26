@@ -134,7 +134,7 @@ export const REACTIONS: { key: ReactionKind; label: string; icon: LucideIcon; co
   { key: "love", label: "Love", icon: Heart, color: "#e8343e" },
   { key: "haha", label: "Haha", icon: Laugh, color: "#e67e00" },
   { key: "thanks", label: "Thanks", icon: Handshake, color: "#a24fd4" },
-  { key: "sad", label: "Sad", icon: Frown, color: "#6b7280" },
+  { key: "sad", label: "Sad", icon: Frown, color: "#5B74A8" },
 ];
 export const reactionInfo = (k: ReactionKind) => REACTIONS.find((r) => r.key === k)!;
 

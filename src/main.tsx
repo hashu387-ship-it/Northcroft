@@ -9,6 +9,7 @@ import "./styles/index.css";
 import "./styles/polish.css";
 import "./styles/liquid.css";
 import "./styles/brandfont.css";
+import "./styles/menu.css";
 
 // Appearance preferences are per device. Light is the default; Dark or Automatic (follow the phone)
 // only when someone chooses it in Settings > Appearance.

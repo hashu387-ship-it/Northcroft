@@ -8,6 +8,7 @@ import { signOutWarning } from "@/lib/outbox";
 import { sendsDailyUpdate } from "@/lib/dailyUpdates";
 import { needsMyAck, useAnnouncementsWithAcks } from "./home/data";
 import { showsManagerLabel } from "@/lib/people";
+import { MENU_COLOR, tileBackground } from "@/lib/menu";
 
 interface Tile {
   to: string;
@@ -26,20 +27,20 @@ export default function More() {
   const unacked = anns.data.filter((a) => needsMyAck(a, me.id)).length;
 
   const tiles: Tile[] = [
-    { to: "/announcements", label: "Announcements", hint: unacked ? `${unacked} to acknowledge` : "Team news", icon: Megaphone, color: "#FF9F0A", count: unacked },
-    { to: "/calendar", label: "Calendar", hint: "Deadlines and visits", icon: CalendarDays, color: "#FF375F" },
-    { to: "/chats", label: "Chats", hint: "Team, projects, groups", icon: MessagesSquare, color: "#30D158" },
-    { to: "/vo-log", label: "VO log", hint: "Every project's VOs", icon: FileSpreadsheet, color: "#1D6F42" },
+    { to: "/announcements", label: "Announcements", hint: unacked ? `${unacked} to acknowledge` : "Team news", icon: Megaphone, color: MENU_COLOR.announcements, count: unacked },
+    { to: "/calendar", label: "Calendar", hint: "Deadlines and visits", icon: CalendarDays, color: MENU_COLOR.calendar },
+    { to: "/chats", label: "Chats", hint: "Team, projects, groups", icon: MessagesSquare, color: MENU_COLOR.chats },
+    { to: "/vo-log", label: "VO log", hint: "Every project's VOs", icon: FileSpreadsheet, color: MENU_COLOR.volog },
     ...(!me.attendance_exempt
-      ? [{ to: "/attendance", label: "Check in", hint: "Arrive and leave", icon: MapPin, color: "#0A84FF" }]
+      ? [{ to: "/attendance", label: "Check in", hint: "Arrive and leave", icon: MapPin, color: MENU_COLOR.attendance }]
       : canAssign
-        ? [{ to: "/attendance", label: "Attendance", hint: "The team's day", icon: MapPin, color: "#0A84FF" }]
+        ? [{ to: "/attendance", label: "Attendance", hint: "The team's day", icon: MapPin, color: MENU_COLOR.attendance }]
         : []),
     ...(sendsDailyUpdate(me) || canAssign
-      ? [{ to: "/updates", label: "Daily updates", hint: sendsDailyUpdate(me) ? "What you did today" : "What the team did", icon: ClipboardList, color: "#FF6B2C" }]
+      ? [{ to: "/updates", label: "Daily updates", hint: sendsDailyUpdate(me) ? "What you did today" : "What the team did", icon: ClipboardList, color: MENU_COLOR.updates }]
       : []),
-    ...(canAssign ? [{ to: "/workload", label: "Workload", hint: "Who has what", icon: BarChart3, color: "#BF5AF2" }] : []),
-    { to: "/settings", label: "Settings", hint: "Notifications, password", icon: Settings, color: "#8E8E93" },
+    ...(canAssign ? [{ to: "/workload", label: "Workload", hint: "Who has what", icon: BarChart3, color: MENU_COLOR.workload }] : []),
+    { to: "/settings", label: "Settings", hint: "Notifications, password", icon: Settings, color: MENU_COLOR.settings },
   ];
 
   async function out() {
@@ -68,7 +69,7 @@ export default function More() {
       <div className="more-grid">
         {tiles.map((t) => (
           <Link key={t.to} to={t.to} className="glass">
-            <span className="ic" style={{ background: `linear-gradient(145deg, ${t.color}, color-mix(in srgb, ${t.color} 70%, #000))` }}>
+            <span className="ic" style={{ background: tileBackground(t.color) }}>
               <t.icon />
             </span>
             <span>{t.label}</span>
