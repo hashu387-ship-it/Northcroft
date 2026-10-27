@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, type MutableRefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
   FileText,
   Folder,
+  FolderInput,
   FolderOpen,
   Globe,
   Image as ImageIcon,
@@ -208,7 +209,40 @@ export function LinkBrandIcon({ site }: { site: string | null | undefined }) {
 }
 
 /** A OneDrive, SharePoint, Dropbox or website link: a card that opens it. */
-function OtherLinkCard({ link, showTaskNote, compact, canRemove, onRemove }: { link: DriveLink; showTaskNote?: boolean; compact?: boolean; canRemove: boolean; onRemove: () => void }) {
+/** "on a task", "on a VO" or "on an announcement", for a link shown in a project's list. */
+function PlaceNote({ link, show }: { link: DriveLink; show?: boolean }) {
+  if (!show) return null;
+  if (link.task_id) return <>{" · on a task"}</>;
+  if (link.variation_id) return <>{" · on a VO"}</>;
+  if (link.announcement_id) return <>{" · on an announcement"}</>;
+  return null;
+}
+
+function MoveButton({ title, onMove }: { title: string; onMove: () => void }) {
+  return (
+    <button type="button" className="icon-btn small plain" onClick={onMove} aria-label={`Move ${title}`} title="Move to a folder">
+      <FolderInput />
+    </button>
+  );
+}
+
+function OtherLinkCard({
+  link,
+  showTaskNote,
+  compact,
+  canRemove,
+  onRemove,
+  from,
+  onMove,
+}: {
+  link: DriveLink;
+  showTaskNote?: boolean;
+  compact?: boolean;
+  canRemove: boolean;
+  onRemove: () => void;
+  from?: string | null;
+  onMove?: () => void;
+}) {
   const people = usePeople();
   const meta = compact
     ? linkMeta(link)
@@ -222,9 +256,7 @@ function OtherLinkCard({ link, showTaskNote, compact, canRemove, onRemove }: { l
             <b className="ellipsis">{link.title}</b>
             <span className="faint tiny">
               {meta}
-              {showTaskNote && link.task_id ? " · on a task" : ""}
-              {showTaskNote && link.variation_id ? " · on a VO" : ""}
-              {showTaskNote && link.announcement_id ? " · on an announcement" : ""}
+              {from ? ` · ${from}` : <PlaceNote link={link} show={showTaskNote} />}
               {link.recurring_id && !link.task_id ? " · every repeat" : ""}
             </span>
           </span>
@@ -232,6 +264,7 @@ function OtherLinkCard({ link, showTaskNote, compact, canRemove, onRemove }: { l
         <a className="icon-btn small plain" href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${link.title}`} title={link.site ? `Open on ${link.site}` : "Open the link"}>
           <ExternalLink />
         </a>
+        {onMove && <MoveButton title={link.title} onMove={onMove} />}
         {canRemove && (
           <button type="button" className="icon-btn small plain" onClick={onRemove} aria-label={`Take ${link.title} off`} title="Take off">
             <Trash2 />
@@ -245,7 +278,21 @@ function OtherLinkCard({ link, showTaskNote, compact, canRemove, onRemove }: { l
 /** One link: a Drive folder that opens into its file list, a single Drive file, or a card that
  *  opens a OneDrive, Dropbox or website link. `compact` is the smaller card inside a chat message
  *  (folders start closed). */
-export function LinkCard({ link, showTaskNote, compact }: { link: DriveLink; showTaskNote?: boolean; compact?: boolean }) {
+export function LinkCard({
+  link,
+  showTaskNote,
+  compact,
+  from,
+  onMove,
+}: {
+  link: DriveLink;
+  showTaskNote?: boolean;
+  compact?: boolean;
+  /** Where the link came from ("Task: BOQ check", "VO 02"), instead of the short note. */
+  from?: string | null;
+  /** Shows a Move button (links in the Project folder). */
+  onMove?: () => void;
+}) {
   const me = useMe();
   const { canAssign } = useAuth();
   const people = usePeople();
@@ -285,7 +332,7 @@ export function LinkCard({ link, showTaskNote, compact }: { link: DriveLink; sho
     invalidate("drive_links");
   }
 
-  if (other) return <OtherLinkCard link={link} showTaskNote={showTaskNote} compact={compact} canRemove={canRemove} onRemove={remove} />;
+  if (other) return <OtherLinkCard link={link} showTaskNote={showTaskNote} compact={compact} canRemove={canRemove} onRemove={remove} from={from} onMove={onMove} />;
 
   // In a message, who shared it and when is already on the message.
   const meta = compact
@@ -306,21 +353,19 @@ export function LinkCard({ link, showTaskNote, compact }: { link: DriveLink; sho
               <b className="ellipsis">{link.title}</b>
               <span className="faint tiny">
                 {meta}
-                {showTaskNote && link.task_id ? " · on a task" : ""}
-                {showTaskNote && link.variation_id ? " · on a VO" : ""}
-              {showTaskNote && link.announcement_id ? " · on an announcement" : ""}
-                {showTaskNote && link.announcement_id ? " · on an announcement" : ""}
+                {from ? ` · ${from}` : <PlaceNote link={link} show={showTaskNote} />}
                 {link.recurring_id && !link.task_id ? " · every repeat" : ""}
               </span>
             </span>
             {openList ? <ChevronDown className="dl-chev" aria-hidden /> : <ChevronRight className="dl-chev" aria-hidden />}
           </button>
         ) : (
-          <FileHead link={link} file={file} meta={meta} />
+          <FileHead link={link} file={file} meta={from ? `${meta} · ${from}` : meta} />
         )}
         <a className="icon-btn small plain" href={driveWebUrl(link)} target="_blank" rel="noopener noreferrer" aria-label={`Open ${link.title} in Google Drive`} title="Open in Google Drive">
           <ExternalLink />
         </a>
+        {onMove && <MoveButton title={link.title} onMove={onMove} />}
         {canRemove && (
           <button type="button" className="icon-btn small plain" onClick={remove} aria-label={`Take ${link.title} off`} title="Take off">
             <Trash2 />
@@ -560,6 +605,12 @@ export function DriveLinks({
   knownRounds,
   announcementId,
   canAdd = true,
+  filter,
+  projectFolderId,
+  fromLabel,
+  onMove,
+  addRef,
+  showAdd = true,
 }: {
   taskId?: string | null;
   projectId?: string | null;
@@ -577,6 +628,18 @@ export function DriveLinks({
   announcementId?: string | null;
   /** False to only show the links (nothing at all when there are none). */
   canAdd?: boolean;
+  /** Show only some of the links (the project's list is loaded once and split). */
+  filter?: (l: DriveLink) => boolean;
+  /** Links added here go in this folder of the Project folder (null: the top). */
+  projectFolderId?: string | null;
+  /** Where a link came from ("Task: BOQ check", "VO 02"). */
+  fromLabel?: (l: DriveLink) => string | null;
+  /** Shows a Move button on each link. */
+  onMove?: (l: DriveLink) => void;
+  /** Lets the page's own Add link button open the add sheet. */
+  addRef?: MutableRefObject<(() => void) | null>;
+  /** False: no Add link row (the page has its own button). Links still show. */
+  showAdd?: boolean;
 }) {
   const toast = useToast();
   const invalidate = useInvalidate();
@@ -584,22 +647,38 @@ export function DriveLinks({
   const q = useDriveLinks({ taskId, projectId, repeatOf, variationId, announcementId });
   const [adding, setAdding] = useState(false);
   const all = q.data ?? [];
-  const links = variationId
+  let links = variationId
     ? all.filter((l) => (voRound ? l.vo_round === voRound && l.vo_side === voSide : !l.vo_round || !(knownRounds ?? []).includes(l.vo_round)))
     : all;
+  if (filter) links = links.filter(filter);
+  useEffect(() => {
+    if (!addRef) return;
+    addRef.current = canAdd ? () => setAdding(true) : null;
+    return () => {
+      addRef.current = null;
+    };
+  });
 
   async function save(link: LinkInfo & { url: string }) {
-    const where: LinkWhere = { taskId: taskId ?? null, projectId: projectId ?? null, variationId: variationId ?? null, voRound: voRound ?? null, voSide: voSide ?? null, announcementId: announcementId ?? null };
+    const where: LinkWhere = {
+      taskId: taskId ?? null,
+      projectId: projectId ?? null,
+      variationId: variationId ?? null,
+      voRound: voRound ?? null,
+      voSide: voSide ?? null,
+      announcementId: announcementId ?? null,
+      projectFolderId: projectFolderId ?? null,
+    };
     await addDriveLinks([link], where);
     await invalidate("drive_links");
     const google = !link.provider || link.provider === "google";
     toast(google && link.kind === "folder" ? `"${link.title}" added. Its files show here.` : `"${link.title}" added`);
   }
 
-  if (!canAdd && links.length === 0) return null;
+  if ((!canAdd || !showAdd) && links.length === 0) return adding ? <AddDriveLinkSheet open={adding} onClose={() => setAdding(false)} onAdd={save} /> : null;
   return (
     <div className={clsx("dl-section", compact && "compact")}>
-      {canAdd && (
+      {canAdd && showAdd && (
         <div className="row wrap" style={{ gap: 8 }}>
           <button className="btn small" type="button" onClick={() => setAdding(true)}>
             <Link2 /> Add link
@@ -614,7 +693,14 @@ export function DriveLinks({
         </div>
       )}
       {links.map((l) => (
-        <LinkCard key={l.id} link={l} showTaskNote={!taskId && !variationId && !announcementId} compact={compact} />
+        <LinkCard
+          key={l.id}
+          link={l}
+          showTaskNote={!taskId && !variationId && !announcementId}
+          compact={compact}
+          from={fromLabel?.(l) ?? null}
+          onMove={onMove ? () => onMove(l) : undefined}
+        />
       ))}
       <AddDriveLinkSheet open={adding} onClose={() => setAdding(false)} onAdd={save} />
     </div>

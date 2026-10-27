@@ -298,6 +298,8 @@ type Target = {
   announcement_id?: string | null;
   /** A file on a leave request (the person who asked, or a manager or senior). Never in a project folder. */
   leave_id?: string | null;
+  /** A file added to the project itself: the folder of its Project folder it goes in (the database checks it). */
+  project_folder_id?: string | null;
 };
 
 async function checkTarget(t: Target, me: Me, req: Request): Promise<string | null> {
@@ -397,29 +399,34 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Re
   if (f.trashed || f.appProperties?.northcroft !== "1" || f.appProperties?.uploadedBy !== me.id) {
     throw new UserError("That upload can't be attached.", 403);
   }
-  const { data, error } = await admin
-    .from("attachments")
-    .insert({
-      path: `drive/${f.id}`,
-      drive_file_id: f.id,
-      name: f.name,
-      mime: f.mimeType ?? null,
-      size: f.size ? Number(f.size) : null,
-      task_id: body.task_id ?? null,
-      project_id: projectId,
-      comment_id: body.comment_id ?? null,
-      conversation_id: body.conversation_id ?? null,
-      version_of: body.version_of ?? null,
-      recurring_id: body.task_id ? null : body.recurring_id ?? null,
-      variation_id: body.task_id ? null : body.variation_id ?? null,
-      vo_round: body.task_id || !body.variation_id ? null : body.vo_round ?? null,
-      vo_side: body.task_id || !body.variation_id || !body.vo_round ? null : body.vo_side ?? null,
-      announcement_id: body.task_id || body.variation_id ? null : body.announcement_id ?? null,
-      leave_id: body.task_id || body.variation_id || body.announcement_id ? null : body.leave_id ?? null,
-      uploaded_by: me.id,
-    })
-    .select()
-    .single();
+  // A file added to the project itself can go in one of its Project folder's folders.
+  const projectLevel = !body.task_id && !body.recurring_id && !body.variation_id && !body.announcement_id && !body.leave_id && !body.comment_id && !body.conversation_id;
+  const projectFolder = projectLevel && projectId && body.project_folder_id ? String(body.project_folder_id) : null;
+  const row = {
+    path: `drive/${f.id}`,
+    drive_file_id: f.id,
+    name: f.name,
+    mime: f.mimeType ?? null,
+    size: f.size ? Number(f.size) : null,
+    task_id: body.task_id ?? null,
+    project_id: projectId,
+    comment_id: body.comment_id ?? null,
+    conversation_id: body.conversation_id ?? null,
+    version_of: body.version_of ?? null,
+    recurring_id: body.task_id ? null : body.recurring_id ?? null,
+    variation_id: body.task_id ? null : body.variation_id ?? null,
+    vo_round: body.task_id || !body.variation_id ? null : body.vo_round ?? null,
+    vo_side: body.task_id || !body.variation_id || !body.vo_round ? null : body.vo_side ?? null,
+    announcement_id: body.task_id || body.variation_id ? null : body.announcement_id ?? null,
+    leave_id: body.task_id || body.variation_id || body.announcement_id ? null : body.leave_id ?? null,
+    project_folder_id: projectFolder,
+    uploaded_by: me.id,
+  };
+  let { data, error } = await admin.from("attachments").insert(row).select().single();
+  if (error && projectFolder && /no longer there|go in its folders/i.test(error.message)) {
+    // The folder was removed while the file went up: keep the file, at the top of the Project folder.
+    ({ data, error } = await admin.from("attachments").insert({ ...row, project_folder_id: null }).select().single());
+  }
   if (error) {
     if (/duplicate key/.test(error.message)) {
       // The original record (forwarded copies of the same Drive file have their own paths).

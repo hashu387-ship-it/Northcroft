@@ -5,14 +5,13 @@ import { useProjectMap, useTasks } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { sar } from "@/lib/format";
 import { fmtDate } from "@/lib/time";
-import { Attachments } from "@/components/Attachments";
-import { DriveLinks } from "@/components/DriveLinks";
 import { CommentThread } from "@/components/CommentThread";
 import { Empty, Loading, Pill } from "@/components/ui";
 import { ProjectCover } from "@/components/ProjectCover";
 import { ActivityFeed } from "./project/ActivityFeed";
 import { Boq } from "./project/Boq";
 import { Overview } from "./project/Overview";
+import { ProjectFiles } from "./project/ProjectFiles";
 import { ProjectForm } from "./project/ProjectForm";
 import { ProjectTasks } from "./project/ProjectTasks";
 import { Variations } from "./project/Variations";
@@ -131,12 +130,7 @@ export default function ProjectDetail() {
           <CommentThread scope={{ kind: "project", projectId: project.id }} placeholder={`Message about ${project.code ?? project.name}`} height="60vh" />
         </div>
       )}
-      {tab === "files" && (
-        <div className="glass card stack" style={{ gap: 16 }}>
-          <Attachments projectId={project.id} />
-          <DriveLinks projectId={project.id} />
-        </div>
-      )}
+      {tab === "files" && <ProjectFiles project={project} />}
       {tab === "activity" && <ProjectActivity projectId={project.id} />}
       {!TABS.some((t) => t.key === tab) && <Empty title="That section doesn't exist" />}
 

@@ -33,6 +33,8 @@ export interface DriveLink {
   vo_side?: "sent" | "assessment" | null;
   /** Set for a link on an announcement. */
   announcement_id?: string | null;
+  /** For a link added to the project itself: the folder it's in (null: the top of the Project folder). */
+  project_folder_id?: string | null;
 }
 
 export type LinkProvider = "google" | "onedrive" | "web";
@@ -118,6 +120,8 @@ export interface LinkWhere {
   voSide?: "sent" | "assessment" | null;
   /** A link on an announcement. */
   announcementId?: string | null;
+  /** A link added to the project itself, into this folder of its Project folder. */
+  projectFolderId?: string | null;
 }
 
 /** Save checked links on a task, a repeating task, a project, a variation, or a message. */
@@ -127,6 +131,7 @@ export async function addDriveLinks(links: (LinkInfo & { url: string })[], where
   // project's Files list. Whoever can see the message can see the link.
   const inMessage = !!where.commentId;
   const onVo = !inMessage && !where.taskId && !!where.variationId;
+  const onProject = !inMessage && !where.taskId && !where.recurringId && !onVo && !where.announcementId && !!where.projectId;
   const { error } = await supabase.from("drive_links").insert(
     links.map((l) => ({
       task_id: inMessage ? null : where.taskId ?? null,
@@ -137,6 +142,7 @@ export async function addDriveLinks(links: (LinkInfo & { url: string })[], where
       vo_round: onVo ? where.voRound ?? null : null,
       vo_side: onVo && where.voRound ? where.voSide ?? null : null,
       announcement_id: !inMessage && !where.taskId && !onVo ? where.announcementId ?? null : null,
+      project_folder_id: onProject ? where.projectFolderId ?? null : null,
       url: l.url.trim(),
       drive_id: l.drive_id,
       resource_key: l.resource_key,
@@ -207,7 +213,7 @@ export async function driveFileAttachment(screenId: string): Promise<Attachment 
   if (!p) return null;
   const { data: link } = await supabase
     .from("drive_links")
-    .select("id, task_id, project_id, recurring_id, comment_id, added_by, created_at, removed_at")
+    .select("id, task_id, project_id, recurring_id, comment_id, added_by, created_at, removed_at, project_folder_id")
     .eq("id", p.linkId)
     .maybeSingle();
   if (!link || link.removed_at) return null;
@@ -234,6 +240,7 @@ export async function driveFileAttachment(screenId: string): Promise<Attachment 
     version_of: null,
     version: 1,
     recurring_id: link.comment_id ? null : link.recurring_id,
+    project_folder_id: link.comment_id ? null : link.project_folder_id ?? null,
     created_at: f.modified ?? link.created_at,
   };
 }

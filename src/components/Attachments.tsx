@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileSpreadsheet, FileText, HardDrive, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
+import { FileSpreadsheet, FileText, FolderInput, HardDrive, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
@@ -17,10 +17,50 @@ function FileIcon({ a }: { a: Attachment }) {
   return <FileText />;
 }
 
+export interface AttachmentsWhere {
+  taskId?: string | null;
+  projectId?: string | null;
+  repeatOf?: string | null;
+  variationId?: string | null;
+  voRound?: string | null;
+  voSide?: "sent" | "assessment" | null;
+  knownRounds?: string[];
+  announcementId?: string | null;
+  leaveId?: string | null;
+}
+
+/**
+ * The files on a task, a variation, an announcement, a leave request, or every file in a project
+ * (projectId only), with photo previews. The project's list is shared by everything that shows it
+ * (the Project folder, its folders and "From tasks and VOs"), so it's loaded once.
+ */
+export function useAttachmentList(w: AttachmentsWhere) {
+  const { taskId, projectId, repeatOf, variationId, voRound, voSide, knownRounds, announcementId, leaveId } = w;
+  return useQuery({
+    queryKey: ["attachments", taskId ? "task" : variationId ? "vo" : announcementId ? "announcement" : leaveId ? "leave" : "project", taskId ?? variationId ?? announcementId ?? leaveId ?? projectId, repeatOf ?? null, voRound ?? null, voSide ?? null, (knownRounds ?? []).join(",")],
+    enabled: !!(taskId || variationId || announcementId || leaveId || projectId),
+    queryFn: async () => {
+      let query = supabase.from("attachments").select("*");
+      if (taskId && repeatOf) query = query.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
+      else if (variationId) {
+        query = query.eq("variation_id", variationId);
+        if (voRound) query = query.eq("vo_round", voRound).eq("vo_side", voSide ?? "sent");
+      } else if (announcementId) query = query.eq("announcement_id", announcementId);
+      else if (leaveId) query = query.eq("leave_id", leaveId);
+      else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
+      let rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(500));
+      // Supporting files: no revision, or one that has been taken off.
+      if (variationId && !voRound) rows = rows.filter((r) => !r.vo_round || !(knownRounds ?? []).includes(r.vo_round));
+      const urls = await previewUrls(rows);
+      return { rows, urls };
+    },
+  });
+}
+
 /**
  * Files on a task (taskId), on a variation (variationId: one submission's side, or its supporting
- * files), or every file in a project (projectId only). For a copy of a repeating task, `repeatOf`
- * also brings in the files that come with every copy.
+ * files), or in a project (projectId only). For a copy of a repeating task, `repeatOf` also brings
+ * in the files that come with every copy. Each file is a row with its full name; tap to open.
  */
 export function Attachments({
   taskId,
@@ -37,6 +77,12 @@ export function Attachments({
   hideWhenEmpty,
   uploadRef,
   leaveId,
+  filter,
+  projectFolderId,
+  fromLabel,
+  onMove,
+  toolbar = true,
+  sortByName,
 }: {
   taskId?: string | null;
   projectId?: string | null;
@@ -54,12 +100,24 @@ export function Attachments({
   knownRounds?: string[];
   /** Files on an announcement. */
   announcementId?: string | null;
-  /** Show nothing at all when there are no files (and no upload button). */
+  /** Show nothing at all when there are no files (and no upload button, or no toolbar). */
   hideWhenEmpty?: boolean;
-  /** Lets a bigger area around this list take dropped files (it calls the same upload). */
+  /** Lets a bigger area around this list take dropped files, or its own Add files button (it calls the same upload). */
   uploadRef?: MutableRefObject<((files: File[]) => void) | null>;
   /** Files on a leave request. */
   leaveId?: string | null;
+  /** Show only some of the files (the project's list is loaded once and split). */
+  filter?: (a: Attachment) => boolean;
+  /** Files added here go in this folder of the Project folder (null: the top). */
+  projectFolderId?: string | null;
+  /** Where a file came from ("Task: BOQ check", "VO 02"), shown in its line. */
+  fromLabel?: (a: Attachment) => string | null;
+  /** Shows a Move button on each file. */
+  onMove?: (a: Attachment) => void;
+  /** False: no Add files row (the page has its own button and calls uploadRef). */
+  toolbar?: boolean;
+  /** A to Z instead of newest first. */
+  sortByName?: boolean;
 }) {
   const me = useMe();
   const { canAssign } = useAuth();
@@ -73,24 +131,7 @@ export function Attachments({
   const [progress, setProgress] = useState<string | null>(null);
   const driveOn = !!useSettings().data?.drive_connected_at;
 
-  const q = useQuery({
-    queryKey: ["attachments", taskId ? "task" : variationId ? "vo" : announcementId ? "announcement" : leaveId ? "leave" : "project", taskId ?? variationId ?? announcementId ?? leaveId ?? projectId, repeatOf ?? null, voRound ?? null, voSide ?? null, (knownRounds ?? []).join(",")],
-    queryFn: async () => {
-      let query = supabase.from("attachments").select("*");
-      if (taskId && repeatOf) query = query.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
-      else if (variationId) {
-        query = query.eq("variation_id", variationId);
-        if (voRound) query = query.eq("vo_round", voRound).eq("vo_side", voSide ?? "sent");
-      } else if (announcementId) query = query.eq("announcement_id", announcementId);
-      else if (leaveId) query = query.eq("leave_id", leaveId);
-      else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
-      let rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(300));
-      // Supporting files: no revision, or one that has been taken off.
-      if (variationId && !voRound) rows = rows.filter((r) => !r.vo_round || !(knownRounds ?? []).includes(r.vo_round));
-      const urls = await previewUrls(rows);
-      return { rows, urls };
-    },
-  });
+  const q = useAttachmentList({ taskId, projectId, repeatOf, variationId, voRound, voSide, knownRounds, announcementId, leaveId });
 
   async function onFiles(list: FileList | File[] | null) {
     if (!list?.length || busy) return;
@@ -106,6 +147,7 @@ export function Attachments({
           voSide: voRound ? voSide ?? "sent" : null,
           announcementId: announcementId ?? null,
           leaveId: leaveId ?? null,
+          projectFolderId: projectFolderId ?? null,
           userId: me.id,
           onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });
@@ -121,7 +163,7 @@ export function Attachments({
     }
   }
 
-  // A bigger drop area (the VO revision box) hands its files to the same upload.
+  // A bigger drop area (the VO revision box, the Project folder) hands its files to the same upload.
   useEffect(() => {
     if (!uploadRef) return;
     uploadRef.current = canUpload ? (fs) => void onFiles(fs) : null;
@@ -149,11 +191,13 @@ export function Attachments({
     }
   }
 
-  const rows = q.data?.rows ?? [];
-  if (hideWhenEmpty && !canUpload && rows.length === 0) return null;
+  let rows = q.data?.rows ?? [];
+  if (filter) rows = rows.filter(filter);
+  if (sortByName) rows = [...rows].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+  if (hideWhenEmpty && (!canUpload || !toolbar) && rows.length === 0 && !progress) return null;
   return (
     <DropZone className="stack" onFiles={(fs) => void onFiles(fs)} disabled={!canUpload || busy || !!uploadRef}>
-      {canUpload && (
+      {canUpload && toolbar && (
         <div className="row wrap">
           <button className="btn small" onClick={() => inputRef.current?.click()} disabled={busy} type="button">
             <Upload /> {busy ? "Uploading..." : "Add files"}
@@ -166,65 +210,82 @@ export function Attachments({
           <input ref={inputRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} aria-label="Choose files" />
         </div>
       )}
+      {!toolbar && progress && <span className="faint tiny upload-progress">{progress}</span>}
       {q.isLoading ? (
-        compact ? null : <Loading />
+        compact || hideWhenEmpty ? null : <Loading />
       ) : rows.length === 0 ? (
-        compact ? <span className="faint tiny">{emptyText}</span> : <Empty icon={<Paperclip />} title={emptyText} />
+        hideWhenEmpty ? null : compact ? <span className="faint tiny">{emptyText}</span> : <Empty icon={<Paperclip />} title={emptyText} />
       ) : (
         <div className="files">
-          {rows.map((a) => (
-            <div key={a.id} className="file" style={{ position: "relative" }}>
-              <button onClick={() => open(a, isImage(a) ? rows.filter(isImage) : undefined)} className="row" style={{ border: 0, background: "none", padding: 0, minWidth: 0, flex: 1, textAlign: "left", color: "inherit" }} type="button">
-                <span className="icon">{isImage(a) && q.data?.urls[a.path] ? <img src={q.data.urls[a.path]} alt="" /> : <FileIcon a={a} />}</span>
-                <span style={{ minWidth: 0 }}>
-                  <span className="ellipsis small bold" style={{ display: "block" }}>
-                    {a.name}
+          {rows.map((a) => {
+            const from = fromLabel?.(a) ?? null;
+            return (
+              <div key={a.id} className="file">
+                <button onClick={() => open(a, isImage(a) ? rows.filter(isImage) : undefined)} className="file-main" type="button">
+                  <span className="icon">{isImage(a) && q.data?.urls[a.path] ? <img src={q.data.urls[a.path]} alt="" /> : <FileIcon a={a} />}</span>
+                  <span className="file-text">
+                    <span className="file-name">{a.name}</span>
+                    <span className="file-meta">
+                      {isOnDrive(a) && (
+                        <>
+                          <span className="drive-tag">
+                            <HardDrive size={11} /> Drive
+                          </span>
+                          {" · "}
+                        </>
+                      )}
+                      {from ? (
+                        <>
+                          <span className="drive-tag repeat-tag">{from}</span>
+                          {" · "}
+                        </>
+                      ) : (
+                        <>
+                          {!announcementId && a.announcement_id && (
+                            <>
+                              <span className="drive-tag repeat-tag" title="On an announcement">
+                                Announcement
+                              </span>
+                              {" · "}
+                            </>
+                          )}
+                          {!variationId && a.variation_id && (
+                            <>
+                              <span className="drive-tag repeat-tag" title="On a variation">
+                                VO
+                              </span>
+                              {" · "}
+                            </>
+                          )}
+                        </>
+                      )}
+                      {!a.task_id && a.recurring_id && (
+                        <>
+                          <span className="drive-tag repeat-tag" title="Comes with every copy of this repeating task">
+                            <Repeat size={11} /> Every repeat
+                          </span>
+                          {" · "}
+                        </>
+                      )}
+                      {a.version > 1 ? `Version ${a.version} · ` : ""}
+                      {a.size != null ? `${fileSize(a.size)} · ` : ""}
+                      {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
+                    </span>
                   </span>
-                  <span className="faint tiny">
-                    {isOnDrive(a) && (
-                      <>
-                        <span className="drive-tag">
-                          <HardDrive size={11} /> Drive
-                        </span>
-                        {" · "}
-                      </>
-                    )}
-                    {!announcementId && a.announcement_id && (
-                      <>
-                        <span className="drive-tag repeat-tag" title="On an announcement">
-                          Announcement
-                        </span>
-                        {" · "}
-                      </>
-                    )}
-                    {!variationId && a.variation_id && (
-                      <>
-                        <span className="drive-tag repeat-tag" title="On a variation">
-                          VO
-                        </span>
-                        {" · "}
-                      </>
-                    )}
-                    {!a.task_id && a.recurring_id && (
-                      <>
-                        <span className="drive-tag repeat-tag" title="Comes with every copy of this repeating task">
-                          <Repeat size={11} /> Every repeat
-                        </span>
-                        {" · "}
-                      </>
-                    )}
-                    {a.version > 1 ? `Version ${a.version} · ` : ""}
-                    {fileSize(a.size)} · {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
-                  </span>
-                </span>
-              </button>
-              {(a.uploaded_by === me.id || canAssign) && (
-                <button className="icon-btn small plain" onClick={() => remove(a)} aria-label={`Delete ${a.name}`} type="button">
-                  <Trash2 />
                 </button>
-              )}
-            </div>
-          ))}
+                {onMove && (
+                  <button className="icon-btn small plain" onClick={() => onMove(a)} aria-label={`Move ${a.name}`} title="Move to a folder" type="button">
+                    <FolderInput />
+                  </button>
+                )}
+                {(a.uploaded_by === me.id || canAssign) && (
+                  <button className="icon-btn small plain" onClick={() => remove(a)} aria-label={`Delete ${a.name}`} title="Delete" type="button">
+                    <Trash2 />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </DropZone>

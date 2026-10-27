@@ -199,7 +199,21 @@ export interface Attachment {
   announcement_id?: string | null;
   /** Set for a file on a leave request (only the person and managers see it). */
   leave_id?: string | null;
+  /** For a file added to the project itself: the folder it's in (null: the top of the Project folder). */
+  project_folder_id?: string | null;
   created_at: string;
+}
+
+/** A folder in a project's Project folder (folders can be inside folders). */
+export interface ProjectFolder {
+  id: string;
+  project_id: string;
+  /** null: at the top of the Project folder. */
+  parent_id: string | null;
+  name: string;
+  created_by: string | null;
+  created_at: string;
+  removed_at: string | null;
 }
 
 /* ---------------------------------------------------------------- chats */

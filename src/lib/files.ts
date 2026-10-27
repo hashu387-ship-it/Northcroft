@@ -41,6 +41,8 @@ export interface UploadTarget {
   announcementId?: string | null;
   /** A file on a leave request: kept under leave/<id>/, seen only by the person and managers. */
   leaveId?: string | null;
+  /** A file added to the project itself, into this folder of its Project folder. */
+  projectFolderId?: string | null;
   userId: string;
   onProgress?: (fraction: number) => void;
 }
@@ -91,6 +93,7 @@ export async function uploadFile(file: File, opts: UploadTarget): Promise<Attach
       vo_side: opts.taskId || !opts.variationId || !opts.voRound ? null : opts.voSide ?? null,
       announcement_id: opts.taskId || opts.variationId ? null : opts.announcementId ?? null,
       leave_id: opts.taskId || opts.variationId || opts.announcementId ? null : opts.leaveId ?? null,
+      project_folder_id: opts.projectFolderId ?? null,
       uploaded_by: opts.userId,
     })
     .select()
@@ -345,16 +348,30 @@ export async function saveNewVersion(
       taskId: original.task_id,
       projectId: original.project_id,
       recurringId: original.task_id ? null : original.recurring_id ?? null,
+      // A copy of a file from a link in a Project folder folder goes in the same folder.
+      projectFolderId: original.project_folder_id ?? null,
       userId: opts.userId,
       onProgress: opts.onProgress,
     });
   }
-  // An edited copy of a file that comes with a repeating task comes with every copy too.
-  let where: { taskId: string | null; projectId: string | null; conversationId: string | null; recurringId?: string | null } = {
+  // An edited copy of a file that comes with a repeating task comes with every copy too, and an
+  // edited copy of a VO file stays on the same VO revision.
+  let where: {
+    taskId: string | null;
+    projectId: string | null;
+    conversationId: string | null;
+    recurringId?: string | null;
+    variationId?: string | null;
+    voRound?: string | null;
+    voSide?: "sent" | "assessment" | null;
+  } = {
     taskId: original.task_id,
     projectId: original.project_id,
     conversationId: original.conversation_id,
     recurringId: original.recurring_id ?? null,
+    variationId: original.task_id ? null : original.variation_id ?? null,
+    voRound: original.task_id ? null : original.vo_round ?? null,
+    voSide: original.task_id ? null : original.vo_side ?? null,
   };
   let commentId: string | null = null;
 

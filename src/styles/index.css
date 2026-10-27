@@ -1304,8 +1304,44 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 }
 .mention-menu button.active, .mention-menu button:hover { background: var(--accent-soft); }
 
-/* files */
-.files { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+/* files: one row per file with its full name (lists everywhere: tasks, VOs, projects, announcements,
+   leave). `.file` on its own is still the small file chip inside a chat message. */
+.files {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  background: var(--solid);
+  border: 1px solid var(--solid-border);
+  overflow: hidden;
+}
+.files > .file {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 7px 6px 7px 10px;
+  gap: 4px;
+}
+.files > .file + .file { border-top: 1px solid var(--separator); }
+.files > .file:hover { background: var(--fill); }
+.file-main {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 3px 0;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.file-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.file-name { font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--text); overflow-wrap: anywhere; }
+.file-main:hover .file-name { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+.file-meta { font-size: 12px; line-height: 1.35; color: var(--text-2); }
+.files > .file .icon-btn { flex: none; }
 .file {
   display: flex;
   align-items: center;
@@ -1678,3 +1714,36 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .team-pick-row { cursor: pointer; gap: 12px; }
 .team-pick-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
 .team-pick-row.on { background: var(--accent-soft); }
+
+/* ---- Project folder (a project's Files tab) ---- */
+.project-folder, .project-linked-files { gap: 12px; }
+.pf-toolbar { gap: 8px; }
+.pf-path { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: 13.5px; margin: -2px 0; }
+.pf-path button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 7px;
+  color: var(--brand);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pf-path button:hover { background: var(--fill); }
+.pf-path button.here { color: var(--text); font-weight: 700; }
+.pf-path button svg { width: 15px; height: 15px; }
+.pf-crumb { display: inline-flex; align-items: center; min-width: 0; }
+.pf-crumb > svg { width: 14px; height: 14px; color: var(--text-3); flex: none; }
+.file .icon.folder-icon { background: var(--orange-soft); color: var(--orange); }
+.folder-row .file-name { font-weight: 650; }
+.move-folders { max-height: 60vh; overflow-y: auto; }
+.move-folder { display: flex; align-items: center; gap: 10px; font: inherit; color: var(--text); cursor: pointer; }
+.move-folder svg { width: 18px; height: 18px; color: var(--orange); flex: none; }
+.move-folder.here { cursor: default; opacity: 0.7; }
+.move-folder.here:hover { background: none; }
+.upload-progress { display: block; }
+/* Link names on file lists wrap instead of being cut short (chat cards stay one line). */
+.dl-card:not(.compact) .dl-name b.ellipsis { white-space: normal; overflow: visible; overflow-wrap: anywhere; }

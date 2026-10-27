@@ -5,6 +5,13 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 ## What it does
 
 - **Projects**: an overview, a task list and board, the variation (VO) register, BOQ package stages, project chat, files and a full history.
+- **Project folder** (a project's Files tab): the project's own files and links (contract, drawings, specs, quotations) in folders.
+  - Anyone on the team makes folders (and folders inside folders), adds files and links into the folder they're in, and moves files and links between folders with the move button on each one. On a computer, files dropped on the Project folder go into the open folder.
+  - The path at the top (Project folder > Drawings > IFC) shows where you are and takes you back up; the phone's Back button goes to the folder before.
+  - Whoever made a folder, or Hassan or a senior, renames or removes it. Removing a folder moves what's in it (files, links and folders) up to the folder it was in; nothing is deleted from Google Drive.
+  - A new version of a file stays in the same folder. Folders are in the app only: in Google Drive the files stay in the project's folder.
+  - Underneath, **From tasks and VOs** lists the files and links added on the project's tasks, VOs, announcements and chat, each saying where it came from ("Task: BOQ check", "VO-002"). To change one, open it where it was added.
+- **File lists**: everywhere files show (tasks, VO revisions, the Project folder, announcements, leave), each file is a row with its full name (long names wrap instead of being cut short), then Drive, where it came from, size, who added it and when.
 - **Project teams**: each project has its own team, set by Hassan or a senior with *Edit team* on the project page.
   - The team shows on the project page (with each person's open and late tasks, and anyone else who has tasks there underneath) and as photos and names on the project's card in Projects.
   - In the New task form, picking a project lists its team first in *Assign to* ("KSU team"), then everyone else.
@@ -190,6 +197,8 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 | Add people, reset passwords, set hours, office pins | Yes | No | No |
 | Change who's on a task, delete tasks | Yes | Yes | No |
 | Set a project's team | Yes | Yes | No |
+| Make folders in the Project folder, add and move files and links | Yes | Yes | Yes |
+| Rename or remove a Project folder folder | Yes | Yes | Folders they made |
 | Edit a task's details, steps and files, and submit it | Yes | Yes | When they're on the task |
 | Update VOs and BOQ packages, comment, chat, upload files | Yes | Yes | Yes |
 | Ask for leave | Yes (Hassan; Fawaz doesn't check in) | Yes | Yes |
