@@ -11,7 +11,7 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Whoever made a folder, or Hassan or a senior, renames or removes it. Removing a folder moves what's in it (files, links and folders) up to the folder it was in; nothing is deleted from Google Drive.
   - A new version of a file stays in the same folder. Folders are in the app only: in Google Drive the files stay in the project's folder.
   - Underneath, **From tasks and VOs** lists the files and links added on the project's tasks, VOs, announcements and chat, each saying where it came from ("Task: BOQ check", "VO-002"). To change one, open it where it was added.
-- **File lists**: everywhere files show (tasks, VO revisions, the Project folder, announcements, leave), each file is a row with its full name (long names wrap instead of being cut short), then Drive, where it came from, size, who added it and when.
+- **File lists**: everywhere files show (tasks, VO revisions, the Project folder, announcements, leave), each file is a row with its full name (long names wrap instead of being cut short), then Drive, where it came from, size, who added it and when. Photos show big, full width, with their name and details underneath; tap one to open it full screen.
 - **Project teams**: each project has its own team, set by Hassan or a senior with *Edit team* on the project page.
   - The team shows on the project page (with each person's open and late tasks, and anyone else who has tasks there underneath) and as photos and names on the project's card in Projects.
   - In the New task form, picking a project lists its team first in *Assign to* ("KSU team"), then everyone else.
@@ -191,7 +191,7 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - Main buttons are glossy Northcroft red; other buttons are frosted glass.
   - Navy is the main colour; Northcroft red marks counts, urgent items, the active tab and New task.
   - Home opens with a banner of the Northcroft tower, a greeting and a one-line summary of your day.
-  - Projects can have a cover photo (Hassan and seniors add it on the project page).
+  - Projects can have a cover photo (Hassan and seniors add it on the project page). Bawabah, Capella, HOAS and KSU start with free-licence photos of Diriyah from Wikimedia Commons (credited in the corner of the project page); changing the cover replaces it.
   - Empty screens show small navy and red drawings, and sections have coloured icon tiles.
   - Gentle motion: sections rise in, numbers count up, a tick draws when a task is finished. It switches off if the phone's reduce-motion setting is on.
 

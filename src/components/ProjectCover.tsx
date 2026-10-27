@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import clsx from "clsx";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useInvalidate } from "@/lib/api";
-import { removeProjectCover, setProjectCover } from "@/lib/covers";
+import { coverCredit, removeProjectCover, setProjectCover } from "@/lib/covers";
 import { errorMessage } from "@/lib/supabase";
 import type { Project } from "@/lib/types";
 import { Spinner, useConfirm, useToast } from "./ui";
@@ -54,14 +54,24 @@ export function ProjectCover({ project, editable = false, size = "card" }: { pro
     }
   }
 
+  // A cover photo the app ships with says who took it (on the project page; a tooltip on the card).
+  const credit = coverCredit(project.cover_url);
+  const creditText = credit ? `Photo: ${credit.by}, ${credit.licence}` : undefined;
+
   return (
     <div
       className={clsx("project-cover", size, !project.cover_url && "plain")}
       style={{ ["--pc" as string]: project.color }}
+      title={size === "card" ? creditText : undefined}
     >
       {project.cover_url ? <img src={project.cover_url} alt="" loading="lazy" decoding="async" /> : <Skyline />}
       <span className="cover-shade" aria-hidden />
       <span className="cover-strip" aria-hidden />
+      {credit && size === "hero" && (
+        <a className="cover-credit" href={credit.source} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+          {creditText}
+        </a>
+      )}
       {editable && (
         <div className="cover-actions" onClick={(e) => e.preventDefault()}>
           <button type="button" className="btn small on-dark" onClick={() => fileRef.current?.click()} disabled={busy}>

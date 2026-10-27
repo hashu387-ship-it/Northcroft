@@ -1354,6 +1354,29 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
   text-align: left;
   color: var(--text);
 }
+/* A photo in a files list: shown big, full width, with its name and details underneath. Tall or
+   very large photos are cropped to a sensible height; tap to see the whole thing. */
+.files > .file.photo { flex-direction: column; align-items: stretch; gap: 4px; padding: 8px 6px 4px 8px; }
+.files > .file.photo:hover { background: transparent; }
+.photo-view {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--fill);
+  cursor: zoom-in;
+}
+.photo-view img { display: block; width: 100%; height: auto; min-height: 120px; max-height: 420px; object-fit: cover; transition: transform 0.4s var(--ease); }
+.photo-view:hover img { transform: scale(1.015); }
+.photo-view:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.photo-foot { display: flex; align-items: center; gap: 4px; min-width: 0; padding-left: 2px; }
+.files.compact .photo-view img { max-height: 260px; }
+@media (max-width: 899px) {
+  .photo-view img { max-height: 340px; }
+  .files.compact .photo-view img { max-height: 220px; }
+}
 .file .icon { width: 34px; height: 34px; border-radius: 7px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex-shrink: 0; overflow: hidden; }
 .file .icon img { width: 100%; height: 100%; object-fit: cover; }
 .file .icon svg { width: 20px; height: 20px; }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileSpreadsheet, FileText, FolderInput, HardDrive, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
+import { FileSpreadsheet, FileText, FolderInput, HardDrive, Image as ImageIcon, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
@@ -216,63 +216,64 @@ export function Attachments({
       ) : rows.length === 0 ? (
         hideWhenEmpty ? null : compact ? <span className="faint tiny">{emptyText}</span> : <Empty icon={<Paperclip />} title={emptyText} />
       ) : (
-        <div className="files">
+        <div className={compact ? "files compact" : "files"}>
           {rows.map((a) => {
             const from = fromLabel?.(a) ?? null;
-            return (
-              <div key={a.id} className="file">
-                <button onClick={() => open(a, isImage(a) ? rows.filter(isImage) : undefined)} className="file-main" type="button">
-                  <span className="icon">{isImage(a) && q.data?.urls[a.path] ? <img src={q.data.urls[a.path]} alt="" /> : <FileIcon a={a} />}</span>
-                  <span className="file-text">
-                    <span className="file-name">{a.name}</span>
-                    <span className="file-meta">
-                      {isOnDrive(a) && (
+            const photo = isImage(a) ? q.data?.urls[a.path] : undefined;
+            const openIt = () => open(a, isImage(a) ? rows.filter(isImage) : undefined);
+            const text = (
+              <span className="file-text">
+                <span className="file-name">{a.name}</span>
+                <span className="file-meta">
+                  {isOnDrive(a) && (
+                    <>
+                      <span className="drive-tag">
+                        <HardDrive size={11} /> Drive
+                      </span>
+                      {" · "}
+                    </>
+                  )}
+                  {from ? (
+                    <>
+                      <span className="drive-tag repeat-tag">{from}</span>
+                      {" · "}
+                    </>
+                  ) : (
+                    <>
+                      {!announcementId && a.announcement_id && (
                         <>
-                          <span className="drive-tag">
-                            <HardDrive size={11} /> Drive
+                          <span className="drive-tag repeat-tag" title="On an announcement">
+                            Announcement
                           </span>
                           {" · "}
                         </>
                       )}
-                      {from ? (
+                      {!variationId && a.variation_id && (
                         <>
-                          <span className="drive-tag repeat-tag">{from}</span>
-                          {" · "}
-                        </>
-                      ) : (
-                        <>
-                          {!announcementId && a.announcement_id && (
-                            <>
-                              <span className="drive-tag repeat-tag" title="On an announcement">
-                                Announcement
-                              </span>
-                              {" · "}
-                            </>
-                          )}
-                          {!variationId && a.variation_id && (
-                            <>
-                              <span className="drive-tag repeat-tag" title="On a variation">
-                                VO
-                              </span>
-                              {" · "}
-                            </>
-                          )}
-                        </>
-                      )}
-                      {!a.task_id && a.recurring_id && (
-                        <>
-                          <span className="drive-tag repeat-tag" title="Comes with every copy of this repeating task">
-                            <Repeat size={11} /> Every repeat
+                          <span className="drive-tag repeat-tag" title="On a variation">
+                            VO
                           </span>
                           {" · "}
                         </>
                       )}
-                      {a.version > 1 ? `Version ${a.version} · ` : ""}
-                      {a.size != null ? `${fileSize(a.size)} · ` : ""}
-                      {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
-                    </span>
-                  </span>
-                </button>
+                    </>
+                  )}
+                  {!a.task_id && a.recurring_id && (
+                    <>
+                      <span className="drive-tag repeat-tag" title="Comes with every copy of this repeating task">
+                        <Repeat size={11} /> Every repeat
+                      </span>
+                      {" · "}
+                    </>
+                  )}
+                  {a.version > 1 ? `Version ${a.version} · ` : ""}
+                  {a.size != null ? `${fileSize(a.size)} · ` : ""}
+                  {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
+                </span>
+              </span>
+            );
+            const tools = (
+              <>
                 {onMove && (
                   <button className="icon-btn small plain" onClick={() => onMove(a)} aria-label={`Move ${a.name}`} title="Move to a folder" type="button">
                     <FolderInput />
@@ -283,6 +284,32 @@ export function Attachments({
                     <Trash2 />
                   </button>
                 )}
+              </>
+            );
+            // A photo shows big, full width, with its name and details underneath. Tap it to open
+            // it full screen (swipe through the others, mark it up).
+            if (photo) {
+              return (
+                <div key={a.id} className="file photo">
+                  <button onClick={openIt} className="photo-view" type="button" aria-label={`Open ${a.name}`}>
+                    <img src={photo} alt="" loading="lazy" decoding="async" />
+                  </button>
+                  <div className="photo-foot">
+                    <button onClick={openIt} className="file-main" type="button">
+                      {text}
+                    </button>
+                    {tools}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={a.id} className="file">
+                <button onClick={openIt} className="file-main" type="button">
+                  <span className="icon">{isImage(a) ? <ImageIcon /> : <FileIcon a={a} />}</span>
+                  {text}
+                </button>
+                {tools}
               </div>
             );
           })}

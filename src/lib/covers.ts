@@ -3,6 +3,37 @@ import { loadImage } from "./avatar";
 import { supabase } from "./supabase";
 
 const BUCKET = "covers";
+
+/** Who took a cover photo the app ships with (free-licence photos of Diriyah from Wikimedia
+ *  Commons), shown small on the project page as the licences ask. A photo someone uploads has none. */
+export interface CoverCredit {
+  by: string;
+  licence: string;
+  source: string;
+}
+export const COVER_CREDITS: Record<string, CoverCredit> = {
+  "/covers/bawabah-at-turaif.jpg": {
+    by: "Saudi Press Agency",
+    licence: "CC BY-SA 4.0",
+    source: "https://commons.wikimedia.org/wiki/File:Diriyah_Gate_(2021).jpg",
+  },
+  "/covers/capella-at-turaif.jpg": {
+    by: "ほっきー",
+    licence: "CC0",
+    source: "https://commons.wikimedia.org/wiki/File:At-Turaif_District_in_ad-Dir%27iyah_2025.jpg",
+  },
+  "/covers/hoas-palm-gardens.jpg": {
+    by: "Radosław Botev",
+    licence: "CC BY 3.0 PL",
+    source: "https://commons.wikimedia.org/wiki/File:At-Turaif_District_in_ad-Dir%27iyah_(1).jpg",
+  },
+  "/covers/ksu-wadi-hanifah.jpg": {
+    by: "Unnaugan",
+    licence: "CC BY-SA 4.0",
+    source: "https://commons.wikimedia.org/wiki/File:Et-Turaif.jpg",
+  },
+};
+export const coverCredit = (url: string | null | undefined): CoverCredit | null => (url ? COVER_CREDITS[url] ?? null : null);
 const MAX_W = 1600;
 const MAX_H = 1000;
 
