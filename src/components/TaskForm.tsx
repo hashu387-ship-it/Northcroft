@@ -5,7 +5,7 @@ import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useProjectTeams } from "@/lib/projectTeam";
 import { useApprover } from "@/lib/taskApproval";
 import { useAuth, useMe } from "@/lib/auth";
-import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
+import { STORAGE_MAX_BYTES, isImage, uploadFile } from "@/lib/files";
 import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
 import { DropZone } from "./DropZone";
 import { checkOtherLink, linkMeta, normalizeUrl } from "@/lib/links";
@@ -556,7 +556,7 @@ export function TaskForm({
               {files.map((f) => (
                 <span className="tf-file" key={f.name + f.size}>
                   <span className="tf-file-icon">
-                    {f.type.startsWith("image/") ? <ImageIcon /> : /\.(xlsx?|xlsm|csv)$/i.test(f.name) ? <FileSpreadsheet /> : <FileText />}
+                    {isImage({ mime: f.type, name: f.name }) ? <ImageIcon /> : /\.(xlsx?|xlsm|csv)$/i.test(f.name) ? <FileSpreadsheet /> : <FileText />}
                   </span>
                   <span className="tf-file-name ellipsis">{f.name}</span>
                   <span className="faint tiny">{fileSize(f.size)}</span>

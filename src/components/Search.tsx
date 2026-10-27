@@ -21,6 +21,7 @@ import {
 import { usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { BOQ_STATUS, EVENT_KIND, TASK_STATUS, VO_STATUS } from "@/lib/constants";
+import { isImage } from "@/lib/files";
 import { fileSize, sar } from "@/lib/format";
 import { fmtClock, fmtDate, fmtDue, timeAgo } from "@/lib/time";
 import type { BoqStatus, EventKind, TaskStatus, VoStatus } from "@/lib/types";
@@ -306,7 +307,7 @@ function leadFor(hit: SearchHit, get: (id: string | null | undefined) => any): R
     case "file": {
       const mime = String(m.mime ?? "");
       const name = hit.title.toLowerCase();
-      if (mime.startsWith("image/")) return <Tile tone="teal"><ImageIcon /></Tile>;
+      if (isImage({ mime, name })) return <Tile tone="teal"><ImageIcon /></Tile>;
       if (/sheet|excel|csv/.test(mime) || /\.(xlsx?|csv)$/.test(name)) return <Tile tone="green"><FileSpreadsheet /></Tile>;
       return <Tile tone="red"><FileText /></Tile>;
     }

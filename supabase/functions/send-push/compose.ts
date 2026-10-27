@@ -45,7 +45,9 @@ export function isChat(n: Pick<NotificationRow, "task_id" | "link" | "type">): b
  * One notification per conversation: a new one replaces the last one with the same tag.
  * The app uses the same rule to clear a conversation's notifications when you open it.
  */
-export function tagFor(n: Pick<NotificationRow, "id" | "task_id" | "announcement_id" | "link" | "actor_id">): string {
+export function tagFor(n: Pick<NotificationRow, "id" | "task_id" | "announcement_id" | "link" | "actor_id" | "type">): string {
+  // The daily update reminders (every 30 minutes until it's sent) replace each other on the phone.
+  if (n.type === "daily_update" && !n.actor_id) return "daily-update";
   if (n.task_id) return `task-${n.task_id}`;
   if (n.announcement_id) return `ann-${n.announcement_id}`;
   if (n.link && n.actor_id) return `l-${slug(n.link)}`;

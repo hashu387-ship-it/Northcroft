@@ -15,6 +15,7 @@ import { checkOtherLink, describeLink, linkMeta, normalizeUrl } from "@/lib/link
 import { keepFiles, queueMessage, type OutboxRow } from "@/lib/outbox";
 import { clearShare, driveLinkIn, pendingShare, sharedWords, type Shared } from "@/lib/share";
 import { supabase } from "@/lib/supabase";
+import { isImage } from "@/lib/files";
 import { fileSize } from "@/lib/format";
 import { fmtDue } from "@/lib/time";
 import type { Task } from "@/lib/types";
@@ -83,7 +84,7 @@ export default function Share() {
   });
 
   const previews = useMemo(
-    () => (shared?.files ?? []).map((f) => (f.type.startsWith("image/") ? URL.createObjectURL(f.blob) : null)),
+    () => (shared?.files ?? []).map((f) => (isImage({ mime: f.type, name: f.name }) ? URL.createObjectURL(f.blob) : null)),
     [shared],
   );
   useEffect(() => () => previews.forEach((u) => u && URL.revokeObjectURL(u)), [previews]);

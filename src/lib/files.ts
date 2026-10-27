@@ -212,8 +212,14 @@ export async function deleteAttachment(a: Attachment) {
   if (error) throw error;
 }
 
+/** Photo types a browser can show. Some phones label drawings as images too (a DWG arrives as
+ *  "image/vnd.dwg"), so the file type alone isn't enough: those stay ordinary files. */
+const PHOTO_EXT = /\.(png|jpe?g|gif|webp|heic|heif|bmp|avif)$/i;
+const PHOTO_MIME = /^image\/(png|jpe?g|pjpeg|gif|webp|heic|heif|bmp|avif)$/i;
+const NOT_A_PHOTO = /\.(dwg|dxf|dwf|dgn|tiff?|psd|ai|eps|svg)$/i;
+
 export const isImage = (a: Pick<Attachment, "mime" | "name">) =>
-  (a.mime ?? "").startsWith("image/") || /\.(png|jpe?g|gif|webp|heic)$/i.test(a.name);
+  !NOT_A_PHOTO.test(a.name) && (PHOTO_EXT.test(a.name) || PHOTO_MIME.test(a.mime ?? ""));
 
 /* ---------------------------------------------------------------- viewing and editing in the app */
 
@@ -232,7 +238,7 @@ export function fileKind(a: Pick<Attachment, "mime" | "name">): FileKind {
   ) {
     return "sheet";
   }
-  if (mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|heic|heif)$/i.test(a.name)) return "image";
+  if (isImage(a)) return "image";
   return "other";
 }
 
