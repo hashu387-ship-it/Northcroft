@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import clsx from "clsx";
-import { ListChecks, RotateCcw, Users } from "lucide-react";
+import { Hourglass, ListChecks, Pause, RotateCcw, Users } from "lucide-react";
 import { usePeople, useProjectMap } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { peopleOn } from "@/lib/people";
@@ -33,7 +33,7 @@ export function TaskRow({
         <div className="t">{task.title}</div>
         <div className="m">
           {showProject && <ProjectTag project={projects.get(task.project_id)} />}
-          <DueLabel date={task.due_date} done={task.status === "done" || task.status === "in_review"} />
+          <DueLabel date={task.due_date} done={task.status === "done" || task.status === "in_review" || task.hold === "on" || !!task.approval} />
           <PriorityFlag priority={task.priority} />
           <EarlyBadge task={task} />
           <ProgressChip task={task} />
@@ -50,6 +50,23 @@ export function TaskRow({
             </span>
           )}
           {task.status === "in_review" && <Pill tone="purple">{reviewLabel(task, signoff, me.id)}</Pill>}
+          {task.approval === "pending" && (
+            <Pill tone="purple">
+              <Hourglass /> Waiting for OK
+            </Pill>
+          )}
+          {task.approval === "declined" && <Pill tone="red">Turned down</Pill>}
+          {task.hold === "on" && (
+            <Pill tone="orange">
+              <Pause /> On hold
+            </Pill>
+          )}
+          {task.hold === "asked" && (
+            <Pill tone="yellow">
+              <Pause /> Hold asked
+            </Pill>
+          )}
+          {task.status === "done" && task.finished_by_first && <span className="small muted">Finished by {people.get(task.approved_by)?.short_name ?? "the first checker"}</span>}
           {changesRequested && (
             <Pill tone="orange">
               <RotateCcw />

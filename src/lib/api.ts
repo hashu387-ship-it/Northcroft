@@ -83,7 +83,9 @@ export function useTasks(filter: TaskFilter = {}) {
   return useQuery({
     queryKey: ["tasks", filter],
     queryFn: async () => {
-      let q = supabase.from("tasks").select("*");
+      // Tasks a team member made that are still waiting for approval (or were turned down) aren't
+      // work yet; they show in their own lists (useTaskRequests).
+      let q = supabase.from("tasks").select("*").is("approval", null);
       if (filter.projectId) q = q.eq("project_id", filter.projectId);
       // Tasks this person is on (alone or with others).
       if (filter.assigneeId) q = q.contains("assignees", [filter.assigneeId]);

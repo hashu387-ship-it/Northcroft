@@ -168,8 +168,13 @@ export function ProjectFiles({ project }: { project: Project }) {
 
   const path = folders.path(currentId);
   const empty = !loading && here.folders.length === 0 && here.files.length === 0 && here.links.length === 0;
-  const linkedFiles = allFiles.filter((a) => !isProjectLevelFile(a));
-  const linkedLinks = allLinks.filter((l) => !isProjectLevelLink(l));
+  // Files and links on a task that isn't in the project's list (one still waiting for approval)
+  // stay with that task until it's approved.
+  const taskShown = (taskId: string | null | undefined) => !taskId || !tasks.isSuccess || taskTitle.has(taskId);
+  const linkedFile = (a: Attachment) => !isProjectLevelFile(a) && taskShown(a.task_id);
+  const linkedLink = (l: DriveLink) => !isProjectLevelLink(l) && taskShown(l.task_id);
+  const linkedFiles = allFiles.filter(linkedFile);
+  const linkedLinks = allLinks.filter(linkedLink);
 
   return (
     <>
@@ -286,8 +291,8 @@ export function ProjectFiles({ project }: { project: Project }) {
           </h3>
         </div>
         <span className="faint tiny">Files and links added on this project's tasks, VOs, announcements and chat. To change one, open it where it was added.</span>
-        <Attachments projectId={project.id} canUpload={false} filter={(a) => !isProjectLevelFile(a)} fromLabel={fromLabel} hideWhenEmpty />
-        <DriveLinks projectId={project.id} canAdd={false} filter={(l) => !isProjectLevelLink(l)} fromLabel={fromLabel} />
+        <Attachments projectId={project.id} canUpload={false} filter={linkedFile} fromLabel={fromLabel} hideWhenEmpty />
+        <DriveLinks projectId={project.id} canAdd={false} filter={linkedLink} fromLabel={fromLabel} />
         {!loading && linkedFiles.length === 0 && linkedLinks.length === 0 && <span className="small muted">Nothing yet.</span>}
       </div>
 

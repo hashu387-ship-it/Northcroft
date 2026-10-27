@@ -9,8 +9,10 @@ import {
   Clock,
   FileText,
   History,
+  Hourglass,
   MessageCircle,
   Paperclip,
+  Pause,
   Pencil,
   Play,
   RotateCcw,
@@ -29,6 +31,7 @@ import { errorMessage, supabase } from "@/lib/supabase";
 import { diffDays, fmtDateTime, timeAgo, todayISO } from "@/lib/time";
 import { celebrate, daysText, earlyDays } from "@/lib/celebrate";
 import { passesOn, stageFor, useSignoff, waitingOn } from "@/lib/signoff";
+import { useApprover } from "@/lib/taskApproval";
 import type { Task, TaskStatus } from "@/lib/types";
 import { Attachments } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
@@ -73,6 +76,9 @@ export default function TaskDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [changesOpen, setChangesOpen] = useState(false);
+  // Turning down a team member's task, or a hold: ask, put on, or keep it going (each with a note).
+  const [ask, setAsk] = useState<"decline" | "ask_hold" | "put_hold" | "keep" | null>(null);
+  const approver = useApprover();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -113,6 +119,19 @@ export default function TaskDetail() {
   const nextStage = stageFor(onIt, signoff);
   const sendTo =
     nextStage === "first" ? signoff.first : nextStage === "final" ? signoff.final : reviewer && reviewer.id !== me.id ? reviewer : undefined;
+  // A team member's own task waiting for the approver's OK (or turned down), and holds.
+  const isRequest = !!t.approval;
+  const myRequest = isRequest && t.created_by === me.id;
+  const iApprove = approver.isApprover;
+  const creator = people.get(t.created_by);
+  const isOpen = t.status === "todo" || t.status === "in_progress";
+  const onHold = t.hold === "on";
+  const holdAsked = t.hold === "asked";
+  const holdBy = people.get(t.hold_by);
+  // Nothing moves while it waits for approval or is on hold.
+  const blocked = isRequest || onHold;
+  // The first checker (Hassan) chooses: send it on to the final checker, or finish it here.
+  const canFinishHere = handsOn && !!signoff.first && signoff.first.id === me.id;
 
   /** Saves the change; `message` is the toast (none when a celebration says it instead). */
   async function update(fields: Partial<Task>, message: string | null): Promise<boolean> {
@@ -134,10 +153,12 @@ export default function TaskDetail() {
   const setStatus = (status: TaskStatus, message: string) => update({ status }, message);
 
   /** Approving (or marking done): the work is finished, so celebrate it with the people who did it. */
-  async function finish(approving: boolean) {
-    // With two steps, my OK may pass it on to the final checker instead of finishing it.
-    if (!(await update({ status: "done" }, handsOn ? `Approved. Sent to ${finalName} for the final OK.` : null))) return;
-    if (handsOn) return;
+  async function finish(approving: boolean, here = false) {
+    // With two steps, my OK may pass it on to the final checker instead of finishing it, unless I
+    // finish it here (the first checker's choice).
+    const passing = handsOn && !here;
+    if (!(await update({ status: "done", ...(here ? { finished_by_first: true } : {}) }, passing ? `Approved. Sent to ${finalName} for the final OK.` : null))) return;
+    if (passing) return;
     const others = onIt.filter((x) => x !== me.id).map((x) => people.get(x)?.short_name ?? "someone");
     const early = earlyDays(t);
     celebrate({
@@ -191,6 +212,45 @@ export default function TaskDetail() {
     setNote("");
   }
 
+  async function approveRequest() {
+    await update({ approval: null }, `Approved. ${onItNames || "The people on it"} ${onIt.length === 1 ? "has" : "have"} been told and can start.`);
+  }
+
+  async function sendAsk() {
+    const text = note.trim();
+    let ok = false;
+    if (ask === "decline") {
+      if (!text) return toast("Say why, so they can change it", "error");
+      ok = await update({ approval: "declined", approval_note: text }, `Turned down. ${creator?.short_name ?? "They"} can change it and ask again.`);
+    } else if (ask === "ask_hold") {
+      if (!text) return toast("Say why it needs to go on hold", "error");
+      ok = await update({ hold: "asked", hold_reason: text }, `Asked ${approver.name} to put it on hold`);
+    } else if (ask === "put_hold") {
+      ok = await update({ hold: "on", hold_reason: text || null }, "On hold. No reminders until it's back on.");
+    } else if (ask === "keep") {
+      ok = await update({ hold: null, hold_reason: text || null }, `Kept going. ${holdBy?.short_name ?? "They"} has been told.`);
+    }
+    if (ok) {
+      setAsk(null);
+      setNote("");
+    }
+  }
+
+  async function takeBack() {
+    const ok = await confirm({
+      title: t.approval === "declined" ? "Remove this task?" : "Take back this task?",
+      message: `It goes, with its checklist, comments and files. ${approver.name} won't see it any more.`,
+      confirmLabel: t.approval === "declined" ? "Remove" : "Take it back",
+      danger: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("tasks").delete().eq("id", t.id);
+    if (error) return toast(errorMessage(error), "error");
+    toast(t.approval === "declined" ? "Task removed" : "Task taken back");
+    await invalidate("tasks");
+    navigate("/my-tasks", { replace: true });
+  }
+
   async function remove() {
     const ok = await confirm({
       title: "Delete this task?",
@@ -220,21 +280,34 @@ export default function TaskDetail() {
 
   // Actions depend on who you are and where the task is.
   const actions: ReactNode[] = [];
-  if (t.status === "todo" && isAssignee) {
+  if (t.status === "todo" && isAssignee && !blocked) {
     actions.push(
       <button key="start" className="btn primary grow-mobile" disabled={busy} onClick={() => setStatus("in_progress", "Marked as in progress")}>
         <Play /> Start working
       </button>,
     );
   }
-  if ((t.status === "todo" || t.status === "in_progress") && isAssignee) {
+  if ((t.status === "todo" || t.status === "in_progress") && isAssignee && !blocked) {
     actions.push(
       <button key="submit" className={`btn ${t.status === "in_progress" ? "primary" : ""} grow-mobile`} disabled={busy} onClick={() => { setNote(""); setSubmitOpen(true); }}>
         <Send /> Submit for review
       </button>,
     );
   }
-  if (myReview) {
+  if (myReview && canFinishHere) {
+    // Hassan's choice each time: send it on to Fawaz, or finish it here.
+    actions.push(
+      <button key="approve" className="btn success grow-mobile" disabled={busy} onClick={() => finish(true)}>
+        <CircleCheck /> Approve, send to {finalName}
+      </button>,
+      <button key="approve-here" className="btn success grow-mobile" disabled={busy} onClick={() => finish(true, true)} title={`Done now, without ${finalName}'s final OK`}>
+        <CircleCheck /> Approve and finish
+      </button>,
+      <button key="changes" className="btn warn grow-mobile" disabled={busy} onClick={() => { setNote(""); setChangesOpen(true); }}>
+        <RotateCcw /> Request changes
+      </button>,
+    );
+  } else if (myReview) {
     actions.push(
       <button key="approve" className="btn success grow-mobile" disabled={busy} onClick={() => finish(true)}>
         <CircleCheck /> {handsOn ? `Approve, send to ${finalName}` : t.review_stage === "final" ? "Give final OK" : "Approve"}
@@ -251,7 +324,7 @@ export default function TaskDetail() {
       </button>,
     );
   }
-  if ((t.status === "todo" || t.status === "in_progress") && canAssign) {
+  if ((t.status === "todo" || t.status === "in_progress") && canAssign && !blocked) {
     actions.push(
       <button
         key="done"
@@ -261,6 +334,27 @@ export default function TaskDetail() {
         title={handsOn ? `Goes to ${finalName} for the final OK` : undefined}
       >
         <CircleCheck /> {handsOn ? `Mark done, send to ${finalName}` : "Mark done"}
+      </button>,
+    );
+    if (canFinishHere) {
+      actions.push(
+        <button key="done-here" className="btn grow-mobile" disabled={busy} onClick={() => finish(false, true)} title={`Done now, without ${finalName}'s final OK`}>
+          <CircleCheck /> Mark done and finish
+        </button>,
+      );
+    }
+  }
+  // Holds: the approver puts an open task on hold; the people on it ask.
+  if (isOpen && !isRequest && !t.hold && iApprove) {
+    actions.push(
+      <button key="hold" className="btn grow-mobile" disabled={busy} onClick={() => { setNote(""); setAsk("put_hold"); }}>
+        <Pause /> Put on hold
+      </button>,
+    );
+  } else if (isOpen && !isRequest && !t.hold && isAssignee) {
+    actions.push(
+      <button key="ask-hold" className="btn grow-mobile" disabled={busy} onClick={() => { setNote(""); setAsk("ask_hold"); }}>
+        <Pause /> Ask to hold
       </button>,
     );
   }
@@ -304,6 +398,107 @@ export default function TaskDetail() {
               </button>
             </div>
             <h1 className="td-title">{t.title}</h1>
+
+            {isRequest && (
+              <div className={t.approval === "declined" ? "changes-banner" : "review-banner"}>
+                <Hourglass />
+                <div className="stack" style={{ gap: 8, minWidth: 0 }}>
+                  <div className="small">
+                    <b>
+                      {t.approval === "declined"
+                        ? iApprove
+                          ? "You turned this down"
+                          : `${approver.name} turned this down`
+                        : iApprove
+                          ? `${creator?.short_name ?? "Someone"} made this task and is waiting for your OK`
+                          : `Waiting for ${approver.name}'s OK`}
+                    </b>
+                    <div className="muted">
+                      {t.approval === "declined"
+                        ? t.approval_note
+                          ? `"${t.approval_note}"`
+                          : "No reason given."
+                        : iApprove
+                          ? "Check it and change anything with Edit task. Once you approve it, the people on it are told and can start."
+                          : "Nobody else sees it yet. You can still change it, or take it back."}
+                    </div>
+                  </div>
+                  <div className="row wrap" style={{ gap: 8 }}>
+                    {iApprove && (
+                      <button className="btn small success" disabled={busy} onClick={approveRequest}>
+                        <CircleCheck /> {t.approval === "declined" ? "Approve anyway" : "Approve"}
+                      </button>
+                    )}
+                    {iApprove && t.approval === "pending" && (
+                      <button className="btn small warn" disabled={busy} onClick={() => { setNote(""); setAsk("decline"); }}>
+                        <RotateCcw /> Turn down
+                      </button>
+                    )}
+                    {(iApprove || myRequest) && (
+                      <button className="btn small" disabled={busy} onClick={() => setEditOpen(true)}>
+                        <Pencil /> {t.approval === "declined" && myRequest ? "Change it" : "Edit task"}
+                      </button>
+                    )}
+                    {myRequest && !iApprove && t.approval === "declined" && (
+                      <button className="btn small primary" disabled={busy} onClick={() => update({ approval: "pending" }, `Sent to ${approver.name} again`)}>
+                        <Send /> Ask again
+                      </button>
+                    )}
+                    {myRequest && !iApprove && (
+                      <button className="btn small danger" disabled={busy} onClick={takeBack}>
+                        <Trash2 /> {t.approval === "declined" ? "Remove" : "Take it back"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {t.hold && (
+              <div className="changes-banner">
+                <Pause />
+                <div className="stack" style={{ gap: 8, minWidth: 0 }}>
+                  <div className="small">
+                    <b>
+                      {onHold
+                        ? "On hold"
+                        : t.hold_by === me.id
+                          ? `You asked ${approver.name} to put this on hold`
+                          : `${holdBy?.short_name ?? "Someone"} asked to put this on hold`}
+                    </b>
+                    <div className="muted">
+                      {t.hold_reason ? `"${t.hold_reason}"` : "No reason given."}
+                      {onHold && t.hold_at ? ` · Since ${fmtDateTime(t.hold_at)}. No reminders until it's back on.` : ""}
+                      {holdAsked && !iApprove ? ` ${approver.name} decides.` : ""}
+                    </div>
+                  </div>
+                  {(iApprove || (holdAsked && t.hold_by === me.id)) && (
+                    <div className="row wrap" style={{ gap: 8 }}>
+                      {iApprove && holdAsked && (
+                        <button className="btn small warn" disabled={busy} onClick={() => update({ hold: "on" }, "On hold. No reminders until it's back on.")}>
+                          <Pause /> Put on hold
+                        </button>
+                      )}
+                      {iApprove && holdAsked && (
+                        <button className="btn small" disabled={busy} onClick={() => { setNote(""); setAsk("keep"); }}>
+                          <Play /> Keep it going
+                        </button>
+                      )}
+                      {iApprove && onHold && (
+                        <button className="btn small primary" disabled={busy} onClick={() => update({ hold: null }, "Off hold. The people on it have been told.")}>
+                          <Play /> Take off hold
+                        </button>
+                      )}
+                      {!iApprove && holdAsked && t.hold_by === me.id && (
+                        <button className="btn small" disabled={busy} onClick={() => update({ hold: null }, "Hold ask taken back")}>
+                          <Undo2 /> Take back
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {changesRequested && (
               <div className="changes-banner">
@@ -391,7 +586,7 @@ export default function TaskDetail() {
             {details(t)}
           </div>
 
-          {(canAssign || isAssignee) && (
+          {(canAssign || isAssignee || myRequest) && !isRequest && (
             <div className="glass card row wrap" style={{ gap: 8 }}>
               <button className="btn small" onClick={() => setEditOpen(true)}>
                 <Pencil /> Edit task
@@ -443,6 +638,42 @@ export default function TaskDetail() {
           <label className="field">
             <span>Note for the reviewer (optional)</span>
             <textarea className="textarea" value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={!!ask}
+        onClose={() => setAsk(null)}
+        title={ask === "decline" ? "Turn down this task" : ask === "ask_hold" ? "Ask to put it on hold" : ask === "put_hold" ? "Put it on hold" : "Keep it going"}
+        footer={
+          <>
+            <button className="btn" onClick={() => setAsk(null)}>
+              Cancel
+            </button>
+            <button
+              className={`btn ${ask === "decline" ? "warn" : "primary"}`}
+              onClick={() => void sendAsk()}
+              disabled={busy || ((ask === "decline" || ask === "ask_hold") && !note.trim())}
+            >
+              {ask === "decline" ? "Turn down" : ask === "ask_hold" ? `Ask ${approver.name}` : ask === "put_hold" ? "Put on hold" : "Keep it going"}
+            </button>
+          </>
+        }
+      >
+        <div className="stack">
+          <p className="muted">
+            {ask === "decline"
+              ? `${creator?.short_name ?? "They"} sees your note and can change the task and ask again, or take it back.`
+              : ask === "ask_hold"
+                ? `${approver.name} decides. Until then it carries on as normal.`
+                : ask === "put_hold"
+                  ? "It stays where it is, can't be started or handed in, and gets no due or overdue reminders until you take it off hold. The people on it are told."
+                  : `${holdBy?.short_name ?? "They"} is told it isn't going on hold and carries on.`}
+          </p>
+          <label className="field">
+            <span>{ask === "decline" ? "Why" : ask === "keep" ? "Note (optional)" : ask === "put_hold" ? "Reason (optional)" : "Why it needs to go on hold"}</span>
+            <textarea className="textarea" value={note} onChange={(e) => setNote(e.target.value)} autoFocus />
           </label>
         </div>
       </Sheet>
@@ -583,9 +814,10 @@ export default function TaskDetail() {
             </Row>
           )}
           {task.status === "done" && task.completed_at && (
-            <Row label={task.first_ok_by ? "Final OK" : "Approved"}>
+            <Row label={task.finished_by_first ? "Finished" : task.first_ok_by ? "Final OK" : "Approved"}>
               <span className="small">
                 {people.get(task.approved_by)?.short_name ?? "Someone"}, {fmtDateTime(task.completed_at)}
+                {task.finished_by_first && signoff.final ? ` · without ${signoff.final.short_name}'s final OK` : ""}
               </span>
             </Row>
           )}

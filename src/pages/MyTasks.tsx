@@ -5,6 +5,7 @@ import { CircleCheck, ClipboardList, Inbox, Plus, SquareCheckBig } from "lucide-
 import { useChecklistCounts, usePeople, useTasks } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useSignoff, waitingOn } from "@/lib/signoff";
+import { useApprover, useTaskRequests } from "@/lib/taskApproval";
 import { supabase } from "@/lib/supabase";
 import { PageHead } from "@/components/PageHead";
 import { TaskForm } from "@/components/TaskForm";
@@ -17,7 +18,7 @@ import { DUE_GROUP_LABEL, dueGroup, type DueGroup } from "./project/api";
 import "@/styles/tasks.css";
 import { peopleOn } from "@/lib/people";
 
-type View = "mine" | "review" | "team" | "byme" | "done";
+type View = "mine" | "approve" | "review" | "team" | "byme" | "done";
 
 function Group({ title, tasks, counts, tone, showAssignee = false }: { title: string; tasks: Task[]; counts?: Record<string, [number, number]>; tone?: "red"; showAssignee?: boolean }) {
   if (!tasks.length) return null;
@@ -58,6 +59,7 @@ export default function MyTasks() {
   const { canAssign } = useAuth();
   const people = usePeople();
   const signoff = useSignoff();
+  const approver = useApprover();
   const [params, setParams] = useSearchParams();
   const [formOpen, setFormOpen] = useState(false);
   // Someone who only gives out tasks (the Commercial Head) has no list of their own: they see
@@ -66,7 +68,7 @@ export default function MyTasks() {
   const allowed: View[] = givesOnly
     ? ["review", "team", "done"]
     : canAssign
-      ? ["mine", "review", "team", "byme", "done"]
+      ? ["mine", ...(approver.isApprover ? (["approve"] as View[]) : []), "review", "team", "byme", "done"]
       : ["mine", "review", "done"];
   const fallback: View = givesOnly ? "team" : "mine";
   const asked = params.get("view") as View | null;
@@ -75,12 +77,23 @@ export default function MyTasks() {
 
   const mine = useTasks({ assigneeId: me.id });
   const openQ = useTasks({ openOnly: true });
+  // Tasks team members made: the approver sees all of them, a team member their own.
+  const requestsQ = useTaskRequests();
   const recentDone = useRecentDone(givesOnly && view === "done");
 
   const today = todayISO();
   const myTasks = givesOnly ? [] : mine.data ?? [];
   const allOpen = openQ.data ?? [];
-  const open = myTasks.filter((t) => t.status === "todo" || t.status === "in_progress");
+  const openAll = myTasks.filter((t) => t.status === "todo" || t.status === "in_progress");
+  // On hold: paused, so not in the due groups and never late.
+  const held = openAll.filter((t) => t.hold === "on");
+  const open = openAll.filter((t) => t.hold !== "on");
+  const requests = requestsQ.data ?? [];
+  // For the approver: tasks the team made, and asks to put a task on hold.
+  const toApprove = approver.isApprover ? requests.filter((t) => t.approval === "pending" && t.created_by !== me.id) : [];
+  const holdAsks = approver.isApprover ? allOpen.filter((t) => t.hold === "asked") : [];
+  // For a team member: their own tasks waiting for the OK, or turned down.
+  const myRequests = requests.filter((t) => t.created_by === me.id);
   const waiting = myTasks.filter((t) => t.status === "in_review");
   const done = givesOnly
     ? recentDone.data ?? []
@@ -105,9 +118,19 @@ export default function MyTasks() {
 
   const visibleIds = useMemo(() => {
     const list =
-      view === "mine" ? [...open, ...waiting] : view === "review" ? toReview : view === "team" ? allOpen : view === "byme" ? byMe : done;
+      view === "mine"
+        ? [...open, ...waiting, ...held, ...myRequests]
+        : view === "approve"
+          ? [...toApprove, ...holdAsks]
+          : view === "review"
+            ? toReview
+            : view === "team"
+              ? allOpen
+              : view === "byme"
+                ? byMe
+                : done;
     return list.map((t) => t.id);
-  }, [view, open, waiting, toReview, allOpen, byMe, done]);
+  }, [view, open, waiting, held, myRequests, toApprove, holdAsks, toReview, allOpen, byMe, done]);
   const counts = useChecklistCounts(visibleIds).data;
 
   const byPerson = useMemo(() => {
@@ -122,14 +145,16 @@ export default function MyTasks() {
 
   const loading =
     (view === "mine" && mine.isLoading) ||
+    (view === "approve" && (requestsQ.isLoading || openQ.isLoading)) ||
     ((view === "review" || view === "team" || view === "byme") && openQ.isLoading) ||
     (view === "done" && (givesOnly ? recentDone.isLoading : mine.isLoading));
   const overdueCount = grouped.overdue.length;
-  const teamOverdue = allOpen.filter((t) => t.due_date && t.due_date < today && t.status !== "in_review").length;
+  const teamOverdue = allOpen.filter((t) => t.due_date && t.due_date < today && t.status !== "in_review" && t.hold !== "on").length;
 
   const reviewLabel = signoff.on && signoff.final?.id === me.id ? "Final OK" : "To review";
   const options: { value: View; label: string; count?: number }[] = [
     ...(allowed.includes("mine") ? [{ value: "mine" as View, label: "Mine", count: open.length }] : []),
+    ...(allowed.includes("approve") ? [{ value: "approve" as View, label: "To approve", count: toApprove.length + holdAsks.length }] : []),
     ...(canAssign || toReview.length ? [{ value: "review" as View, label: reviewLabel, count: toReview.length }] : []),
     ...(allowed.includes("team") ? [{ value: "team" as View, label: givesOnly ? "Assigned" : "Everyone", count: allOpen.length }] : []),
     ...(allowed.includes("byme") ? [{ value: "byme" as View, label: "By me", count: byMe.length }] : []),
@@ -139,8 +164,12 @@ export default function MyTasks() {
   const sub =
     view === "mine"
       ? open.length
-        ? `${open.length} open${overdueCount ? `, ${overdueCount} overdue` : ""}${waiting.length ? `, ${waiting.length} waiting for review` : ""}`
+        ? `${open.length} open${overdueCount ? `, ${overdueCount} overdue` : ""}${waiting.length ? `, ${waiting.length} waiting for review` : ""}${held.length ? `, ${held.length} on hold` : ""}`
         : "Nothing on your plate right now"
+      : view === "approve"
+        ? toApprove.length + holdAsks.length
+          ? `${toApprove.length + holdAsks.length} waiting for your OK`
+          : "Nothing waiting for your OK"
       : view === "review"
         ? toReview.length
           ? finalOk.length && !firstCheck.length
@@ -161,11 +190,9 @@ export default function MyTasks() {
         title={givesOnly ? "Assigned tasks" : "My tasks"}
         sub={sub}
         actions={
-          canAssign && (
-            <button className="btn brand hide-mobile" onClick={() => setFormOpen(true)}>
-              <Plus /> New task
-            </button>
-          )
+          <button className="btn brand hide-mobile" onClick={() => setFormOpen(true)}>
+            <Plus /> New task
+          </button>
         }
       />
 
@@ -176,7 +203,7 @@ export default function MyTasks() {
       {loading ? (
         <Loading />
       ) : view === "mine" ? (
-        open.length + waiting.length === 0 ? (
+        open.length + waiting.length + held.length + myRequests.length === 0 ? (
           <div className="glass" style={{ marginTop: 16 }}>
             <Empty
               icon={<CircleCheck />}
@@ -191,15 +218,31 @@ export default function MyTasks() {
             >
               {canAssign
                 ? "Nothing is assigned to you. Tasks you hand out are under By me, and everyone's open work is under Everyone."
-                : "When Hassan or a senior assigns you something, it shows up here and on your phone."}
+                : `When ${approver.name} or a senior assigns you something, it shows up here and on your phone. You can also make your own with New task; ${approver.name} approves it first.`}
             </Empty>
           </div>
         ) : (
           <>
+            <Group title={`Waiting for ${approver.name}'s OK`} tasks={myRequests.filter((t) => t.approval === "pending")} counts={counts} showAssignee />
+            <Group title="Turned down" tasks={myRequests.filter((t) => t.approval === "declined")} counts={counts} tone="red" showAssignee />
             {(["overdue", "today", "week", "later", "none"] as DueGroup[]).map((g) => (
               <Group key={g} title={DUE_GROUP_LABEL[g]} tasks={grouped[g]} counts={counts} tone={g === "overdue" ? "red" : undefined} />
             ))}
             <Group title="Waiting for review" tasks={waiting} counts={counts} />
+            <Group title="On hold" tasks={held} counts={counts} />
+          </>
+        )
+      ) : view === "approve" ? (
+        toApprove.length + holdAsks.length === 0 ? (
+          <div className="glass" style={{ marginTop: 16 }}>
+            <Empty icon={<Inbox />} title="Nothing waiting for your OK">
+              When someone on the team makes a task, or asks to put one on hold, it lands here.
+            </Empty>
+          </div>
+        ) : (
+          <>
+            <Group title="Tasks the team made" tasks={toApprove} counts={counts} showAssignee />
+            <Group title="Asked to go on hold" tasks={holdAsks} counts={counts} showAssignee />
           </>
         )
       ) : view === "review" ? (
@@ -250,11 +293,9 @@ export default function MyTasks() {
         <Group title="Recently done" tasks={done} counts={counts} showAssignee={givesOnly} />
       )}
 
-      {canAssign && (
-        <button className="fab" onClick={() => setFormOpen(true)} aria-label="New task">
-          <Plus />
-        </button>
-      )}
+      <button className="fab" onClick={() => setFormOpen(true)} aria-label="New task">
+        <Plus />
+      </button>
       <TaskForm open={formOpen} onClose={() => setFormOpen(false)} />
     </div>
   );

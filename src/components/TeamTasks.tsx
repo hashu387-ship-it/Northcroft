@@ -20,7 +20,7 @@ export interface PersonTasks {
   review: number;
 }
 
-const isLate = (t: Task, today: string) => !!t.due_date && t.due_date < today && t.status !== "in_review";
+const isLate = (t: Task, today: string) => !!t.due_date && t.due_date < today && t.status !== "in_review" && t.hold !== "on";
 
 /** Late first, then the most urgent, then the soonest due. */
 export function sortOpen(list: Task[], today = todayISO()): Task[] {

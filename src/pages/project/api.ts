@@ -135,8 +135,9 @@ export function nextVoNumber(vos: Variation[]): string {
 
 type PersonLookup = (id: string | null | undefined) => Profile | undefined;
 
-function statusSentence(from: TaskStatus, to: TaskStatus, note: unknown, obj: string, stage?: unknown): string {
+function statusSentence(from: TaskStatus, to: TaskStatus, note: unknown, obj: string, stage?: unknown, finishedHere?: unknown): string {
   if (to === "in_review") return stage === "final" ? `sent ${obj} for the final OK` : `submitted ${obj} for review`;
+  if (to === "done" && finishedHere) return from === "in_review" ? `approved and finished ${obj}` : `marked ${obj} done and finished it`;
   if (to === "done") return from === "in_review" ? `approved ${obj}` : `marked ${obj} done`;
   if (from === "done") return `reopened ${obj}`;
   if (from === "in_review" && note) return `asked for changes on ${obj}: "${String(note)}"`;
@@ -171,7 +172,7 @@ export function activitySentence(a: Activity, people: PersonLookup, taskTitle?: 
         return to ? `reassigned ${obj} to ${to}` : `unassigned ${obj}`;
       }
       case "status":
-        return statusSentence(d.from as TaskStatus, d.to as TaskStatus, d.note, obj, d.stage);
+        return statusSentence(d.from as TaskStatus, d.to as TaskStatus, d.note, obj, d.stage, d.finished_by_first);
       case "first_ok": {
         const fin = people(d.final as string)?.short_name;
         return `approved ${obj} and sent it to ${fin ?? "the final checker"} for the final OK`;
@@ -182,6 +183,17 @@ export function activitySentence(a: Activity, people: PersonLookup, taskTitle?: 
         return `set ${taskTitle ? `${obj} to` : "the priority to"} ${PRIORITY[d.to as keyof typeof PRIORITY]?.label ?? d.to}${taskTitle ? " priority" : ""}`;
       case "edited":
         return `edited the details${taskTitle ? ` of ${obj}` : ""}`;
+      case "request_approved": {
+        const by = people(d.by as string)?.short_name;
+        return `approved ${obj}${by ? `, made by ${by}` : ""}`;
+      }
+      case "hold": {
+        const why = d.reason ? `: ${d.reason as string}` : "";
+        if (d.to === "asked") return `asked to put ${obj} on hold${why}`;
+        if (d.to === "on") return `put ${obj} on hold${why}`;
+        if (d.from === "on") return `took ${obj} off hold`;
+        return `kept ${obj} going (not on hold)`;
+      }
       default:
         return `updated ${obj}`;
     }

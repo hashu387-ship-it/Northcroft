@@ -22,6 +22,7 @@ import { InstallBanner } from "@/components/InstallBanner";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
 import { OngoingTasksCard } from "@/components/TeamTasks";
+import { useApprover, useTaskRequests } from "@/lib/taskApproval";
 import { OnlineCard } from "@/components/OnlineCard";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
@@ -79,7 +80,7 @@ export default function Home() {
   const teamOpen = allOpen.data ?? [];
   const myOpen = givesOnly ? teamOpen : mine.data ?? [];
   const tasksLoading = givesOnly ? allOpen.isLoading : mine.isLoading;
-  const overdue = myOpen.filter((t) => t.due_date && t.due_date < today && t.status !== "in_review");
+  const overdue = myOpen.filter((t) => t.due_date && t.due_date < today && t.status !== "in_review" && t.hold !== "on");
   // Waiting on me: my check, my final OK, or (with one reviewer) my review.
   const toReview = teamOpen.filter((t) => waitingOn(t, signoff) === me.id);
   const myInReview = myOpen.filter((t) => t.status === "in_review");
@@ -117,11 +118,9 @@ export default function Home() {
           </h1>
           <p>{summary}</p>
           <div className="hb-actions">
-            {canAssign && (
-              <button className="btn brand" onClick={() => setNewTask(true)}>
-                <Plus /> New task
-              </button>
-            )}
+            <button className="btn brand" onClick={() => setNewTask(true)}>
+              <Plus /> New task
+            </button>
             <Link to="/my-tasks" className="btn on-dark">
               <SquareCheckBig /> {givesOnly ? "Assigned tasks" : "My tasks"}
             </Link>
@@ -179,6 +178,7 @@ export default function Home() {
         <div className="stack">
           {!me.attendance_exempt && <CheckInCard />}
           <MyUpdateHomeCard />
+          <TaskOkCard openTasks={teamOpen} />
           {!givesOnly && <FocusCard tasks={myOpen} loading={mine.isLoading} />}
           {canAssign && <ReviewCard tasks={toReview} loading={allOpen.isLoading} finalOk={signoff.on && signoff.final?.id === me.id} />}
           {canAssign && <LeaveToApproveCard />}
@@ -194,11 +194,9 @@ export default function Home() {
         </div>
       </div>
 
-      {canAssign && (
-        <button className="fab" onClick={() => setNewTask(true)} aria-label="New task">
-          <Plus />
-        </button>
-      )}
+      <button className="fab" onClick={() => setNewTask(true)} aria-label="New task">
+        <Plus />
+      </button>
       <TaskForm open={newTask} onClose={() => setNewTask(false)} />
     </div>
   );
@@ -333,6 +331,36 @@ function FocusCard({ tasks, loading }: { tasks: Task[]; loading: boolean }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** For the approver: tasks the team made and asks to put a task on hold, waiting for the OK.
+ *  For a team member: their own tasks waiting for the OK, or turned down. Hidden when empty. */
+function TaskOkCard({ openTasks }: { openTasks: Task[] }) {
+  const me = useMe();
+  const approver = useApprover();
+  const requests = useTaskRequests().data ?? [];
+  const list = approver.isApprover
+    ? [...requests.filter((t) => t.approval === "pending" && t.created_by !== me.id), ...openTasks.filter((t) => t.hold === "asked")]
+    : requests.filter((t) => t.created_by === me.id);
+  const counts = useChecklistCounts(list.map((t) => t.id)).data ?? {};
+  if (!list.length) return null;
+  return (
+    <div className="glass card">
+      <div className="card-head">
+        <h2 className="tone-purple">
+          <ClipboardList /> {approver.isApprover ? "Waiting for your OK" : `Your tasks for ${approver.name}'s OK`}
+        </h2>
+        <Link to={approver.isApprover ? "/my-tasks?view=approve" : "/my-tasks"} className="link">
+          {list.length} {approver.isApprover ? "to check" : list.length === 1 ? "task" : "tasks"}
+        </Link>
+      </div>
+      <div className="list">
+        {list.slice(0, 6).map((t) => (
+          <TaskRow key={t.id} task={t} checklist={counts[t.id]} />
+        ))}
+      </div>
     </div>
   );
 }

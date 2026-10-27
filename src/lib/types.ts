@@ -101,6 +101,19 @@ export interface Task {
   recurring_id: string | null;
   /** The repeating task it was made from; kept even if that repeating task is removed. */
   repeat_of?: string | null;
+  /** A task a team member made: "pending" waits for the approver's OK (Hassan), "declined" was
+   *  turned down (approval_note says why). null: an ordinary task. */
+  approval?: "pending" | "declined" | null;
+  approval_note?: string | null;
+  approval_at?: string | null;
+  approval_by?: string | null;
+  /** On hold: "asked" by someone on it (waiting for the approver), or "on" (paused, no reminders). */
+  hold?: "asked" | "on" | null;
+  hold_reason?: string | null;
+  hold_by?: string | null;
+  hold_at?: string | null;
+  /** The first checker (Hassan) finished it without sending it to the final checker (Fawaz). */
+  finished_by_first?: boolean;
   created_at: string;
   updated_at: string;
 }

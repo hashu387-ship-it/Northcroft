@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FileSpreadsheet, FileText, Folder, Image as ImageIcon, Link2, Mic, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
 import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useProjectTeams } from "@/lib/projectTeam";
+import { useApprover } from "@/lib/taskApproval";
 import { useAuth, useMe } from "@/lib/auth";
 import { STORAGE_MAX_BYTES, uploadFile } from "@/lib/files";
 import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
@@ -62,8 +63,12 @@ export function TaskForm({
   const invalidate = useInvalidate();
   const navigate = useNavigate();
   const editing = !!task;
+  const approver = useApprover();
+  // A team member's own task waits for the approver's OK (Hassan); until then they can change
+  // anything on it, people included.
+  const asking = !canAssign && (!editing || (!!task?.approval && task.created_by === me.id));
   // People on a task can edit its details; only managers and seniors change who's on it.
-  const lockPeople = editing && !canAssign;
+  const lockPeople = editing && !canAssign && !asking;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -111,7 +116,7 @@ export function TaskForm({
           : task.assignee_id
             ? [task.assignee_id]
             : []
-        : defaults?.assigneeIds ?? (defaults?.assigneeId ? [defaults.assigneeId] : []),
+        : defaults?.assigneeIds ?? (defaults?.assigneeId ? [defaults.assigneeId] : canAssign ? [] : [me.id]),
     );
     setReviewerId(task ? task.reviewer_id : me.id);
     setDueDate(task?.due_date ?? defaults?.dueDate ?? addDays(todayISO(), 2));
@@ -303,8 +308,9 @@ export function TaskForm({
         title: title.trim(),
         description: description.trim() || null,
         project_id: projectId,
-        // Only managers and seniors send who's on it and who reviews it.
-        ...(lockPeople ? {} : { assignees, reviewer_id: reviewerId }),
+        // Only managers and seniors send who's on it and who reviews it (a team member's own
+        // request sends who's on it; the database sets the approver as reviewer).
+        ...(lockPeople ? {} : asking ? { assignees } : { assignees, reviewer_id: reviewerId }),
         priority,
         estimate_hours: estimate ? Number(estimate) : null,
       };
@@ -361,7 +367,13 @@ export function TaskForm({
         await saveLinks({ taskId: data.id, projectId });
         await attachVoice(data.id, projectId);
         const others = assignees.filter((id) => id !== me.id).map((id) => people.get(id)?.short_name).filter(Boolean);
-        toast(others.length ? `Task sent to ${others.length > 3 ? `${others.length} people` : others.join(", ")}` : "Task created");
+        toast(
+          asking
+            ? `Sent to ${approver.name} for the OK. It starts once it's approved.`
+            : others.length
+              ? `Task sent to ${others.length > 3 ? `${others.length} people` : others.join(", ")}`
+              : "Task created",
+        );
         reportFailed(result, "the task's Files");
         onClose();
         await invalidate("tasks", "task_checklist", "attachments", "comments");
@@ -401,7 +413,9 @@ export function TaskForm({
                       ? "Save changes"
                       : repeat !== "none"
                         ? "Set up repeating task"
-                        : "Assign task"}
+                        : asking
+                          ? `Send to ${approver.name}`
+                          : "Assign task"}
           </button>
         </>
       }
@@ -414,7 +428,15 @@ export function TaskForm({
           label="Assign to"
           className="full"
           group
-          hint={lockPeople ? "Only a manager or a senior can change who's on a task" : assignees.length > 1 ? "They all see it, get its notifications, and any of them can submit it" : "Add one person or several"}
+          hint={
+            lockPeople
+              ? "Only a manager or a senior can change who's on a task"
+              : asking
+                ? `Yourself, others, or both. They see it once ${approver.name} approves it.`
+                : assignees.length > 1
+                  ? "They all see it, get its notifications, and any of them can submit it"
+                  : "Add one person or several"
+          }
         >
           <PeopleSelect
             value={assignees}
@@ -428,7 +450,13 @@ export function TaskForm({
         <Field label="Project">
           <ProjectSelect value={projectId} onChange={setProjectId} projects={projects} />
         </Field>
-        {signoff.on ? (
+        {asking ? (
+          <Field label="Approval">
+            <div className="tf-signoff">
+              {approver.name} checks it first and can change it. Once approved it starts, and it's signed off like any other task.
+            </div>
+          </Field>
+        ) : signoff.on ? (
           <Field label="Sign-off" hint="Set in Settings > Team">
             <div className="tf-signoff">
               {signoff.first && signoff.first.id !== signoff.final?.id
@@ -624,7 +652,7 @@ export function TaskForm({
           </div>
         )}
 
-        {!editing && (
+        {!editing && !asking && (
           <div className="full stack solid" style={{ padding: 14, gap: 12, borderRadius: 10 }}>
             <div className="row">
               <Repeat size={18} className="muted" />

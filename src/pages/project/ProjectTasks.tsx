@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronRight, LayoutGrid, List, Plus, Repeat, SquareCheckBig } from "lucide-react";
 import { useChecklistCounts, usePeople, useTasks } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
 import { TASK_STATUS, TASK_STATUS_ORDER } from "@/lib/constants";
 import type { Project, Task, TaskStatus } from "@/lib/types";
 import { TaskForm } from "@/components/TaskForm";
@@ -19,7 +18,6 @@ const COL_COLOR: Record<TaskStatus, string> = {
 };
 
 export function ProjectTasks({ project }: { project: Project }) {
-  const { canAssign } = useAuth();
   const people = usePeople();
   const { data: tasks = [], isLoading } = useTasks({ projectId: project.id });
   const [view, setView] = useState<"list" | "board">(() => {
@@ -73,18 +71,16 @@ export function ProjectTasks({ project }: { project: Project }) {
           />
         </div>
         <span className="spacer" />
-        {canAssign && (
-          <button className="btn brand small hide-mobile" onClick={() => setFormOpen(true)}>
-            <Plus /> New task
-          </button>
-        )}
+        <button className="btn brand small hide-mobile" onClick={() => setFormOpen(true)}>
+          <Plus /> New task
+        </button>
       </div>
 
       {isLoading ? (
         <Loading />
       ) : filtered.length === 0 ? (
         <div className="glass">
-          <Empty icon={<SquareCheckBig />} title={person ? "No tasks for this person here" : "No tasks on this project yet"} action={canAssign ? <button className="btn primary" onClick={() => setFormOpen(true)}><Plus /> Add the first task</button> : undefined} />
+          <Empty icon={<SquareCheckBig />} title={person ? "No tasks for this person here" : "No tasks on this project yet"} action={<button className="btn primary" onClick={() => setFormOpen(true)}><Plus /> Add the first task</button>} />
         </div>
       ) : view === "board" ? (
         <>
@@ -137,11 +133,9 @@ export function ProjectTasks({ project }: { project: Project }) {
         <RecurringList projectId={project.id} />
       </div>
 
-      {canAssign && (
-        <button className="fab" onClick={() => setFormOpen(true)} aria-label="New task">
-          <Plus />
-        </button>
-      )}
+      <button className="fab" onClick={() => setFormOpen(true)} aria-label="New task">
+        <Plus />
+      </button>
       <TaskForm open={formOpen} onClose={() => setFormOpen(false)} defaults={{ projectId: project.id, assigneeId: person || null }} />
     </div>
   );

@@ -19,6 +19,14 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
   - The first teams: KSU Rimash and Hameed; Capella Najeefar and Imthath; HOAS Saheeb and Inzam; Bawabah Riswan.
 - **Signing in with an old email**: when someone's email changes, their old one can keep signing them in with the same password. The app tries the email as typed, and only if that fails asks the database (`login_email`) whether it's an old email of an active person. Rimash's email is now arrimash@northcroftme.com (shown as his contact everywhere); rimaashahamed@gmail.com still signs him in.
 - **Tasks**: you assign work with due dates, priorities and checklists, to one person or several. Everyone on a task sees it in My tasks and gets its notifications; any of them can start it, edit its details, steps and files, and submit it for review. Hassan or a senior approves it or sends it back with a note, and only managers and seniors change who's on a task. Tasks can also repeat daily, weekly or monthly.
+- **Team members make their own tasks**: anyone can tap New task and put themselves, others or both on it. A task a team member makes waits for Hassan's OK (the first checker in Settings > Team > Task sign-off) before anything starts.
+  - While it waits, only the person who made it and Hassan see it: nobody else is told, and it isn't in reminders, lists, the calendar, the workload or the project's files. It shows under "Waiting for Hassan's OK" in their My tasks.
+  - Hassan gets a notification, and it's on his Home ("Waiting for your OK") and under My tasks > To approve. He can change anything with Edit task, then Approve (the people on it are told and can start) or Turn down with a note.
+  - The person who made it can change it while it waits, take it back, and after a turn-down change it and ask again.
+  - Once approved, it's signed off like any other task.
+- **On hold**: the people on an open task can ask Hassan to put it on hold, with a reason; he puts it on hold or keeps it going. Hassan can also hold any open task himself, and takes it off hold.
+  - A task on hold stays where it was (To do or In progress), sits in an On hold group, can't be started, handed in or finished, gets no due or overdue reminders and isn't counted as late. The people on it are told when it goes on hold and when it's back on.
+- **Finish or send to Fawaz**: when Hassan approves handed-in work, he picks each time: "Approve, send to Fawaz" (as before) or "Approve and finish", which makes it Done straight away. Mark done has the same two buttons. Fawaz isn't told about tasks Hassan finishes, and they show as "Finished by Hassan" in Done and on the task.
 - **Celebrations**:
   - When Hassan or a senior approves a task (or marks it done), confetti in navy, red and gold bursts across the screen with a glossy card: "Approved. Great work, Imthath and Najeefar."
   - Everyone on that task sees it once too, the next time they open the app (or straight away if it's open): "Hassan approved your work. Great job, Najeefar." Several approvals at once show as one card.
@@ -196,6 +204,9 @@ A team workspace for the Northcroft quantity surveying team in Saudi Arabia. It 
 | See everyone's attendance | Yes (Fawaz: present, absent or on leave only) | Yes | Own only |
 | Add people, reset passwords, set hours, office pins | Yes | No | No |
 | Change who's on a task, delete tasks | Yes | Yes | No |
+| Make a task | Yes | Yes | Yes (waits for Hassan's OK) |
+| Approve or turn down tasks the team makes, decide on holds | Hassan | No | No |
+| Put a task on hold | Hassan | Ask Hassan | Ask Hassan (tasks they're on) |
 | Set a project's team | Yes | Yes | No |
 | Make folders in the Project folder, add and move files and links | Yes | Yes | Yes |
 | Rename or remove a Project folder folder | Yes | Yes | Folders they made |
@@ -218,6 +229,7 @@ Settings > Team > Task sign-off sets who checks handed-in work first (Hassan) an
 - A task handed in goes to Hassan first. When he approves it (or marks it done), it goes to Fawaz, and only Fawaz's final OK makes it Done. The celebration for the team comes with the final OK.
 - Either of them can send it back with notes. A task Fawaz sends back goes to the people on it and Hassan hears about it too. When it's handed in again, Hassan checks it first again.
 - Hassan's own tasks go straight to Fawaz. A task Fawaz is on finishes at Hassan's OK.
+- Hassan can also finish handed-in work himself with Approve and finish (or Mark done and finish), without Fawaz's final OK. Fawaz isn't told; the task shows Finished by Hassan.
 - Fawaz can't approve before Hassan has checked, and Hassan can't give the final OK. The database enforces the order (`guard_task`), whatever screen is used.
 - Clear the Final OK in Settings to go back to one reviewer per task.
 
