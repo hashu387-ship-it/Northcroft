@@ -74,6 +74,8 @@ export default function Share() {
           .from("tasks")
           .select("*")
           .neq("status", "done")
+          // Not tasks still waiting for approval: they aren't work yet.
+          .is("approval", null)
           .or(`assignees.cs.{${me.id}},created_by.eq.${me.id},reviewer_id.eq.${me.id}`)
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(300),
