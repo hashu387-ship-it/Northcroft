@@ -29,7 +29,7 @@ import { LeaveToApproveCard } from "./attendance/Leave";
 import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
 import { leaveByDay, useTeamLeave } from "@/lib/leave";
 import { VoiceNote } from "@/components/Voice";
-import { Avatar, CountUp, Empty, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
+import { Avatar, CountUp, Empty, Fab, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useSignoff, waitingOn } from "@/lib/signoff";
@@ -194,9 +194,9 @@ export default function Home() {
         </div>
       </div>
 
-      <button className="fab" onClick={() => setNewTask(true)} aria-label="New task">
+      <Fab label="New task" onClick={() => setNewTask(true)}>
         <Plus />
-      </button>
+      </Fab>
       <TaskForm open={newTask} onClose={() => setNewTask(false)} />
     </div>
   );

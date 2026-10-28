@@ -38,6 +38,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
+import { SwipeRow } from "@/components/Swipe";
 import { Avatar, Empty, Loading, Segmented, useToast } from "@/components/ui";
 import { useInvalidate, usePeople, useTasks } from "@/lib/api";
 import { useMe } from "@/lib/auth";
@@ -215,67 +216,90 @@ export default function Inbox() {
                 const m = meta(n.type);
                 const Icon = m.icon;
                 const actor = people.get(n.actor_id);
+                // On a phone: swipe right to mark read (or unread), left to archive (or bring back).
+                const readNow = !n.read_at;
                 return (
-                  <div
+                  <SwipeRow
                     key={n.id}
-                    className={clsx("notif", !n.read_at && !n.archived_at && "unread")}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => open(n)}
-                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(n))}
+                    leading={
+                      n.archived_at
+                        ? null
+                        : {
+                            label: readNow ? "Read" : "Unread",
+                            icon: readNow ? <MailOpen /> : <Mail />,
+                            color: "#0a84ff",
+                            run: () => update([n.id], { read_at: readNow ? new Date().toISOString() : null }),
+                          }
+                    }
+                    trailing={{
+                      label: n.archived_at ? "Back to inbox" : "Archive",
+                      icon: n.archived_at ? <ArchiveRestore /> : <Archive />,
+                      color: n.archived_at ? "#5b74a8" : "#e67e00",
+                      leave: true,
+                      run: () =>
+                        update([n.id], n.archived_at ? { archived_at: null } : { archived_at: new Date().toISOString(), read_at: n.read_at ?? new Date().toISOString() }),
+                    }}
                   >
-                    <span className="lead">
-                      {actor ? (
-                        <>
-                          <Avatar person={actor} size={38} />
-                          <span className="type" style={{ background: m.color }}>
+                    <div
+                      className={clsx("notif", !n.read_at && !n.archived_at && "unread")}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => open(n)}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(n))}
+                    >
+                      <span className="lead">
+                        {actor ? (
+                          <>
+                            <Avatar person={actor} size={38} />
+                            <span className="type" style={{ background: m.color }}>
+                              <Icon />
+                            </span>
+                          </>
+                        ) : (
+                          <span className="sys" style={{ background: `linear-gradient(145deg, ${m.color}, color-mix(in srgb, ${m.color} 70%, #000))` }}>
                             <Icon />
                           </span>
-                        </>
-                      ) : (
-                        <span className="sys" style={{ background: `linear-gradient(145deg, ${m.color}, color-mix(in srgb, ${m.color} 70%, #000))` }}>
-                          <Icon />
+                        )}
+                      </span>
+                      <span className="content">
+                        <span className="t" style={{ display: "block" }}>
+                          {n.title}
                         </span>
-                      )}
-                    </span>
-                    <span className="content">
-                      <span className="t" style={{ display: "block" }}>
-                        {n.title}
+                        {n.body && <span className="b">{n.body}</span>}
                       </span>
-                      {n.body && <span className="b">{n.body}</span>}
-                    </span>
-                    <span className="side">
-                      <span className="row" style={{ gap: 6 }}>
-                        <span className="when">{timeAgo(n.created_at)}</span>
-                        {!n.read_at && !n.archived_at && <i className="notice-dot" aria-label="Unread" />}
-                      </span>
-                      <span className="acts" onClick={(e) => e.stopPropagation()}>
-                        {!n.archived_at && (
+                      <span className="side">
+                        <span className="row" style={{ gap: 6 }}>
+                          <span className="when">{timeAgo(n.created_at)}</span>
+                          {!n.read_at && !n.archived_at && <i className="notice-dot" aria-label="Unread" />}
+                        </span>
+                        <span className="acts" onClick={(e) => e.stopPropagation()}>
+                          {!n.archived_at && (
+                            <button
+                              className="icon-btn small plain"
+                              title={n.read_at ? "Mark as unread" : "Mark as read"}
+                              aria-label={n.read_at ? "Mark as unread" : "Mark as read"}
+                              onClick={() => update([n.id], { read_at: n.read_at ? null : new Date().toISOString() })}
+                            >
+                              {n.read_at ? <Mail /> : <MailOpen />}
+                            </button>
+                          )}
                           <button
                             className="icon-btn small plain"
-                            title={n.read_at ? "Mark as unread" : "Mark as read"}
-                            aria-label={n.read_at ? "Mark as unread" : "Mark as read"}
-                            onClick={() => update([n.id], { read_at: n.read_at ? null : new Date().toISOString() })}
+                            title={n.archived_at ? "Move back to inbox" : "Archive"}
+                            aria-label={n.archived_at ? "Move back to inbox" : "Archive"}
+                            onClick={() =>
+                              update(
+                                [n.id],
+                                n.archived_at ? { archived_at: null } : { archived_at: new Date().toISOString(), read_at: n.read_at ?? new Date().toISOString() },
+                              )
+                            }
                           >
-                            {n.read_at ? <Mail /> : <MailOpen />}
+                            {n.archived_at ? <ArchiveRestore /> : <Archive />}
                           </button>
-                        )}
-                        <button
-                          className="icon-btn small plain"
-                          title={n.archived_at ? "Move back to inbox" : "Archive"}
-                          aria-label={n.archived_at ? "Move back to inbox" : "Archive"}
-                          onClick={() =>
-                            update(
-                              [n.id],
-                              n.archived_at ? { archived_at: null } : { archived_at: new Date().toISOString(), read_at: n.read_at ?? new Date().toISOString() },
-                            )
-                          }
-                        >
-                          {n.archived_at ? <ArchiveRestore /> : <Archive />}
-                        </button>
+                        </span>
                       </span>
-                    </span>
-                  </div>
+                    </div>
+                  </SwipeRow>
                 );
               })}
             </div>

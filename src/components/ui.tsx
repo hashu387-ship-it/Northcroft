@@ -10,6 +10,7 @@ import {
   type SelectHTMLAttributes,
 } from "react";
 import { createPortal } from "react-dom";
+import { Sheet } from "./Sheet";
 import clsx from "clsx";
 import { Check, ChevronDown, ChevronsUp, ChevronUp, CircleAlert, CircleCheck, Clock, Info, Minus, Sparkles, X } from "lucide-react";
 import { daysText, earlyDays } from "@/lib/celebrate";
@@ -485,47 +486,18 @@ export function ProjectSelect({
 }
 
 /* ---------------------------------------------------------------- sheet (modal) */
-export function Sheet({
-  open,
-  onClose,
-  title,
-  children,
-  footer,
-  wide,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: ReactNode;
-  children: ReactNode;
-  footer?: ReactNode;
-  wide?: boolean;
-}) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open, onClose]);
-  if (!open) return null;
+// The springy, drag-to-close panel lives in Sheet.tsx; screens keep importing it from here.
+export { Sheet };
+
+/**
+ * The round New task button on phones. Drawn straight onto the screen rather than inside the page,
+ * so it stays put while a page slides in, is swiped back from the edge or is pulled down to refresh.
+ */
+export function Fab({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return createPortal(
-    <div className="sheet-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={clsx("sheet glass-strong", wide && "wide")} role="dialog" aria-modal="true">
-        <div className="grabber" />
-        <div className="sheet-head">
-          <h2>{title}</h2>
-          <button className="icon-btn small" onClick={onClose} aria-label="Close" type="button">
-            <X />
-          </button>
-        </div>
-        <div className="sheet-body">{children}</div>
-        {footer && <div className="sheet-foot">{footer}</div>}
-      </div>
-    </div>,
+    <button type="button" className="fab" onClick={onClick} aria-label={label}>
+      {children}
+    </button>,
     document.body,
   );
 }

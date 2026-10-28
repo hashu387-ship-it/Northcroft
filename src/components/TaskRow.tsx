@@ -1,12 +1,14 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { Hourglass, ListChecks, Pause, RotateCcw, Users } from "lucide-react";
-import { usePeople, useProjectMap } from "@/lib/api";
+import { ArrowRight, Hourglass, ListChecks, Pause, Play, RotateCcw, Send, Users } from "lucide-react";
+import { useInvalidate, usePeople, useProjectMap } from "@/lib/api";
+import { errorMessage, supabase } from "@/lib/supabase";
+import { SwipeRow } from "./Swipe";
 import { useMe } from "@/lib/auth";
 import { peopleOn } from "@/lib/people";
 import { reviewLabel, useSignoff } from "@/lib/signoff";
 import type { Task } from "@/lib/types";
-import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing } from "./ui";
+import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing, useToast } from "./ui";
 import { ProgressChip } from "@/pages/updates/TaskProgress";
 
 export function TaskRow({
@@ -82,5 +84,41 @@ export function TaskRow({
           <Avatar person={people.get(team[0])} size={30} />
         ))}
     </Link>
+  );
+}
+
+/**
+ * A task row that can be swiped on a phone: right to start it (or, once started, to open its
+ * "Submit for review" form, so the usual sign-off steps apply), left to open it. Only the people on
+ * a task can start or submit it; anyone can swipe to open.
+ */
+export function SwipeTaskRow(props: Parameters<typeof TaskRow>[0]) {
+  const { task } = props;
+  const me = useMe();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const invalidate = useInvalidate();
+  const mine = peopleOn(task).includes(me.id);
+  const blocked = !!task.approval || task.hold === "on";
+  let leading = null;
+  if (mine && !blocked && task.status === "todo") {
+    leading = {
+      label: "Start",
+      icon: <Play />,
+      color: "#0a84ff",
+      run: async () => {
+        const { error } = await supabase.from("tasks").update({ status: "in_progress" }).eq("id", task.id);
+        if (error) toast(errorMessage(error), "error");
+        else toast("Marked as in progress");
+        await invalidate("tasks", "activity");
+      },
+    };
+  } else if (mine && !blocked && task.status === "in_progress") {
+    leading = { label: "Submit", icon: <Send />, color: "#28a745", run: () => navigate(`/tasks/${task.id}?submit=1`) };
+  }
+  return (
+    <SwipeRow leading={leading} trailing={{ label: "Open", icon: <ArrowRight />, color: "#5b74a8", run: () => navigate(`/tasks/${task.id}`) }}>
+      <TaskRow {...props} />
+    </SwipeRow>
   );
 }

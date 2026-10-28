@@ -6,7 +6,7 @@ import { TASK_STATUS, TASK_STATUS_ORDER } from "@/lib/constants";
 import type { Project, Task, TaskStatus } from "@/lib/types";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskRow } from "@/components/TaskRow";
-import { Avatar, AvatarStack, DueLabel, EarlyBadge, Empty, Loading, PriorityFlag, Segmented } from "@/components/ui";
+import { Avatar, AvatarStack, DueLabel, EarlyBadge, Empty, Fab, Loading, PriorityFlag, Segmented } from "@/components/ui";
 import { RecurringList } from "./Recurring";
 import { peopleOn } from "@/lib/people";
 
@@ -133,9 +133,9 @@ export function ProjectTasks({ project }: { project: Project }) {
         <RecurringList projectId={project.id} />
       </div>
 
-      <button className="fab" onClick={() => setFormOpen(true)} aria-label="New task">
+      <Fab label="New task" onClick={() => setFormOpen(true)}>
         <Plus />
-      </button>
+      </Fab>
       <TaskForm open={formOpen} onClose={() => setFormOpen(false)} defaults={{ projectId: project.id, assigneeId: person || null }} />
     </div>
   );

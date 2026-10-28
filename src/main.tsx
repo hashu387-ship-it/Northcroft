@@ -11,6 +11,7 @@ import "./styles/liquid.css";
 import "./styles/brandfont.css";
 import "./styles/menu.css";
 import "./styles/purple.css";
+import "./styles/feel.css";
 
 // Appearance preferences are per device. Light is the default; Dark, Purple glass or Automatic
 // (follow the phone) only when someone chooses it in Settings > Appearance. Purple glass is the

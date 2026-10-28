@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Bell,
   BellRing,
@@ -81,6 +81,21 @@ export default function TaskDetail() {
   const approver = useApprover();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Swiped "Submit" on a task row: open the submit form here (if it can be submitted).
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (params.get("submit") !== "1" || !task) return;
+    const next = new URLSearchParams(params);
+    next.delete("submit");
+    setParams(next, { replace: true });
+    const mine = peopleOn(task).includes(me.id);
+    const open = task.status === "todo" || task.status === "in_progress";
+    if (mine && open && !task.approval && task.hold !== "on") {
+      setNote("");
+      setSubmitOpen(true);
+    }
+  }, [params, task, me.id, setParams]);
 
   if (isLoading) return <div className="page"><Loading /></div>;
   if (!task) {

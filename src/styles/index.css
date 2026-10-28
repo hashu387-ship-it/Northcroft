@@ -309,9 +309,16 @@ p {
 :root[data-solid="true"] .glass-strong::before { display: none; }
 :root[data-solid="true"] .wallpaper .blob { opacity: 0.25; }
 
+/* Reduce motion: nothing slides, zooms or bounces. Things that appear still fade in quickly, and
+   spinners keep turning (see feel.css). */
 @media (prefers-reduced-motion: reduce) {
   .wallpaper .blob { animation: none !important; }
-  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ------------------------------------------------------------------ app layout */
@@ -940,7 +947,9 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
   align-items: center;
   justify-content: center;
   padding: 24px;
-  animation: fade-in 0.2s var(--ease);
+  /* Faded in and out by the sheet's spring (Sheet.tsx), so it follows a dragging finger. */
+  opacity: 0;
+  will-change: opacity;
 }
 .sheet {
   width: 100%;
@@ -949,8 +958,9 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
   display: flex;
   flex-direction: column;
   border-radius: var(--r-xl);
-  animation: sheet-in 0.32s var(--ease);
   overflow: hidden;
+  /* Moved by springs (Sheet.tsx): grows from what was tapped, drags down on phones. */
+  will-change: transform, opacity;
 }
 .sheet.wide { max-width: 860px; }
 .sheet-head {
@@ -972,17 +982,16 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 }
 .sheet .grabber { display: none; width: 38px; height: 5px; border-radius: 3px; background: var(--fill-2); margin: 8px auto 0; }
 @keyframes fade-in { from { opacity: 0; } }
-@keyframes sheet-in { from { opacity: 0; transform: translateY(18px) scale(0.98); } }
-@keyframes sheet-up { from { transform: translateY(100%); } }
 @media (max-width: 899px) {
   .sheet-backdrop { align-items: flex-end; padding: 0; }
   .sheet, .sheet.wide {
     max-width: none;
     max-height: calc(100dvh - var(--safe-top) - 24px);
-    border-radius: 18px 18px 0 0;
-    animation: sheet-up 0.35s var(--ease);
+    border-radius: 22px 22px 0 0;
   }
-  .sheet .grabber { display: block; }
+  /* The handle and the title bar are where a finger grabs the sheet to drag it down. */
+  .sheet .grabber { display: block; margin: 0 auto; padding: 0; box-sizing: content-box; border: 9px solid transparent; border-width: 8px 40px 4px; background-clip: padding-box; touch-action: none; }
+  .sheet-head { touch-action: none; }
   .sheet-foot .btn { flex: 1; }
 }
 

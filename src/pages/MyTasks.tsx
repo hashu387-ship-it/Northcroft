@@ -9,9 +9,9 @@ import { useApprover, useTaskRequests } from "@/lib/taskApproval";
 import { supabase } from "@/lib/supabase";
 import { PageHead } from "@/components/PageHead";
 import { TaskForm } from "@/components/TaskForm";
-import { TaskRow } from "@/components/TaskRow";
+import { SwipeTaskRow } from "@/components/TaskRow";
 import { TeamTaskList } from "@/components/TeamTasks";
-import { Avatar, Empty, Loading, Segmented } from "@/components/ui";
+import { Avatar, Empty, Fab, Loading, Segmented } from "@/components/ui";
 import { todayISO } from "@/lib/time";
 import type { Task } from "@/lib/types";
 import { DUE_GROUP_LABEL, dueGroup, type DueGroup } from "./project/api";
@@ -29,7 +29,7 @@ function Group({ title, tasks, counts, tone, showAssignee = false }: { title: st
       </div>
       <div className="glass group-card">
         {tasks.map((t) => (
-          <TaskRow key={t.id} task={t} showAssignee={showAssignee} checklist={counts?.[t.id]} />
+          <SwipeTaskRow key={t.id} task={t} showAssignee={showAssignee} checklist={counts?.[t.id]} />
         ))}
       </div>
     </section>
@@ -278,7 +278,7 @@ export default function MyTasks() {
                 </div>
                 <div className="glass group-card">
                   {list.map((t) => (
-                    <TaskRow key={t.id} task={t} showAssignee={false} checklist={counts?.[t.id]} />
+                    <SwipeTaskRow key={t.id} task={t} showAssignee={false} checklist={counts?.[t.id]} />
                   ))}
                 </div>
               </section>
@@ -293,9 +293,9 @@ export default function MyTasks() {
         <Group title="Recently done" tasks={done} counts={counts} showAssignee={givesOnly} />
       )}
 
-      <button className="fab" onClick={() => setFormOpen(true)} aria-label="New task">
+      <Fab label="New task" onClick={() => setFormOpen(true)}>
         <Plus />
-      </button>
+      </Fab>
       <TaskForm open={formOpen} onClose={() => setFormOpen(false)} />
     </div>
   );

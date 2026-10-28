@@ -1,5 +1,5 @@
-import { Suspense, useEffect, useRef, type ReactNode } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import {
   BarChart3,
   CalendarDays,
@@ -13,11 +13,12 @@ import {
   Megaphone,
   MessagesSquare,
   Ellipsis,
+  RefreshCw,
   Search,
   Settings,
   SquareCheckBig,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePeople, useUnreadCount } from "@/lib/api";
 import { useChats } from "@/lib/chats";
 import { useAuth, useMe } from "@/lib/auth";
@@ -38,6 +39,7 @@ import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
 import { openSearch } from "@/lib/search";
 import { OfflineBar, OutboxRunner } from "@/components/Offline";
 import { blockStrayDrops } from "@/components/DropZone";
+import { useEdgeSwipeBack, usePullToRefresh } from "@/lib/gestures";
 
 function useUnackedCount(userId: string) {
   return useQuery({
@@ -136,10 +138,43 @@ export default function AppShell() {
   }, [shellShown]);
 
   const mainRef = useRef<HTMLElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const ptrRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     window.scrollTo({ top: 0 });
     mainRef.current?.scrollTo({ top: 0 });
   }, [location.pathname]);
+
+  // Pages slide in the way you're going: forward from the right, back from the left. Switching
+  // between the tab bar's sections just cross-fades (they sit side by side, not on top). After a
+  // swipe back from the edge the old page has already slid away, so the new one just settles in.
+  // Set before the new page is painted, so it starts with the right movement.
+  const navType = useNavigationType();
+  const prevPath = useRef(location.pathname);
+  useLayoutEffect(() => {
+    const layer = layerRef.current;
+    if (!layer) return;
+    const from = prevPath.current;
+    prevPath.current = location.pathname;
+    if (from === location.pathname) return;
+    if (layer.dataset.swiped) {
+      delete layer.dataset.swiped;
+      layer.dataset.nav = "settle";
+      return;
+    }
+    const tabs = TAB_ROOTS.includes(from) && TAB_ROOTS.includes(location.pathname);
+    layer.dataset.nav = tabs ? "fade" : navType === "POP" ? "back" : "forward";
+  }, [location.key, location.pathname, navType]);
+
+  // Phone gestures: swipe from the left edge to go back, pull down to refresh.
+  const pathRef = useRef(location.pathname);
+  pathRef.current = location.pathname;
+  const canGoBack = useCallback(() => !TAB_ROOTS.includes(pathRef.current) && ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0, []);
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  useEdgeSwipeBack(mainRef, layerRef, canGoBack, goBack, shellShown);
+  const qc = useQueryClient();
+  const refresh = useCallback(() => qc.refetchQueries({ type: "active" }), [qc]);
+  usePullToRefresh(mainRef, layerRef, ptrRef, refresh, shellShown);
 
   if (me.must_change_password) return <ChangePassword forced />;
   // Everyone needs a photo and a mobile number before using the app.
@@ -281,9 +316,14 @@ export default function AppShell() {
       <OutboxRunner userId={me.id} />
 
       <main className="main" ref={mainRef}>
-        <Suspense fallback={<div className="center-screen"><Loading /></div>}>
-          <Outlet />
-        </Suspense>
+        <div className="ptr" ref={ptrRef} aria-hidden>
+          <RefreshCw />
+        </div>
+        <div className="main-inner" ref={layerRef}>
+          <Suspense fallback={<div className="center-screen"><Loading /></div>}>
+            <Outlet />
+          </Suspense>
+        </div>
       </main>
 
       <nav className="tabbar glass-strong" aria-label="Main">

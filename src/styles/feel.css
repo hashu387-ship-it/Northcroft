@@ -1,0 +1,284 @@
+/* How the app feels to use, after Apple's interface guidelines. Loaded last.
+ *
+ *   - Type: Inter picks its text or display cut by size (like SF Pro Text and Display), with
+ *     spacing tuned per size: a little tighter as text gets bigger, a little looser when small.
+ *   - Glass: panels that hold forms are frostier and easier to read; edges under a scrolling
+ *     panel fade away instead of sitting on a hard line.
+ *   - Press feedback: buttons give under the finger at once and spring back on release; list rows
+ *     light up while pressed.
+ *   - Pages slide in the way you're going (forward from the right, back from the left); switching
+ *     tabs cross-fades.
+ *   - Phone gestures: swipe rows (Swipe.tsx), pull to refresh and swipe back from the edge
+ *     (gestures.ts).
+ *   - Settings on the phone or computer: Reduce motion (fades instead of slides), Reduce
+ *     transparency (frostier glass) and Increase contrast (stronger edges and text). The
+ *     "Solid surfaces" switch in Settings > Appearance still turns the glass off completely.
+ */
+
+/* ------------------------------------------------------------------ type */
+/* Spacing from Inter's own size-specific metrics: about -0.006em at 14px, none at 12px. */
+body {
+  font-optical-sizing: auto;
+  letter-spacing: -0.006em;
+}
+:is(.tiny, .stat .hint, .task-row .m, .chat-item .time, .nav-label, .tabbar a, .pill, .badge) { letter-spacing: 0; }
+:is(.small, .chat-item .preview, .page-head .sub) { letter-spacing: -0.003em; }
+:is(.chat-item .name, .notif .content .t, .sheet-body .input, .sheet-body textarea) { letter-spacing: -0.009em; }
+/* The condensed headings: a touch tighter when big, a touch looser when small. */
+:root:root :is(.page-head h1, .home-banner h1, .td-title, .celebrate-headline, .project-hero h1) { letter-spacing: -0.006em; text-wrap: balance; }
+:root:root :is(.card-head h2, .card-head h3, .sheet-head h2) { letter-spacing: 0.004em; }
+/* Long text breaks lines more evenly, without a lone word on the last line. */
+p,
+.notif .content .t,
+.empty { text-wrap: pretty; }
+
+/* ------------------------------------------------------------------ glass */
+/* Pop-up panels hold forms: frostier, so what's behind doesn't fight with the text. */
+.sheet.glass-strong {
+  background-color: color-mix(in srgb, var(--glass-strong) 50%, var(--solid));
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .sheet.glass-strong {
+    -webkit-backdrop-filter: blur(40px) saturate(190%);
+    backdrop-filter: blur(40px) saturate(190%);
+  }
+}
+/* No hard lines under the title or above the buttons: what scrolls under them fades out. */
+.sheet-head,
+.sheet-foot { border-color: transparent; }
+.sheet-body {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+}
+
+/* ------------------------------------------------------------------ press feedback */
+/* No double-tap zoom delay on anything you tap. */
+a,
+button,
+[role="button"],
+input,
+select,
+textarea,
+label,
+summary { touch-action: manipulation; }
+
+/* Buttons give at once under the finger and spring back when let go. */
+.btn {
+  transition: transform 0.4s cubic-bezier(0.25, 1.5, 0.45, 1), background 0.2s var(--ease), box-shadow 0.2s var(--ease), opacity 0.2s;
+}
+.btn:active { transform: scale(0.96); transition-duration: 0.08s, 0.2s, 0.2s, 0.2s; }
+.icon-btn { transition: transform 0.4s cubic-bezier(0.25, 1.5, 0.45, 1), background 0.2s; }
+.icon-btn:active { transform: scale(0.9); transition-duration: 0.08s, 0.2s; }
+.tabbar a svg { transition: transform 0.4s cubic-bezier(0.25, 1.5, 0.45, 1); }
+.tabbar a:active svg { transform: scale(0.84); transition-duration: 0.08s; }
+.btn,
+.icon-btn,
+.tabbar a { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* Rows light up while pressed (and fade back after). `:root:root` wins over the page styles that
+   load later (Inbox, Chats). */
+:root:root :is(.task-row, .chat-item, .notif, a.list-item, button.list-item) { transition: background 0.3s var(--ease); }
+:root:root :is(.task-row, .chat-item, .notif, a.list-item, button.list-item):active { background: var(--fill-2); transition-duration: 0s; }
+/* Tappable cards sink slightly. */
+a.glass.card,
+button.glass.card,
+.card.clickable,
+.stat-link { transition: transform 0.4s cubic-bezier(0.25, 1.5, 0.45, 1), box-shadow 0.2s var(--ease), background 0.2s var(--ease); }
+a.glass.card:active,
+button.glass.card:active,
+.card.clickable:active,
+.stat-link:active { transform: scale(0.985); transition-duration: 0.1s, 0.2s, 0.2s; }
+
+/* ------------------------------------------------------------------ page transitions */
+/* AppShell marks which way you went. Forward and back move the whole page as one piece. */
+.main-inner[data-nav="forward"] > .page { animation: page-forward 0.46s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.main-inner[data-nav="back"] > .page { animation: page-back 0.46s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.main-inner[data-nav="settle"] > .page { animation: page-settle 0.36s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.main-inner[data-nav="fade"] > .page { animation: page-fade 0.26s ease both; }
+.main-inner[data-nav="forward"] > .page > *,
+.main-inner[data-nav="back"] > .page > *,
+.main-inner[data-nav="settle"] > .page > * { animation: none; }
+@keyframes page-forward { from { opacity: 0; transform: translate3d(44px, 0, 0); } to { opacity: 1; transform: none; } }
+@keyframes page-back { from { opacity: 0; transform: translate3d(-44px, 0, 0); } to { opacity: 1; transform: none; } }
+@keyframes page-settle { from { opacity: 0.35; transform: translate3d(-28px, 0, 0); } to { opacity: 1; transform: none; } }
+@keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Swipe back from the edge: the page being dragged away casts a soft shadow on its left edge. */
+.main.edge-swiping .main-inner {
+  box-shadow: -12px 0 32px rgba(1, 20, 60, calc(0.2 * (1 - var(--edge-progress, 0))));
+}
+
+/* ------------------------------------------------------------------ swipe rows */
+.swipe-row {
+  position: relative;
+  border-radius: 10px;
+  /* Up and down still scrolls the list; sideways is the swipe. */
+  touch-action: pan-y;
+}
+.swipe-row[data-side="lead"],
+.swipe-row[data-side="trail"] { overflow: hidden; isolation: isolate; }
+.swipe-front { position: relative; z-index: 1; border-radius: inherit; }
+/* While it's moving the row is opaque, so the colour behind only shows beside it. */
+.swipe-row[data-side="lead"] .swipe-front,
+.swipe-row[data-side="trail"] .swipe-front {
+  background: var(--solid);
+  box-shadow: 0 0 0 0.5px var(--separator), 0 2px 10px rgba(15, 23, 42, 0.08);
+}
+.swipe-row.swiping { -webkit-user-select: none; user-select: none; }
+.swipe-act {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 22px;
+  border-radius: inherit;
+  color: #fff;
+  font-weight: 650;
+  font-size: 13px;
+  letter-spacing: 0;
+  opacity: 0.82;
+  transition: opacity 0.15s ease;
+}
+.swipe-row[data-side="lead"] .swipe-lead { display: flex; justify-content: flex-start; }
+.swipe-row[data-side="trail"] .swipe-trail { display: flex; justify-content: flex-end; }
+.swipe-row.armed .swipe-act { opacity: 1; }
+/* The icon grows in as the row moves aside, and pops once past the point where letting go acts. */
+.swipe-act svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 2.1;
+  flex: none;
+  transform: scale(calc(0.55 + 0.45 * var(--reveal, 0)));
+  transition: scale 0.35s cubic-bezier(0.25, 1.6, 0.45, 1);
+}
+.swipe-row.armed .swipe-act svg { scale: 1.16; }
+.swipe-act span { opacity: calc(var(--reveal, 0) * 2 - 0.9); white-space: nowrap; }
+
+/* Lines between rows, now that each row sits inside its swipe wrapper. */
+.swipe-row + .swipe-row > .swipe-front > .notif::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 12px;
+  height: 1px;
+  background: var(--separator);
+}
+.swipe-row + .swipe-row > .swipe-front > .chat-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 68px;
+  right: 10px;
+  height: 1px;
+  background: var(--separator);
+}
+.swipe-row:has(> .swipe-front > .chat-item.active) + .swipe-row > .swipe-front > .chat-item::before,
+.swipe-row > .swipe-front > .chat-item.active::before { display: none; }
+.swipe-row + .swipe-row > .swipe-front > .task-row {
+  border-top: 1px solid var(--separator);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* ------------------------------------------------------------------ pull to refresh */
+.ptr { display: none; }
+@media (max-width: 899px) {
+  html.shell-scroll .main { position: relative; }
+  .ptr {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    z-index: 6;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--brand);
+    background: color-mix(in srgb, var(--glass-strong) 60%, var(--solid));
+    border: 0.5px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-edge), 0 6px 18px rgba(15, 23, 42, 0.16);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    opacity: 0;
+    transform: translate3d(-50%, -40px, 0);
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+  .ptr svg { width: 18px; height: 18px; stroke-width: 2.3; transition: color 0.15s; }
+  .ptr.armed { color: var(--accent); }
+  .ptr.spinning { color: var(--accent); }
+  .ptr.spinning svg { animation: spin 0.8s linear infinite; }
+}
+
+/* ------------------------------------------------------------------ accessibility settings */
+/* Reduce motion: nothing slides, zooms or bounces (index.css stops the movement). What appears
+   or goes away still fades, quickly, so you can see what changed. */
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .main-inner[data-nav] > .page { animation: page-fade 0.2s ease both !important; }
+  .page > *,
+  .toast { animation-name: page-fade !important; animation-duration: 0.2s !important; animation-delay: 0s !important; }
+  /* Sheets fade in and out (Sheet.tsx does the fading). */
+  .sheet,
+  .sheet-backdrop { transition-duration: 0.18s !important; }
+  /* Loading spinners keep turning, so it's clear something is happening. */
+  .spinner,
+  .wording-spin,
+  .vspin,
+  .ptr.spinning svg { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
+  .swipe-act svg { transform: none; }
+  .main.edge-swiping .main-inner { box-shadow: none; }
+}
+
+/* Reduce transparency: the glass stays, but frostier, with less colour coming through. Turn on
+   "Solid surfaces" in Settings > Appearance to switch the glass off completely. */
+@media (prefers-reduced-transparency: reduce) {
+  :root:not([data-solid="true"]) :is(.glass, .glass-strong):not(.sidebar):not(.topbar):not(.tabbar) {
+    background-color: color-mix(in srgb, var(--glass-strong) 25%, var(--solid));
+  }
+  .sidebar.glass,
+  .topbar.glass,
+  .tabbar.glass-strong { background-color: var(--navy-solid); }
+  .wallpaper .blob { opacity: 0.35; }
+  .sheet-backdrop {
+    background: rgba(10, 14, 30, 0.42);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Increase contrast: stronger lines and edges, darker secondary text. */
+@media (prefers-contrast: more) {
+  :root:not([data-theme="dark"]) {
+    --separator: rgba(15, 23, 42, 0.22);
+    --glass-border: rgba(15, 23, 42, 0.26);
+    --btn-glass-border: rgba(15, 23, 42, 0.3);
+    --text-2: #13295a;
+    --text-3: #233a6b;
+  }
+  :is(.glass, .glass-strong):not(.sidebar):not(.topbar):not(.tabbar) {
+    background-color: color-mix(in srgb, var(--glass-strong) 45%, var(--solid));
+  }
+  .swipe-act { opacity: 1; }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --separator: rgba(255, 255, 255, 0.3);
+    --glass-border: rgba(255, 255, 255, 0.32);
+    --btn-glass-border: rgba(255, 255, 255, 0.34);
+    --text-2: #e3ebff;
+    --text-3: #c9d7f5;
+  }
+}
+@media (prefers-contrast: more) {
+  :root[data-theme="dark"] {
+    --separator: rgba(255, 255, 255, 0.3);
+    --glass-border: rgba(255, 255, 255, 0.32);
+    --btn-glass-border: rgba(255, 255, 255, 0.34);
+    --text-2: #e3ebff;
+    --text-3: #c9d7f5;
+  }
+}

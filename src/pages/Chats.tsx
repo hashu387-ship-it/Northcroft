@@ -8,6 +8,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import clsx from "clsx";
 import {
   Check,
+  CheckCheck,
   FolderKanban,
   Info,
   LockKeyhole,
@@ -28,6 +29,7 @@ import {
   addGroupMembers,
   createGroup,
   leaveGroup,
+  markChatRead,
   removeGroupMember,
   renameGroup,
   setGroupAdmin,
@@ -47,6 +49,7 @@ import { Avatar, AvatarStack, Empty, Field, Loading, Pill, Sheet, useConfirm, us
 import { openPersonCard } from "@/components/People";
 import { LogoMark } from "@/components/Brand";
 import { ChatTile } from "@/components/ChatTile";
+import { SwipeRow } from "@/components/Swipe";
 
 type Selection = { kind: "team" } | { kind: "project"; projectId: string } | { kind: "conversation"; id: string } | null;
 
@@ -171,6 +174,8 @@ export default function Chats() {
 
 function ChatRow({ c, active, meId, onOpen }: { c: ChatItem; active: boolean; meId: string; onOpen: () => void }) {
   const people = usePeople();
+  const invalidate = useInvalidate();
+  const toast = useToast();
   const projects = useProjectMap();
   const author = c.last_author === meId ? "You" : people.get(c.last_author)?.short_name;
   let preview: ReactNode = <span className="faint">No messages yet</span>;
@@ -186,20 +191,35 @@ function ChatRow({ c, active, meId, onOpen }: { c: ChatItem; active: boolean; me
       `${who}${c.last_body}`
     );
   } else if (c.kind === "team") preview = "Everyone on the team";
+  // Swipe right on a phone to mark a chat read without opening it.
+  const markRead =
+    c.unread > 0
+      ? {
+          label: "Read",
+          icon: <CheckCheck />,
+          color: "#0a84ff",
+          run: () =>
+            markChatRead(c.chat)
+              .then(() => invalidate("chats"))
+              .catch((e) => toast(errorMessage(e), "error")),
+        }
+      : null;
   return (
-    <button type="button" className={clsx("chat-item", active && "active", c.unread > 0 && "unread")} onClick={onOpen}>
-      <ChatTile item={c} project={projects.get(c.project_id)} person={people.get(c.other)} />
-      <span className="grow">
-        <span className="top">
-          <span className="name">{c.title}</span>
-          <span className="time">{when(c.last_at)}</span>
+    <SwipeRow leading={markRead}>
+      <button type="button" className={clsx("chat-item", active && "active", c.unread > 0 && "unread")} onClick={onOpen}>
+        <ChatTile item={c} project={projects.get(c.project_id)} person={people.get(c.other)} />
+        <span className="grow">
+          <span className="top">
+            <span className="name">{c.title}</span>
+            <span className="time">{when(c.last_at)}</span>
+          </span>
+          <span className="bottom">
+            <span className={clsx("preview", c.last_event && "event")}>{preview}</span>
+            {c.unread > 0 && <span className="badge">{c.unread > 99 ? "99+" : c.unread}</span>}
+          </span>
         </span>
-        <span className="bottom">
-          <span className={clsx("preview", c.last_event && "event")}>{preview}</span>
-          {c.unread > 0 && <span className="badge">{c.unread > 99 ? "99+" : c.unread}</span>}
-        </span>
-      </span>
-    </button>
+      </button>
+    </SwipeRow>
   );
 }
 
