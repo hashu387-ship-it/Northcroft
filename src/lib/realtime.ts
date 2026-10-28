@@ -6,7 +6,7 @@ const TABLES = [
   "tasks", "task_checklist", "comments", "announcements", "announcement_acks", "attendance",
   "variations", "boq_packages", "events", "projects", "attachments", "profiles",
   "conversations", "conversation_members", "chat_reads", "comment_reactions", "drive_links", "event_actions",
-  "leave_requests", "chat_pins", "polls", "poll_votes", "daily_updates", "daily_update_items", "lunch_breaks", "project_members", "project_folders",
+  "leave_requests", "chat_pins", "polls", "poll_votes", "daily_updates", "daily_update_items", "daily_update_replies", "lunch_breaks", "project_members", "project_folders",
 ];
 // Tables whose changes also move the Chats list (last message, unread counts, who's in a group).
 const CHAT_LIST = new Set(["comments", "conversations", "conversation_members", "chat_reads"]);
@@ -30,7 +30,7 @@ export function useRealtime(userId: string | undefined) {
           // Leave entries on the Calendar are part of who's away.
           if (table === "events") qc.invalidateQueries({ queryKey: ["leave_requests", "away"] });
           // Daily update queries all start with "daily_updates", items included.
-          if (table === "daily_update_items") qc.invalidateQueries({ queryKey: ["daily_updates"] });
+          if (table === "daily_update_items" || table === "daily_update_replies") qc.invalidateQueries({ queryKey: ["daily_updates"] });
         }, 150),
       );
     };

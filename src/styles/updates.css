@@ -163,3 +163,32 @@
 .du-ic { flex-shrink: 0; position: relative; top: 2px; }
 .du-ic.done { color: var(--green); }
 .du-ic.review { color: var(--purple); }
+
+/* A manager or senior's tick (done) and Change on a task in someone's update. */
+.du-tick {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 2px solid var(--separator-strong, var(--text-3));
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #fff;
+  transition: border-color 0.15s, background 0.15s;
+}
+.du-tick:hover:not(:disabled) { border-color: var(--green); }
+.du-tick.on { background: var(--green); border-color: var(--green); cursor: default; }
+.du-tick svg { width: 15px; height: 15px; stroke-width: 3; }
+.du-item-foot { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.du-edit { padding: 10px 12px; border-radius: var(--r-sm); background: var(--fill); }
+
+/* Replies under what's blocking someone. */
+.du-replies { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--orange) 25%, transparent); }
+.du-reply { display: flex; gap: 8px; align-items: flex-start; }
+.du-reply-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.du-reply-form { display: flex; gap: 8px; align-items: flex-end; }
+.du-reply-form .textarea { flex: 1; min-height: 38px; resize: vertical; background: var(--solid); }
+.du-reply-form .btn { flex: none; }

@@ -12,6 +12,7 @@ import { addDays, dateOf, fmtDate, fmtTime12, monthStart, todayISO, weekStart } 
 import type { Profile, Task } from "@/lib/types";
 import { Avatar, DueLabel, Empty, Loading, Pill, ProjectTag, Segmented } from "@/components/ui";
 import { openPersonCard } from "@/components/People";
+import { BlockerThread } from "./BlockerThread";
 
 type Period = "week" | "last" | "month";
 
@@ -166,11 +167,14 @@ function PersonCard({ view, periodLabel }: { view: PersonView; periodLabel: stri
           </span>
         </button>
         <span className="spacer" />
-        {update ? (
-          <Pill tone="green">Update sent {fmtTime12(update.submitted_at)}</Pill>
-        ) : (
-          <Pill tone="gray">No update yet today</Pill>
-        )}
+        <span className="row wrap" style={{ gap: 6, justifyContent: "flex-end" }}>
+          {update?.blockers && <Pill tone="orange">Blocked</Pill>}
+          {update ? (
+            <Pill tone="green">Update sent {fmtTime12(update.submitted_at)}</Pill>
+          ) : (
+            <Pill tone="gray">No update yet today</Pill>
+          )}
+        </span>
       </div>
 
       <div className="du-counts">
@@ -188,6 +192,7 @@ function PersonCard({ view, periodLabel }: { view: PersonView; periodLabel: stri
         <div className="du-block du-blocked">
           <span className="field-label">Blocking</span>
           <p className="du-note">{update.blockers}</p>
+          <BlockerThread update={update} />
         </div>
       )}
 

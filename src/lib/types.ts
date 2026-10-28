@@ -617,8 +617,20 @@ export interface DailyUpdateItem {
   note: string | null;
   /** Reached 100% in this update, so it went in for review. */
   handed_in: boolean;
+  /** A manager or senior who changed this line after it was sent (0040). */
+  edited_by?: string | null;
+  edited_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** A reply under what's blocking someone in their daily update (0040). */
+export interface DailyUpdateReply {
+  id: string;
+  update_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
 }
 
 /* ---------------------------------------------------------------- lunch breaks and the office check (0029) */

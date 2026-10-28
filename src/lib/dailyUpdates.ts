@@ -4,12 +4,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { unwrap } from "./api";
 import { supabase } from "./supabase";
-import type { DailyUpdate, DailyUpdateItem, Profile } from "./types";
+import type { DailyUpdate, DailyUpdateItem, DailyUpdateReply, Profile } from "./types";
 
-export type UpdateWithItems = DailyUpdate & { items: DailyUpdateItem[] };
+export type UpdateWithItems = DailyUpdate & { items: DailyUpdateItem[]; replies?: DailyUpdateReply[] };
 
 const KEY = "daily_updates";
-const SELECT = "*, items:daily_update_items(*)";
+// The replies under a blocker come with each update (the database only shows them to whoever
+// can see the update).
+const SELECT = "*, items:daily_update_items(*), replies:daily_update_replies(*)";
 
 /** Whether this person sends a daily update (the team; not managers, not people who don't check in). */
 export function sendsDailyUpdate(p: Pick<Profile, "daily_update" | "attendance_exempt" | "active"> | null | undefined): boolean {
@@ -17,7 +19,11 @@ export function sendsDailyUpdate(p: Pick<Profile, "daily_update" | "attendance_e
 }
 
 function sortItems(u: UpdateWithItems): UpdateWithItems {
-  return { ...u, items: [...(u.items ?? [])].sort((a, b) => Number(b.handed_in) - Number(a.handed_in) || a.created_at.localeCompare(b.created_at)) };
+  return {
+    ...u,
+    items: [...(u.items ?? [])].sort((a, b) => Number(b.handed_in) - Number(a.handed_in) || a.created_at.localeCompare(b.created_at)),
+    replies: [...(u.replies ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+  };
 }
 
 /** My update for one day, or null if I haven't sent it. */
@@ -92,6 +98,26 @@ export async function submitDailyUpdate(lines: UpdateLine[], other: string, bloc
   });
   if (error) throw error;
   return data as { update_id: string; tasks: number; handed_in: number };
+}
+
+/**
+ * A manager or senior changes one task in someone's update: the %, done (100%) and the note. The
+ * task's own % follows, and 100% hands an open task in for review. The person is told.
+ */
+export async function editUpdateItem(itemId: string, progress: number, note: string) {
+  const { data, error } = await supabase.rpc("edit_daily_update_item", {
+    p_item: itemId,
+    p_progress: Math.round(progress),
+    p_note: note.trim() || null,
+  });
+  if (error) throw error;
+  return data as DailyUpdateItem;
+}
+
+/** A reply under what's blocking someone. The person (or whoever replied before) is told. */
+export async function replyToBlocker(updateId: string, authorId: string, body: string) {
+  const { error } = await supabase.from("daily_update_replies").insert({ update_id: updateId, author_id: authorId, body: body.trim() });
+  if (error) throw error;
 }
 
 /** The colour for a percentage: grey at 0, blue under way, green at 100. */
