@@ -112,6 +112,11 @@
 .du-block { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--fill); }
 .du-blocked { background: var(--orange-soft); }
 .du-blocked .field-label { display: inline-flex; align-items: center; gap: 5px; color: var(--orange); }
+/* Cleared by a manager's or senior's reply: still there to read back, no longer blocking. */
+.du-sorted { background: var(--green-soft); }
+.du-sorted .field-label { display: inline-flex; align-items: center; gap: 5px; color: var(--green); }
+.du-sorted-by { color: var(--green); font-weight: 600; }
+.du-sorted .du-replies { border-top-color: color-mix(in srgb, var(--green) 25%, transparent); }
 .du-card > .btn { align-self: flex-start; }
 
 /* ---- the team's day */

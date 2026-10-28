@@ -6,13 +6,13 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, CircleCheck, Hourglass } from "lucide-react";
 import { usePeople, useProjectMap, useTasks } from "@/lib/api";
-import { progressTone, sendsDailyUpdate, useTeamDailyUpdates, type UpdateWithItems } from "@/lib/dailyUpdates";
+import { isBlocked, progressTone, sendsDailyUpdate, useTeamDailyUpdates, type UpdateWithItems } from "@/lib/dailyUpdates";
 import { peopleOn } from "@/lib/people";
 import { addDays, dateOf, fmtDate, fmtTime12, monthStart, todayISO, weekStart } from "@/lib/time";
 import type { Profile, Task } from "@/lib/types";
 import { Avatar, DueLabel, Empty, Loading, Pill, ProjectTag, Segmented } from "@/components/ui";
 import { openPersonCard } from "@/components/People";
-import { BlockerThread } from "./BlockerThread";
+import { BlockerBlock } from "./BlockerThread";
 
 type Period = "week" | "last" | "month";
 
@@ -168,7 +168,7 @@ function PersonCard({ view, periodLabel }: { view: PersonView; periodLabel: stri
         </button>
         <span className="spacer" />
         <span className="row wrap" style={{ gap: 6, justifyContent: "flex-end" }}>
-          {update?.blockers && <Pill tone="orange">Blocked</Pill>}
+          {isBlocked(update) && <Pill tone="orange">Blocked</Pill>}
           {update ? (
             <Pill tone="green">Update sent {fmtTime12(update.submitted_at)}</Pill>
           ) : (
@@ -188,13 +188,7 @@ function PersonCard({ view, periodLabel }: { view: PersonView; periodLabel: stri
           <b>{finished.length}</b> finished {periodLabel}
         </span>
       </div>
-      {update?.blockers && (
-        <div className="du-block du-blocked">
-          <span className="field-label">Blocking</span>
-          <p className="du-note">{update.blockers}</p>
-          <BlockerThread update={update} />
-        </div>
-      )}
+      {update && <BlockerBlock update={update} />}
 
       <div className="du-sect">
         <span className="field-label">Working on</span>

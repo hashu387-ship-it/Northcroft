@@ -6,7 +6,7 @@ import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ClipboardList, Pencil } from "lucide-react";
 import { usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
-import { sendsDailyUpdate, useMyDailyUpdate, useMyDailyUpdates, useTeamDailyUpdates } from "@/lib/dailyUpdates";
+import { isBlocked, sendsDailyUpdate, useMyDailyUpdate, useMyDailyUpdates, useTeamDailyUpdates } from "@/lib/dailyUpdates";
 import { leaveByDay, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 import { nameList } from "@/lib/people";
 import { addDays, fmtLongDate, isWorkday, todayISO } from "@/lib/time";
@@ -158,7 +158,7 @@ function TeamDay() {
     sent.sort((a, b) => a.submitted_at.localeCompare(b.submitted_at));
     const onLeave = due.filter((p) => !byUser.has(p.id) && leave.has(`${p.id}|${date}`));
     const missing = due.filter((p) => !byUser.has(p.id) && !leave.has(`${p.id}|${date}`));
-    const blocked = sent.filter((u) => u.blockers).length;
+    const blocked = sent.filter(isBlocked).length;
     const handed = sent.reduce((n, u) => n + u.items.filter((i) => i.handed_in).length, 0);
     return { due, sent, onLeave, missing, leave, blocked, handed, expected: due.length - onLeave.length };
   }, [people.active, updates.data, away.data, date, settings?.work_days]);

@@ -121,6 +121,9 @@ export async function replyToBlocker(updateId: string, authorId: string, body: s
 }
 
 /** The colour for a percentage: grey at 0, blue under way, green at 100. */
+/** Something is blocking them and nobody has cleared it yet (a manager's or senior's reply clears it). */
+export const isBlocked = (u: Pick<DailyUpdate, "blockers" | "blocker_cleared_at"> | null | undefined) => !!u?.blockers && !u.blocker_cleared_at;
+
 export function progressTone(pct: number): string {
   return pct >= 100 ? "var(--green)" : pct > 0 ? "var(--accent)" : "var(--text-3)";
 }

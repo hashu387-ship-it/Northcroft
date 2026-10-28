@@ -599,6 +599,9 @@ export interface DailyUpdate {
   work_date: string;
   other_work: string | null;
   blockers: string | null;
+  /** A manager or senior replied to the blocker, which cleared it (0042). A new blocker clears these. */
+  blocker_cleared_by?: string | null;
+  blocker_cleared_at?: string | null;
   submitted_at: string;
   created_at: string;
   updated_at: string;

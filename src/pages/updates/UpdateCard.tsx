@@ -1,20 +1,20 @@
 // One daily update: each task from where it was to where it is now, what was done, other work and
 // anything blocking. Shown in someone's history and on the team's day. Managers and seniors can
 // tick a task done or change its % and note in someone else's update, and everyone who can see a
-// blocker can reply under it.
+// blocker can reply under it (a manager's or senior's reply clears it).
 import "@/styles/updates.css";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Check, CircleAlert, CircleCheck, Pencil } from "lucide-react";
+import { Check, CircleCheck, Pencil } from "lucide-react";
 import { useInvalidate, usePeople, useProjectMap } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
-import { editUpdateItem, progressTone, type UpdateWithItems } from "@/lib/dailyUpdates";
+import { editUpdateItem, isBlocked, progressTone, type UpdateWithItems } from "@/lib/dailyUpdates";
 import { errorMessage } from "@/lib/supabase";
 import { fmtLongDate, fmtTime12, timeAgo } from "@/lib/time";
 import type { DailyUpdateItem } from "@/lib/types";
 import { Avatar, Pill, ProjectTag, useConfirm, useToast } from "@/components/ui";
 import { openPersonCard } from "@/components/People";
-import { BlockerThread } from "./BlockerThread";
+import { BlockerBlock } from "./BlockerThread";
 
 const QUICK = [0, 25, 50, 75, 100];
 const rowsFor = (text: string) => Math.min(8, Math.max(2, Math.ceil(text.length / 70) + text.split("\n").length - 1));
@@ -52,7 +52,7 @@ export function UpdateCard({ update, who, actions }: { update: UpdateWithItems; 
         <span className="row wrap" style={{ gap: 6, justifyContent: "flex-end" }}>
           {update.items.length > 0 && <Pill tone="blue">{update.items.length === 1 ? "1 task" : `${update.items.length} tasks`}</Pill>}
           {handed > 0 && <Pill tone="green">{handed} handed in</Pill>}
-          {update.blockers && <Pill tone="orange">Blocked</Pill>}
+          {isBlocked(update) && <Pill tone="orange">Blocked</Pill>}
         </span>
       </div>
 
@@ -70,15 +70,7 @@ export function UpdateCard({ update, who, actions }: { update: UpdateWithItems; 
           <p className="du-note">{update.other_work}</p>
         </div>
       )}
-      {update.blockers && (
-        <div className="du-block du-blocked">
-          <span className="field-label">
-            <CircleAlert size={14} /> Blocking
-          </span>
-          <p className="du-note">{update.blockers}</p>
-          <BlockerThread update={update} />
-        </div>
-      )}
+      <BlockerBlock update={update} />
       {actions}
     </div>
   );
