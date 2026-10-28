@@ -28,8 +28,21 @@ const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()
 let mgr: AcApDocManager | null = null;
 let host: HTMLDivElement | null = null;
 
+// Closing a drawing while some of its text is still being laid out cancels that work, and the
+// text worker reports each cancelled piece as "Renderer terminated". That's expected, not a fault.
+let quietInstalled = false;
+function quietShutdownNoise() {
+  if (quietInstalled) return;
+  quietInstalled = true;
+  window.addEventListener("unhandledrejection", (e) => {
+    const reason = e.reason as { message?: unknown } | null | undefined;
+    if (reason && reason.message === "Renderer terminated") e.preventDefault();
+  });
+}
+
 function start(): AcApDocManager {
   if (mgr) return mgr;
+  quietShutdownNoise();
   host = document.createElement("div");
   host.className = "dwg-host parked";
   host.setAttribute("aria-hidden", "true");
