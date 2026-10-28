@@ -31,7 +31,7 @@ import { REACTIONS, pinMessage, reactionInfo, setReaction, typingLine, useChatRe
 import { usePolls } from "@/lib/polls";
 import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
 import { needsPreview, previewKind } from "@/lib/previews";
-import { AskPreviewWhenSeen, docTag, usePreviewUpdates } from "./FilePreview";
+import { AskPreviewWhenSeen, docTag, kindClass, PlayBadge, usePreviewUpdates } from "./FilePreview";
 import { addDriveLinks, useMessageDriveLinks, type LinkInfo } from "@/lib/drivelinks";
 import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, isNetworkError, supabase } from "@/lib/supabase";
@@ -477,10 +477,12 @@ export function CommentThread({
                           <img src={files.data.urls[a.path]} alt={a.name} style={{ borderRadius: 12, maxHeight: 220, objectFit: "cover" }} />
                         </button>
                       ) : previewKind(a) && files.data?.urls[a.path] ? (
-                        // A PDF's first page or a drawing, with its name under it.
-                        <button key={a.id} className="msg-doc" onClick={() => openFile(a)} type="button" aria-label={`Open ${a.name}`}>
+                        // A PDF's first page, a drawing, the top of a spreadsheet, a Word or PowerPoint
+                        // file's first page or a video's frame, with its name under it.
+                        <button key={a.id} className={`msg-doc ${kindClass(previewKind(a))}`} onClick={() => openFile(a)} type="button" aria-label={`Open ${a.name}`}>
                           <img src={files.data.urls[a.path]} alt="" loading="lazy" decoding="async" />
-                          <span className={`doc-tag ${previewKind(a)}`}>{docTag(a)}</span>
+                          {previewKind(a) === "video" && <PlayBadge />}
+                          <span className={`doc-tag ${kindClass(previewKind(a))}`}>{docTag(a, previewKind(a))}</span>
                           <span className="msg-doc-name">{a.name}</span>
                         </button>
                       ) : (

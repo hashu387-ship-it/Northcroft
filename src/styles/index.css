@@ -1388,8 +1388,38 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
   font-weight: 700;
   letter-spacing: 0.04em;
 }
-.doc-tag.pdf { background: rgba(217, 47, 57, 0.92); }
-.doc-tag.drawing { background: rgba(181, 101, 29, 0.92); }
+.doc-tag.k-pdf { background: rgba(217, 47, 57, 0.92); }
+.doc-tag.k-drawing { background: rgba(181, 101, 29, 0.92); }
+.doc-tag.k-sheet { background: rgba(29, 111, 66, 0.92); }
+.doc-tag.k-word { background: rgba(43, 87, 154, 0.92); }
+.doc-tag.k-slides { background: rgba(196, 62, 28, 0.92); }
+.doc-tag.k-video { background: rgba(17, 17, 17, 0.72); }
+/* A spreadsheet shows from its top-left corner; a video's frame sits on black with a play sign. */
+.photo-view.doc.k-sheet img,
+.msg-doc.k-sheet img { object-position: left top; }
+.photo-view.doc.k-video,
+.photo-view.doc.k-video img,
+.msg-doc.k-video,
+.msg-doc.k-video img { background: #000; }
+.doc-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+.doc-play svg { width: 24px; height: 24px; margin-left: 3px; fill: currentColor; }
+.msg-doc .doc-play { top: calc(50% - 14px); }
 .doc-making {
   display: flex;
   flex-direction: column;

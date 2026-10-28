@@ -22,6 +22,9 @@
 //   link_file       one file from a linked folder, for the app's file screen
 //   link_open       a 1-hour link that opens or downloads a file from a linked folder
 //   web_info        the name of any other web page (OneDrive, Dropbox, a website) for its link card
+//   thumbnail       Drive's own picture of a file (a Word or PowerPoint file's first page, a video's
+//                   frame) for the big previews in file lists, as bytes; or {state: "none"} while
+//                   Drive hasn't made one, or {state: "gone"} when the file is no longer in Drive
 // GET /drive/callback   Google sends the manager back here after they allow access
 // GET ?f=<id>&e=<expiry>&s=<signature>[&d=1]   stream the file (d=1 downloads instead of opening)
 // GET ?g=<drive file>&k=<resource key>&e=&s=[&d=1]   stream a file from a linked (shared) folder
@@ -497,6 +500,39 @@ async function stream(req: Request, url: URL): Promise<Response> {
   return new Response(g.body, { status: g.status, headers });
 }
 
+/* ---------------------------------------------------------------- preview pictures */
+// Google's own picture of a Word or PowerPoint file's first page, or a video's frame, for the
+// big previews in file lists. Drive makes it a little while after the file arrives.
+const THUMB_HOSTS = /(^|\.)(googleusercontent\.com|google\.com|googleapis\.com)$/i;
+
+async function thumbnail(body: { attachment_id?: string }, req: Request): Promise<Response> {
+  // Only someone who can see the file gets its picture.
+  const { data: a } = await asUser(req).from("attachments").select("id, drive_file_id, created_at").eq("id", body.attachment_id ?? "").maybeSingle();
+  if (!a?.drive_file_id) throw new UserError("File not found.", 404);
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(a.created_at).getTime()) / 60000));
+  const meta = await drive(`/files/${a.drive_file_id}?fields=hasThumbnail,thumbnailLink`);
+  if (meta.status === 404) return json({ state: "gone" });
+  if (!meta.ok) throw new UserError("Couldn't reach Google Drive. Try again in a moment.", 502);
+  const m = (await meta.json()) as { hasThumbnail?: boolean; thumbnailLink?: string };
+  let link: URL | null = null;
+  try {
+    link = m.thumbnailLink ? new URL(m.thumbnailLink) : null;
+  } catch {
+    link = null;
+  }
+  // The Drive sign-in only ever goes to Google's own picture servers.
+  if (!link || link.protocol !== "https:" || !THUMB_HOSTS.test(link.hostname)) return json({ state: "none", age_minutes: minutes });
+  // Drive's link asks for a small picture (=s220); ask for one big enough for a phone's width.
+  link.pathname = link.pathname.replace(/=s\d+(-[a-z0-9-]+)?$/i, "=s1600");
+  const pic = await drive(link.toString());
+  const type = pic.headers.get("content-type") ?? "";
+  if (!pic.ok || !/^image\/(png|jpeg|webp|gif)/i.test(type)) {
+    await pic.body?.cancel();
+    return json({ state: "none", age_minutes: minutes });
+  }
+  return new Response(pic.body, { headers: { ...CORS, "Content-Type": "application/octet-stream", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
+}
+
 /* ---------------------------------------------------------------- delete */
 async function remove(body: { attachment_id?: string }, req: Request) {
   // Delete as the signed-in person so the normal rule applies (their own files, or managers and seniors).
@@ -833,6 +869,8 @@ Deno.serve(async (req) => {
         return json(await link(body, req));
       case "links":
         return json(await links(body, req));
+      case "thumbnail":
+        return await thumbnail(body, req);
       case "delete":
         return json(await remove(body, req));
       case "save_api_key":

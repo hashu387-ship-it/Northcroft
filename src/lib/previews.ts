@@ -1,28 +1,49 @@
-// Big preview pictures for PDFs and drawings (DWG, DXF) in file lists and chats, like photos have.
+// Big preview pictures for files in file lists and chats, like photos have: PDFs (the first page),
+// drawings (DWG, DXF, as a black-on-white sheet), spreadsheets (the top of the first sheet), Word
+// and PowerPoint files (Google Drive's own picture of the first page or slide) and videos (a frame
+// a second in, or Drive's picture).
 //
-// A preview is a picture of a PDF's first page, or of the drawing as a black-on-white sheet. It's
-// made once, on the device of whoever uploads the file (from the file they just picked), or for
-// files already in the app, on the device of the first person who sees it in a list. It's kept in
-// the private "previews" bucket as <file id>.jpg; the file's `preview` says 'ready', or 'failed'
-// when the file couldn't be drawn (then nobody tries again and the list shows the plain line).
-// The PDF and drawing tools that make it load only when one is being made.
+// A preview is made once, on the device of whoever uploads the file (from the file they just
+// picked), or for files already in the app, on the device of the first person who sees it in a
+// list. It's kept in the private "previews" bucket as <file id>.jpg; the file's `preview` says
+// 'ready', or 'failed' when the file couldn't be pictured (then nobody tries again and the list
+// shows the plain line). The tools that make previews load only when one is being made.
 import { supabase } from "./supabase";
 import type { Attachment } from "./types";
-import { fetchAttachmentData, fileKind } from "./files";
+import { driveCall } from "./drive";
+import { fetchAttachmentData, fileKind, fileUrl, isOnDrive } from "./files";
 
 const BUCKET = "previews";
-// Bigger files aren't downloaded just for a preview (one being uploaded always gets one).
-const MAX_FETCH = { pdf: 60 * 1024 * 1024, drawing: 40 * 1024 * 1024 } as const;
+export type PreviewKind = "pdf" | "drawing" | "sheet" | "word" | "slides" | "video";
+// Bigger files aren't downloaded just for a preview (one being uploaded always gets one). Word,
+// PowerPoint and videos are never downloaded whole: Drive sends its picture, a video only the start.
+const MAX_FETCH: Partial<Record<PreviewKind, number>> = { pdf: 60 * 1024 * 1024, drawing: 40 * 1024 * 1024, sheet: 20 * 1024 * 1024 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const WORD = /\.(docx?|docm|dotx|odt|rtf)$/i;
+const SLIDES = /\.(pptx?|pptm|ppsx?|potx|odp)$/i;
+const VIDEO = /\.(mp4|m4v|mov|webm|3gp|avi|mkv|mpe?g|wmv)$/i;
+// Drive makes its picture of a new file within a few minutes. Still none after this long, it won't.
+const STALE_MINUTES = 360;
+// While Drive is still making its picture, ask again after these waits (then on the next visit).
+const RETRY_MS = [20_000, 60_000, 180_000, 600_000];
 
 const pictureName = (id: string) => `${id}.jpg`;
 
-/** "pdf" or "drawing" for a file in the app that can have a preview; null otherwise. */
-export function previewKind(a: Pick<Attachment, "id" | "name" | "mime">): "pdf" | "drawing" | null {
+export const isVideo = (a: Pick<Attachment, "name" | "mime">) => VIDEO.test(a.name) || /^video\//i.test(a.mime ?? "");
+
+/** What kind of preview a file in the app can have; null when it can't have one. */
+export function previewKind(a: Pick<Attachment, "id" | "name" | "mime"> & { drive_file_id?: string | null }): PreviewKind | null {
   // Files listed from a linked Drive folder ("gd." ids) aren't in the app, so they have no record.
   if (!UUID.test(a.id)) return null;
   const k = fileKind(a);
-  return k === "pdf" || k === "drawing" ? k : null;
+  if (k === "pdf" || k === "drawing" || k === "sheet") return k;
+  if (k === "image") return null;
+  if (isVideo(a)) return "video";
+  // Word and PowerPoint get Drive's picture, so only files kept in Drive have one.
+  if (!a.drive_file_id) return null;
+  if (WORD.test(a.name)) return "word";
+  if (SLIDES.test(a.name)) return "slides";
+  return null;
 }
 
 /** Still needs its preview made (none yet, and it hasn't failed). */
@@ -57,11 +78,12 @@ let chain: Promise<void> = Promise.resolve();
 // Waiting their turn or being made on this device right now (the list shows "Making a preview").
 const pending = new Set<string>();
 const busy = new Set<string>();
+const tries = new Map<string, number>();
 const listeners = new Set<() => void>();
 
 export const previewPending = (id: string) => pending.has(id);
 const savedListeners = new Set<() => void>();
-/** Tell `fn` when this device has saved a preview (or found a file can't be drawn). */
+/** Tell `fn` when this device has saved a preview (or found a file can't be pictured). */
 export function onPreviewSaved(fn: () => void): () => void {
   savedListeners.add(fn);
   return () => savedListeners.delete(fn);
@@ -83,7 +105,8 @@ export function requestPreview(a: Attachment, local?: Blob) {
   if (!kind || a.preview || asked.has(a.id)) return;
   if (!local) {
     const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    if (conn?.saveData || (a.size != null && a.size > MAX_FETCH[kind]) || !navigator.onLine) return;
+    const max = MAX_FETCH[kind];
+    if (conn?.saveData || (max != null && a.size != null && a.size > max) || !navigator.onLine) return;
   }
   asked.add(a.id);
   pending.add(a.id);
@@ -102,7 +125,7 @@ export async function savePreview(a: Pick<Attachment, "id">, picture: Blob) {
   saved();
 }
 
-/** The file couldn't be drawn (damaged, a password, a drawing the reader can't handle). */
+/** The file couldn't be pictured (damaged, a password, a drawing the reader can't handle). */
 export async function markPreviewFailed(a: Pick<Attachment, "id">) {
   await supabase.rpc("set_attachment_preview", { p_id: a.id, p_state: "failed" });
   saved();
@@ -119,16 +142,17 @@ export function claimPreview(a: Attachment): boolean {
   return true;
 }
 
-async function make(a: Attachment, kind: "pdf" | "drawing", local?: Blob) {
+type Outcome = Blob | "failed" | "later";
+
+async function make(a: Attachment, kind: PreviewKind, local?: Blob) {
   busy.add(a.id);
   changed();
   try {
-    const data = local ? await local.arrayBuffer() : await fetchAttachmentData(a);
-    const { makePreview } = await import("@/features/previews/make");
-    const picture = await makePreview(kind, data, a.name);
-    if (picture) await savePreview(a, picture);
-    else await markPreviewFailed(a);
+    const out = await picture(a, kind, local);
     // The file's record changes, so every open list (here and on other phones) shows the picture.
+    if (out instanceof Blob) await savePreview(a, out);
+    else if (out === "failed") await markPreviewFailed(a);
+    else later(a);
   } catch (e) {
     // No signal or a hiccup: it's tried again a minute later, when the list is looked at again.
     setTimeout(() => asked.delete(a.id), 60_000);
@@ -138,4 +162,51 @@ async function make(a: Attachment, kind: "pdf" | "drawing", local?: Blob) {
     pending.delete(a.id);
     changed();
   }
+}
+
+async function picture(a: Attachment, kind: PreviewKind, local?: Blob): Promise<Outcome> {
+  const maker = await import("@/features/previews/make");
+  if (kind === "pdf" || kind === "drawing" || kind === "sheet") {
+    const data = local ? await local.arrayBuffer() : await fetchAttachmentData(a);
+    return (await maker.makePreview(kind, data, a.name)) ?? "failed";
+  }
+  // A video just picked on this phone: a frame from it straight away.
+  if (kind === "video" && local) {
+    const frame = await maker.videoFrame(local);
+    if (frame) return frame;
+    return isOnDrive(a) ? "later" : "failed";
+  }
+  if (isOnDrive(a)) {
+    const thumb = await driveThumbnail(a);
+    if (thumb === "gone") return "failed";
+    if (thumb instanceof Blob) return (await maker.asJpeg(thumb)) ?? "failed";
+    // Drive hasn't made its picture (yet). A video can still give a frame of its own.
+    if (kind === "video") {
+      const frame = await maker.videoFrame(await fileUrl(a));
+      if (frame) return frame;
+    }
+    return thumb.minutes > STALE_MINUTES ? "failed" : "later";
+  }
+  if (kind === "video") return (await maker.videoFrame(await fileUrl(a))) ?? "failed";
+  return "failed";
+}
+
+/** Google Drive's own picture of a file in the team's Drive (first page, slide or video frame). */
+async function driveThumbnail(a: Attachment): Promise<Blob | "gone" | { minutes: number }> {
+  const out = await driveCall<unknown>("thumbnail", { attachment_id: a.id });
+  if (out instanceof Blob) return out;
+  const j = (out ?? {}) as { state?: string; age_minutes?: number };
+  if (j.state === "gone") return "gone";
+  return { minutes: Number(j.age_minutes ?? 0) };
+}
+
+/** Drive is still making its picture: ask again in a while (a few times, then on the next visit). */
+function later(a: Attachment) {
+  const n = tries.get(a.id) ?? 0;
+  if (n >= RETRY_MS.length) return;
+  tries.set(a.id, n + 1);
+  setTimeout(() => {
+    asked.delete(a.id);
+    requestPreview(a);
+  }, RETRY_MS[n]);
 }

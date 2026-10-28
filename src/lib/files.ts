@@ -300,7 +300,7 @@ async function readWithProgress(res: Response, onProgress?: (fraction: number) =
 }
 
 /** A private link to the file: the team's Drive, a linked shared Drive folder, or the app's storage. */
-async function fileUrl(a: Attachment, download = false): Promise<string> {
+export async function fileUrl(a: Attachment, download = false): Promise<string> {
   if (isDriveLinkFile(a)) {
     const p = driveLinkFileParts(a);
     return driveItemUrl(p.linkId, p.fileId, p.rk, download);

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DraftingCompass, FileSpreadsheet, FileText, FolderInput, HardDrive, Image as ImageIcon, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
+import { DraftingCompass, FileSpreadsheet, FileText, Film, FolderInput, HardDrive, Image as ImageIcon, Paperclip, Presentation, Repeat, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { deleteAttachment, isDrawing, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
-import { needsPreview, previewKind, previewPending } from "@/lib/previews";
+import { isVideo, needsPreview, previewKind, previewPending } from "@/lib/previews";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fileSize } from "@/lib/format";
 import { timeAgo } from "@/lib/time";
@@ -12,11 +12,13 @@ import type { Attachment } from "@/lib/types";
 import { Empty, Loading, useConfirm, useToast } from "./ui";
 import { useOpenFile } from "./useOpenFile";
 import { DropZone } from "./DropZone";
-import { AskPreviewWhenSeen, docTag, usePreviewUpdates } from "./FilePreview";
+import { AskPreviewWhenSeen, DocIcon, docTag, kindClass, PlayBadge, usePreviewUpdates } from "./FilePreview";
 
 function FileIcon({ a }: { a: Attachment }) {
-  if (/\.(xlsx?|csv)$/i.test(a.name)) return <FileSpreadsheet />;
+  if (/\.(xlsx?|xlsm|csv)$/i.test(a.name)) return <FileSpreadsheet />;
   if (isDrawing(a)) return <DraftingCompass />;
+  if (/\.(pptx?|pptm|ppsx?|odp)$/i.test(a.name)) return <Presentation />;
+  if (isVideo(a)) return <Film />;
   return <FileText />;
 }
 
@@ -224,7 +226,8 @@ export function Attachments({
           {rows.map((a) => {
             const from = fromLabel?.(a) ?? null;
             const photo = isImage(a) ? q.data?.urls[a.path] : undefined;
-            // A PDF or drawing shows big too: its preview picture, or a placeholder while it's made.
+            // A PDF, drawing, spreadsheet, Word or PowerPoint file or video shows big too: its preview
+            // picture, or a placeholder while it's made.
             const docKind = previewKind(a);
             const docPic = docKind ? q.data?.urls[a.path] : undefined;
             const making = !!docKind && !docPic && previewPending(a.id);
@@ -314,16 +317,17 @@ export function Attachments({
             if (docPic || making) {
               return (
                 <div key={a.id} className="file photo">
-                  <button onClick={openIt} className="photo-view doc" type="button" aria-label={`Open ${a.name}`}>
+                  <button onClick={openIt} className={`photo-view doc ${kindClass(docKind)}`} type="button" aria-label={`Open ${a.name}`}>
                     {docPic ? (
                       <img src={docPic} alt="" loading="lazy" decoding="async" />
                     ) : (
                       <span className="doc-making">
-                        {docKind === "drawing" ? <DraftingCompass /> : <FileText />}
+                        <DocIcon kind={docKind} />
                         Making a preview...
                       </span>
                     )}
-                    <span className={`doc-tag ${docKind}`}>{docTag(a)}</span>
+                    {docPic && docKind === "video" && <PlayBadge />}
+                    <span className={`doc-tag ${kindClass(docKind)}`}>{docTag(a, docKind)}</span>
                   </button>
                   <div className="photo-foot">
                     <button onClick={openIt} className="file-main" type="button">

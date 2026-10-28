@@ -45,14 +45,14 @@ export function fontFamily(name: string | undefined) {
   return `"${n}", Calibri, Carlito, "Segoe UI", Arial, sans-serif`;
 }
 
-function columnWidth(ws: Worksheet, c: number): { width: number; hidden: boolean } {
+export function columnWidth(ws: Worksheet, c: number): { width: number; hidden: boolean } {
   const def = (ws as unknown as { _columns?: ({ width?: number; hidden?: boolean } | undefined)[] })._columns?.[c - 1];
   const fallback = (ws.properties as { defaultColWidth?: number }).defaultColWidth ?? 8.43;
   return { width: def?.width ?? fallback, hidden: !!def?.hidden };
 }
 
 /** Rows with wrapped text and no set height grow to fit, like Excel does. */
-function autoHeight(ws: Worksheet, r: number, base: number): number {
+export function autoHeight(ws: Worksheet, r: number, base: number): number {
   const row = ws.findRow(r);
   if (!row) return base;
   let need = base;

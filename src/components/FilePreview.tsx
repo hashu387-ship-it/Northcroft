@@ -1,7 +1,9 @@
-// Helpers for showing PDF and drawing previews in file lists and chats (see src/lib/previews.ts).
+// Helpers for showing file previews (PDF, drawing, spreadsheet, Word, PowerPoint, video) in file
+// lists and chats (see src/lib/previews.ts).
 import { useEffect, useReducer, useRef } from "react";
+import { DraftingCompass, FileSpreadsheet, FileText, Film, Play, Presentation } from "lucide-react";
 import { useInvalidate } from "@/lib/api";
-import { onPreviewChange, onPreviewSaved, requestPreview } from "@/lib/previews";
+import { onPreviewChange, onPreviewSaved, requestPreview, type PreviewKind } from "@/lib/previews";
 import type { Attachment } from "@/lib/types";
 
 /**
@@ -45,5 +47,30 @@ export function AskPreviewWhenSeen({ a }: { a: Attachment }) {
   return <span ref={ref} aria-hidden style={{ width: 1, height: 1, flex: "none" }} />;
 }
 
-/** The tag on a preview: PDF, DWG or DXF. */
-export const docTag = (a: Pick<Attachment, "name">) => (/\.dwg$/i.test(a.name) ? "DWG" : /\.dxf$/i.test(a.name) ? "DXF" : "PDF");
+/** The tag on a preview: the file's type, like PDF, DWG, XLSX, DOCX, PPTX or MP4. */
+export function docTag(a: Pick<Attachment, "name">, kind: PreviewKind | null) {
+  const ext = /\.([a-z0-9]{1,5})$/i.exec(a.name)?.[1];
+  if (ext) return ext.toUpperCase();
+  return kind === "video" ? "VIDEO" : kind === "sheet" ? "SHEET" : "FILE";
+}
+
+/** The class for a preview's kind (k-pdf, k-sheet...), prefixed so it can't clash with other styles. */
+export const kindClass = (kind: PreviewKind | null) => (kind ? `k-${kind}` : "");
+
+/** The icon on the placeholder while a preview is being made. */
+export function DocIcon({ kind }: { kind: PreviewKind | null }) {
+  if (kind === "drawing") return <DraftingCompass />;
+  if (kind === "sheet") return <FileSpreadsheet />;
+  if (kind === "slides") return <Presentation />;
+  if (kind === "video") return <Film />;
+  return <FileText />;
+}
+
+/** The round play sign on a video's preview. */
+export function PlayBadge() {
+  return (
+    <span className="doc-play" aria-hidden>
+      <Play />
+    </span>
+  );
+}
