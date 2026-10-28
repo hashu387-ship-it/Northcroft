@@ -53,6 +53,9 @@ export function Sheet({
   wide?: boolean;
 }) {
   const [present, setPresent] = useState(open);
+  // Asked to open: it's on screen in the same update, not a moment later (anything acting right
+  // after, like a confirmation's buttons being pressed, finds it already there).
+  if (open && !present) setPresent(true);
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
@@ -167,8 +170,7 @@ export function Sheet({
   useEffect(() => {
     const st = s.current;
     if (open) {
-      if (!present) setPresent(true);
-      else if (st.closing) animateIn();
+      if (st.closing) animateIn();
     } else if (present) {
       if (st.closedOut) setPresent(false);
       else if (!st.closing) animateOut(() => mounted.current && setPresent(false));

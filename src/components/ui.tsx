@@ -555,25 +555,29 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     state?.resolve(v);
     setState(null);
   };
+  // The panel animates away after it's answered: it keeps its wording until it's gone.
+  const last = useRef(state);
+  if (state) last.current = state;
+  const shown = state ?? last.current;
   return (
     <ConfirmContext.Provider value={ask}>
       {children}
       <Sheet
         open={!!state}
         onClose={() => close(false)}
-        title={state?.title}
+        title={shown?.title}
         footer={
           <>
             <button className="btn" onClick={() => close(false)} type="button">
               Cancel
             </button>
-            <button className={clsx("btn", state?.danger ? "danger" : "primary")} onClick={() => close(true)} type="button">
-              {state?.confirmLabel ?? "Confirm"}
+            <button className={clsx("btn", shown?.danger ? "danger" : "primary")} onClick={() => close(true)} type="button">
+              {shown?.confirmLabel ?? "Confirm"}
             </button>
           </>
         }
       >
-        <div className="muted">{state?.message}</div>
+        <div className="muted">{shown?.message}</div>
       </Sheet>
     </ConfirmContext.Provider>
   );
