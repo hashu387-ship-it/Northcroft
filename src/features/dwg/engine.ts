@@ -4,7 +4,8 @@
 // loads its 11 MB engine from /cad/ only when a drawing is first opened. DXF needs no worker.
 //
 // The viewer is one per page, so the full-screen viewer and the preview maker take turns
-// (`takeEngine`). Between uses its canvas waits off screen, out of the way.
+// (`takeEngine`). Every drawing gets a brand-new engine, torn down completely when it's closed:
+// nothing from one drawing can trip up the next, and the phone gets its memory back.
 import "./dwg.css";
 import { AcApDocManager, AcEdOpenMode } from "@mlightcad/cad-simple-viewer";
 import { AcDbDatabaseConverterManager, AcDbFileType, acdbHostApplicationServices } from "@mlightcad/data-model";
@@ -22,6 +23,8 @@ const OPEN_TIMEOUT_MS = 120_000;
 
 export class DrawingError extends Error {}
 
+const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+
 let mgr: AcApDocManager | null = null;
 let host: HTMLDivElement | null = null;
 
@@ -32,6 +35,7 @@ function start(): AcApDocManager {
   host.setAttribute("aria-hidden", "true");
   document.body.appendChild(host);
   const parser = `${__CAD_BASE__}libredwg-parser-worker.js`;
+  // A new DWG reader for every engine too.
   AcDbDatabaseConverterManager.instance.register(
     AcDbFileType.DWG,
     new AcDbLibreDwgConverter({ convertByEntityType: false, useWorker: true, parserWorkerUrl: parser }),
@@ -86,7 +90,7 @@ export function showIn(el: HTMLElement) {
   el.appendChild(host);
 }
 
-/** Put the canvas back off screen. */
+/** Put the canvas back off screen (it's taken away altogether when the drawing is closed). */
 export function park() {
   if (!host) return;
   host.classList.add("parked");
@@ -120,23 +124,31 @@ export async function openDrawing(data: ArrayBuffer, name: string): Promise<void
 }
 
 /**
- * Close the open drawing and free its memory. Never waits more than a few seconds (closing a
- * drawing that failed to open can hang), so the engine is always handed back.
+ * Close the drawing: the whole engine is torn down (the drawing, its canvas and its background
+ * workers) and the next drawing starts a new one. Never waits more than a few seconds, and gives
+ * the browser a moment to finish tidying up before the next drawing is opened.
  */
 export async function closeDrawing() {
-  if (!mgr) return;
   const m = mgr;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  await Promise.race([
-    m.closeDocument().then(
-      () => undefined,
-      () => undefined,
-    ),
-    new Promise<void>((r) => {
-      timer = setTimeout(r, 4_000);
-    }),
-  ]);
-  clearTimeout(timer);
+  const el = host;
+  mgr = null;
+  host = null;
+  if (m) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      m.destroy().then(
+        () => undefined,
+        () => undefined,
+      ),
+      new Promise<void>((r) => {
+        timer = setTimeout(r, 5_000);
+      }),
+    ]);
+    clearTimeout(timer);
+  }
+  el?.remove();
+  await nextFrame();
+  await new Promise((r) => setTimeout(r, 50));
 }
 
 /** After opening for the viewer: back to normal on-screen drawing (layers turned on later draw smoothly). */
@@ -228,7 +240,6 @@ export function setLayout(id: string) {
 
 /* ---------------------------------------------------------------- pictures */
 
-const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
 /**
  * A JPEG of what the viewer shows now, at most `longSide` pixels across. The canvas is drawn and
