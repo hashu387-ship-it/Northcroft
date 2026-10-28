@@ -65,6 +65,7 @@ export default function DwgViewer({ attachment: a, data }: EditorProps) {
       }
       if (session.cancelled || !stage.current) return void (await finish());
       engine.showIn(stage.current);
+      engine.makeInteractive();
       await new Promise((r) => requestAnimationFrame(() => r(null)));
       engine.fitDrawing();
       engine.setPaperLook(paperRef.current);

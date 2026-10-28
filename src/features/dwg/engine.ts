@@ -108,7 +108,9 @@ export async function openDrawing(data: ArrayBuffer, name: string): Promise<void
   });
   let ok = false;
   try {
-    ok = await Promise.race([m.openDocument(name, data.slice(0), { mode: AcEdOpenMode.Read }), timeout]);
+    // No repainting of the half-loaded drawing while it opens (nobody sees it, the screen shows
+    // "Opening the drawing" over it): opening is quicker, and slow phones never stall on it.
+    ok = await Promise.race([m.openDocument(name, data.slice(0), { mode: AcEdOpenMode.Read, cooperativeYield: false }), timeout]);
   } catch {
     ok = false;
   } finally {
@@ -135,6 +137,11 @@ export async function closeDrawing() {
     }),
   ]);
   clearTimeout(timer);
+}
+
+/** After opening for the viewer: back to normal on-screen drawing (layers turned on later draw smoothly). */
+export function makeInteractive() {
+  if (mgr) mgr.curView.cooperativeYield = true;
 }
 
 /** Wait until everything (text, blocks, hatches) is drawn, up to `ms`. */
