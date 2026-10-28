@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { DriveError, deleteDriveAttachment, driveLink, driveLinks, uploadToDrive } from "./drive";
 import type { Attachment } from "./types";
 import { driveItemUrl, driveLinkFileParts, isDriveLinkFile } from "./drivelinks";
+import { previewImageUrls, removePreview, requestPreview } from "./previews";
 
 const BUCKET = "files";
 /** The app's own storage takes files up to this size; it's only used until Google Drive is connected. */
@@ -13,14 +14,18 @@ function safeName(name: string) {
 
 export const isOnDrive = (a: Pick<Attachment, "drive_file_id">) => !!a.drive_file_id;
 
-/** Preview links for the photos in a list of attachments, from Drive or the app's storage, keyed by path. */
+/**
+ * Preview links for a list of attachments, keyed by path: the photos themselves (from Drive or the
+ * app's storage), and the preview pictures of PDFs and drawings that have one.
+ */
 export async function previewUrls(rows: Attachment[]): Promise<Record<string, string>> {
   const photos = rows.filter(isImage);
-  const [fromStorage, fromDrive] = await Promise.all([
+  const [fromStorage, fromDrive, pictures] = await Promise.all([
     signedUrls(photos.filter((r) => !isOnDrive(r)).map((r) => r.path)),
     driveLinks(photos.filter(isOnDrive)).catch(() => ({}) as Record<string, string>),
+    previewImageUrls(rows).catch(() => ({}) as Record<string, string>),
   ]);
-  return { ...fromStorage, ...fromDrive };
+  return { ...pictures, ...fromStorage, ...fromDrive };
 }
 
 export interface UploadTarget {
@@ -53,6 +58,14 @@ export interface UploadTarget {
  * Until a manager connects Drive, files up to 50 MB are kept in the app's own storage instead.
  */
 export async function uploadFile(file: File, opts: UploadTarget): Promise<Attachment> {
+  const saved = await saveFile(file, opts);
+  // A PDF or drawing gets its preview picture made straight away, from the file on this device,
+  // so nobody has to download it again for that. It runs in the background.
+  requestPreview(saved, file);
+  return saved;
+}
+
+async function saveFile(file: File, opts: UploadTarget): Promise<Attachment> {
   try {
     return await uploadToDrive(file, opts, opts.onProgress);
   } catch (e) {
@@ -196,6 +209,8 @@ export async function openAttachment(a: Attachment) {
 export const isForwardedDriveCopy = (a: Pick<Attachment, "drive_file_id" | "path">) => isOnDrive(a) && a.path.includes("/fwd/");
 
 export async function deleteAttachment(a: Attachment) {
+  // Its preview picture goes too (only possible while the file is still there).
+  if (a.preview === "ready") await removePreview(a);
   if (isForwardedDriveCopy(a)) {
     // Only this message's link to it goes; the file stays in Drive for the original.
     const { error } = await supabase.from("attachments").delete().eq("id", a.id);
@@ -223,11 +238,15 @@ export const isImage = (a: Pick<Attachment, "mime" | "name">) =>
 
 /* ---------------------------------------------------------------- viewing and editing in the app */
 
-/** Which in-app tool opens a file: the PDF, spreadsheet or photo tool, or none (opens in a new tab). */
-export type FileKind = "pdf" | "sheet" | "image" | "other";
+/** Which in-app tool opens a file: the PDF, spreadsheet, photo or drawing tool, or none (opens in a new tab). */
+export type FileKind = "pdf" | "sheet" | "image" | "drawing" | "other";
+
+/** AutoCAD drawings the app can show (DWG and DXF). */
+export const isDrawing = (a: Pick<Attachment, "name">) => /\.(dwg|dxf)$/i.test(a.name);
 
 export function fileKind(a: Pick<Attachment, "mime" | "name">): FileKind {
   const mime = (a.mime ?? "").toLowerCase();
+  if (isDrawing(a)) return "drawing";
   if (mime === "application/pdf" || /\.pdf$/i.test(a.name)) return "pdf";
   if (
     /\.(xlsx|xlsm|xls|csv)$/i.test(a.name) ||

@@ -30,6 +30,8 @@ import { useAuth, useMe } from "@/lib/auth";
 import { REACTIONS, pinMessage, reactionInfo, setReaction, typingLine, useChatReads, useConversation, useKeepRead, usePins, useReactions, useTyping } from "@/lib/chats";
 import { usePolls } from "@/lib/polls";
 import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
+import { needsPreview, previewKind } from "@/lib/previews";
+import { AskPreviewWhenSeen, docTag, usePreviewUpdates } from "./FilePreview";
 import { addDriveLinks, useMessageDriveLinks, type LinkInfo } from "@/lib/drivelinks";
 import { useMarkSeen } from "@/lib/seen";
 import { errorMessage, isNetworkError, supabase } from "@/lib/supabase";
@@ -189,6 +191,8 @@ export function CommentThread({
     .map((pin) => ({ pin, comment: quote(pin.comment_id) }))
     .filter((x): x is { pin: ChatPin; comment: Comment } => !!x.comment && !x.comment.event);
 
+  // PDF and drawing pictures appear as soon as this device has made them.
+  usePreviewUpdates();
   const files = useQuery({
     queryKey: ["attachments", "comments", ids.join(",")],
     enabled: ids.length > 0,
@@ -472,6 +476,13 @@ export function CommentThread({
                         <button key={a.id} onClick={() => openFile(a, threadImages)} style={{ border: 0, padding: 0, background: "none" }} type="button">
                           <img src={files.data.urls[a.path]} alt={a.name} style={{ borderRadius: 12, maxHeight: 220, objectFit: "cover" }} />
                         </button>
+                      ) : previewKind(a) && files.data?.urls[a.path] ? (
+                        // A PDF's first page or a drawing, with its name under it.
+                        <button key={a.id} className="msg-doc" onClick={() => openFile(a)} type="button" aria-label={`Open ${a.name}`}>
+                          <img src={files.data.urls[a.path]} alt="" loading="lazy" decoding="async" />
+                          <span className={`doc-tag ${previewKind(a)}`}>{docTag(a)}</span>
+                          <span className="msg-doc-name">{a.name}</span>
+                        </button>
                       ) : (
                         <button key={a.id} className="file" onClick={() => openFile(a, isImage(a) ? threadImages : undefined)} type="button">
                           <span className="icon">
@@ -486,6 +497,7 @@ export function CommentThread({
                               {fileSize(a.size)}
                             </span>
                           </span>
+                          {needsPreview(a) && <AskPreviewWhenSeen a={a} />}
                         </button>
                       ),
                     )}

@@ -30,7 +30,7 @@ const SECTIONS: SectionDef[] = [
   { id: "profile", label: "Profile", hint: "Name, short name and phone", icon: User, color: "#1B3570" },
   { id: "password", label: "Password", hint: "Change your password", icon: KeyRound, color: "#1B3570" },
   { id: "notifications", label: "Notifications", hint: "Phone and desktop alerts", icon: BellRing, color: "#1B3570" },
-  { id: "appearance", label: "Appearance", hint: "Light, dark and solid surfaces", icon: SunMoon, color: "#1B3570" },
+  { id: "appearance", label: "Appearance", hint: "Light, dark, purple glass and solid surfaces", icon: SunMoon, color: "#1B3570" },
   { id: "team", label: "Team", hint: "People, access and passwords", icon: Users, color: "#1B3570" },
   { id: "hours", label: "Working hours", hint: "Start, finish and working days", icon: Clock, color: "#1B3570" },
   { id: "places", label: "Office and sites", hint: "Where check-ins are matched", icon: MapPin, color: "#1B3570" },

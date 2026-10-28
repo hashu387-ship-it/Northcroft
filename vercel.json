@@ -3,11 +3,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "rewrites": [{ "source": "/((?!assets/|icons/|sw.js|manifest.webmanifest|offline-assets.json|favicon.svg|robots.txt).*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/((?!assets/|cad/|icons/|sw.js|manifest.webmanifest|offline-assets.json|favicon.svg|robots.txt).*)", "destination": "/index.html" }],
   "headers": [
     { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }, { "key": "Service-Worker-Allowed", "value": "/" }] },
     { "source": "/manifest.webmanifest", "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }] },
     { "source": "/offline-assets.json", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-    { "source": "/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] }
+    { "source": "/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+    { "source": "/cad/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] }
   ]
 }

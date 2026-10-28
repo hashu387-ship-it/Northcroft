@@ -1,0 +1,91 @@
+/* Purple glass: a navy-to-purple background, frosted glass sidebar, tab bar and cards, and a soft
+ * violet glow on hover. It's the dark theme underneath (the page carries data-theme="dark" too),
+ * so every dark-mode rule still applies; this only swaps the colours and adds the glow.
+ * Picked in Settings > Appearance, saved on the device. Loaded last so it wins. */
+:root[data-palette="purple"] {
+  --bg: #0c0a24;
+  /* The drifting background colours: deep navy into violet, with a little magenta. */
+  --blob-1: #2a1a6e;
+  --blob-2: #4b1f8f;
+  --blob-3: #101a4d;
+  --blob-4: #6a1f7a;
+  --blob-5: #2b2f9e;
+  --blob-alpha: 0.8;
+  --brand: #b9a4ff;
+  --brand-ink: #cfc2ff;
+  --brand-soft: rgba(167, 139, 250, 0.16);
+  --nav-active: linear-gradient(135deg, #6d4aff, #a855f7);
+  --accent: #a78bfa;
+  --accent-soft: rgba(167, 139, 250, 0.2);
+  --text: #f6f3ff;
+  --text-2: #d6ccff;
+  --text-3: #a99bdc;
+  --separator: rgba(196, 181, 253, 0.16);
+  --fill: rgba(167, 139, 250, 0.12);
+  --fill-2: rgba(167, 139, 250, 0.2);
+  --glass: rgba(36, 24, 84, 0.42);
+  --glass-strong: rgba(30, 20, 72, 0.66);
+  --glass-border: rgba(214, 204, 255, 0.16);
+  --glass-edge: rgba(255, 255, 255, 0.22);
+  --glass-shade: rgba(167, 139, 250, 0.06);
+  --glass-shadow: 0 14px 40px rgba(8, 4, 30, 0.55), 0 2px 8px rgba(40, 10, 90, 0.35);
+  --solid: #1b1440;
+  --solid-2: #251b55;
+  --solid-border: rgba(214, 204, 255, 0.1);
+  --purple: #c084fc;
+  --purple-soft: rgba(192, 132, 252, 0.2);
+  --glow: 0 0 0 1px rgba(196, 181, 253, 0.32), 0 10px 32px rgba(139, 92, 246, 0.38);
+  background: radial-gradient(120% 80% at 0% 0%, #1a1450 0%, transparent 60%), linear-gradient(160deg, #0b1236 0%, #23135a 48%, #3d1466 100%);
+  background-attachment: fixed;
+}
+
+/* The selected menu item: a violet gradient pill instead of the flat navy one. */
+:root[data-palette="purple"] .nav a.active {
+  background: var(--nav-active);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+:root[data-palette="purple"] .tabbar a.active { color: #fff; background: rgba(167, 139, 250, 0.24); box-shadow: 0 0 18px rgba(167, 139, 250, 0.35); }
+
+/* Frosted panels with a faint violet edge. */
+:root[data-palette="purple"] .sidebar,
+:root[data-palette="purple"] .tabbar {
+  border: 1px solid rgba(214, 204, 255, 0.14);
+  box-shadow: 0 18px 50px rgba(8, 4, 30, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Glow on hover: menu items, cards and buttons (only where there's a mouse). */
+@media (hover: hover) {
+  :root[data-palette="purple"] .nav a:not(.active):hover {
+    background: rgba(167, 139, 250, 0.16);
+    box-shadow: 0 0 0 1px rgba(196, 181, 253, 0.22), 0 0 22px rgba(139, 92, 246, 0.3);
+  }
+  :root[data-palette="purple"] .glass.card {
+    transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
+  }
+  :root[data-palette="purple"] a.glass.card:hover,
+  :root[data-palette="purple"] button.glass.card:hover,
+  :root[data-palette="purple"] .card.clickable:hover {
+    box-shadow: var(--glow);
+    transform: translateY(-1px);
+  }
+  :root[data-palette="purple"] .btn:not(:disabled):hover {
+    box-shadow: 0 0 0 1px rgba(196, 181, 253, 0.28), 0 6px 20px rgba(139, 92, 246, 0.32);
+  }
+}
+:root[data-palette="purple"] .btn.primary {
+  background: linear-gradient(135deg, #6d4aff, #a855f7);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* With Solid surfaces on, the panels are solid deep purple instead of see-through. */
+:root[data-palette="purple"][data-solid="true"] .glass,
+:root[data-palette="purple"][data-solid="true"] .glass-strong { background: var(--solid); }
+
+/* The swatch in Settings > Appearance. */
+.theme-swatch.purple { background: linear-gradient(135deg, #0b1236, #3a1a8a 50%, #a855f7); }
+.theme-swatch.purple::after {
+  background: rgba(36, 24, 84, 0.55);
+  border-color: rgba(214, 204, 255, 0.25);
+  box-shadow: 0 0 14px rgba(167, 139, 250, 0.55);
+}

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileSpreadsheet, FileText, FolderInput, HardDrive, Image as ImageIcon, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
+import { DraftingCompass, FileSpreadsheet, FileText, FolderInput, HardDrive, Image as ImageIcon, Paperclip, Repeat, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
-import { deleteAttachment, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
+import { deleteAttachment, isDrawing, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
+import { needsPreview, previewKind, previewPending } from "@/lib/previews";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fileSize } from "@/lib/format";
 import { timeAgo } from "@/lib/time";
@@ -11,9 +12,11 @@ import type { Attachment } from "@/lib/types";
 import { Empty, Loading, useConfirm, useToast } from "./ui";
 import { useOpenFile } from "./useOpenFile";
 import { DropZone } from "./DropZone";
+import { AskPreviewWhenSeen, docTag, usePreviewUpdates } from "./FilePreview";
 
 function FileIcon({ a }: { a: Attachment }) {
   if (/\.(xlsx?|csv)$/i.test(a.name)) return <FileSpreadsheet />;
+  if (isDrawing(a)) return <DraftingCompass />;
   return <FileText />;
 }
 
@@ -132,6 +135,7 @@ export function Attachments({
   const driveOn = !!useSettings().data?.drive_connected_at;
 
   const q = useAttachmentList({ taskId, projectId, repeatOf, variationId, voRound, voSide, knownRounds, announcementId, leaveId });
+  usePreviewUpdates();
 
   async function onFiles(list: FileList | File[] | null) {
     if (!list?.length || busy) return;
@@ -220,6 +224,10 @@ export function Attachments({
           {rows.map((a) => {
             const from = fromLabel?.(a) ?? null;
             const photo = isImage(a) ? q.data?.urls[a.path] : undefined;
+            // A PDF or drawing shows big too: its preview picture, or a placeholder while it's made.
+            const docKind = previewKind(a);
+            const docPic = docKind ? q.data?.urls[a.path] : undefined;
+            const making = !!docKind && !docPic && previewPending(a.id);
             const openIt = () => open(a, isImage(a) ? rows.filter(isImage) : undefined);
             const text = (
               <span className="file-text">
@@ -303,6 +311,29 @@ export function Attachments({
                 </div>
               );
             }
+            if (docPic || making) {
+              return (
+                <div key={a.id} className="file photo">
+                  <button onClick={openIt} className="photo-view doc" type="button" aria-label={`Open ${a.name}`}>
+                    {docPic ? (
+                      <img src={docPic} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <span className="doc-making">
+                        {docKind === "drawing" ? <DraftingCompass /> : <FileText />}
+                        Making a preview...
+                      </span>
+                    )}
+                    <span className={`doc-tag ${docKind}`}>{docTag(a)}</span>
+                  </button>
+                  <div className="photo-foot">
+                    <button onClick={openIt} className="file-main" type="button">
+                      {text}
+                    </button>
+                    {tools}
+                  </div>
+                </div>
+              );
+            }
             return (
               <div key={a.id} className="file">
                 <button onClick={openIt} className="file-main" type="button">
@@ -310,6 +341,7 @@ export function Attachments({
                   {text}
                 </button>
                 {tools}
+                {needsPreview(a) && <AskPreviewWhenSeen a={a} />}
               </div>
             );
           })}

@@ -8,6 +8,7 @@ import {
   Clock3,
   FileDiff,
   FileSpreadsheet,
+  DraftingCompass,
   FileText,
   FolderKanban,
   Image as ImageIcon,
@@ -309,6 +310,7 @@ function leadFor(hit: SearchHit, get: (id: string | null | undefined) => any): R
       const name = hit.title.toLowerCase();
       if (isImage({ mime, name })) return <Tile tone="teal"><ImageIcon /></Tile>;
       if (/sheet|excel|csv/.test(mime) || /\.(xlsx?|csv)$/.test(name)) return <Tile tone="green"><FileSpreadsheet /></Tile>;
+      if (/\.(dwg|dxf)$/.test(name)) return <Tile tone="orange"><DraftingCompass /></Tile>;
       return <Tile tone="red"><FileText /></Tile>;
     }
     case "project":

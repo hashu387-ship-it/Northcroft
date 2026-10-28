@@ -1372,6 +1372,41 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .photo-view:hover img { transform: scale(1.015); }
 .photo-view:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .photo-foot { display: flex; align-items: center; gap: 4px; min-width: 0; padding-left: 2px; }
+/* A PDF's first page or a drawing, shown big like a photo: the whole sheet on white (never
+   cropped), with a small PDF / DWG tag. While its picture is being made, a calm placeholder. */
+.photo-view.doc { position: relative; background: #fff; cursor: pointer; box-shadow: inset 0 0 0 1px var(--separator); }
+.photo-view.doc img { object-fit: contain; background: #fff; }
+.doc-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 7px;
+  background: rgba(1, 32, 97, 0.86);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.doc-tag.pdf { background: rgba(217, 47, 57, 0.92); }
+.doc-tag.drawing { background: rgba(181, 101, 29, 0.92); }
+.doc-making {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 160px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  background: repeating-linear-gradient(135deg, var(--fill) 0 12px, transparent 12px 24px);
+}
+.doc-making svg { width: 30px; height: 30px; opacity: 0.6; }
+/* In a chat message. */
+.msg-doc { display: block; position: relative; width: min(100%, 320px); padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: #fff; cursor: pointer; box-shadow: inset 0 0 0 1px var(--separator); }
+.msg-doc img { display: block; width: 100%; max-height: 240px; object-fit: contain; background: #fff; }
+.msg-doc-name { display: block; padding: 6px 10px 7px; background: var(--solid); color: var(--text); font-size: 12.5px; font-weight: 600; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .files.compact .photo-view img { max-height: 260px; }
 @media (max-width: 899px) {
   .photo-view img { max-height: 340px; }

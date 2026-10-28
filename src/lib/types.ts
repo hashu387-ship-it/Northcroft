@@ -214,6 +214,10 @@ export interface Attachment {
   leave_id?: string | null;
   /** For a file added to the project itself: the folder it's in (null: the top of the Project folder). */
   project_folder_id?: string | null;
+  /** A PDF's or drawing's preview picture (0043): made and kept ('ready'), or the file couldn't be
+   *  drawn ('failed'); null until someone's phone or computer has made it. */
+  preview?: "ready" | "failed" | null;
+  preview_at?: string | null;
   created_at: string;
 }
 

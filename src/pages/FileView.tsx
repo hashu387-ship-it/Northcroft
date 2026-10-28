@@ -1,11 +1,11 @@
-// The file screen: opens a PDF or spreadsheet inside the app, full screen, with the right tool.
+// The file screen: opens a PDF, spreadsheet, photo or drawing inside the app, full screen, with the right tool.
 // It loads the file (from Google Drive or the app's storage), lists its versions, downloads it,
 // and saves edits as a new version next to the original. The tools live in src/features/.
 import "@/styles/files.css";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText, History, Image as ImageIcon, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, DraftingCompass, FileSpreadsheet, FileText, History, Image as ImageIcon, X } from "lucide-react";
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { fetchAttachmentData, fileKind, fileVersions, openAttachment, saveNewVersion } from "@/lib/files";
@@ -21,6 +21,7 @@ import type { OpenFileState } from "@/components/useOpenFile";
 const PdfEditor = lazy(() => import("@/features/pdf/PdfEditor"));
 const SheetEditor = lazy(() => import("@/features/sheet/SheetEditor"));
 const ImageEditor = lazy(() => import("@/features/image/ImageEditor"));
+const DwgViewer = lazy(() => import("@/features/dwg/DwgViewer"));
 
 // Files from a linked Drive folder have ids starting "gd." and come from Google, not the database.
 const attachmentRow = (id: string) => ({
@@ -265,7 +266,7 @@ export default function FileView() {
   );
 
   const who = a ? people.get(a.uploaded_by)?.short_name ?? "Someone" : "";
-  const Icon = kind === "sheet" ? FileSpreadsheet : kind === "image" ? ImageIcon : FileText;
+  const Icon = kind === "sheet" ? FileSpreadsheet : kind === "image" ? ImageIcon : kind === "drawing" ? DraftingCompass : FileText;
 
   return (
     <div className="file-screen" role="dialog" aria-label={a?.name ?? "File"}>
@@ -350,9 +351,17 @@ export default function FileView() {
             </button>
           </div>
         ) : (
-          <Suspense fallback={<Loader label={kind === "pdf" ? "Opening the PDF tools..." : kind === "image" ? "Opening the photo..." : "Opening the spreadsheet..."} />}>
+          <Suspense
+            fallback={
+              <Loader
+                label={kind === "pdf" ? "Opening the PDF tools..." : kind === "image" ? "Opening the photo..." : kind === "drawing" ? "Opening the drawing..." : "Opening the spreadsheet..."}
+              />
+            }
+          >
             {kind === "pdf" ? (
               <PdfEditor key={a.id} {...editorProps} />
+            ) : kind === "drawing" ? (
+              <DwgViewer key={a.id} {...editorProps} />
             ) : kind === "image" ? (
               <ImageEditor key={a.id} {...editorProps} />
             ) : (

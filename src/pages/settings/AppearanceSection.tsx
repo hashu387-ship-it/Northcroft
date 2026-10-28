@@ -4,12 +4,12 @@ import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
-type Theme = "system" | "light" | "dark";
+type Theme = "system" | "light" | "dark" | "purple";
 
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "dark" || t === "system" ? t : "light";
+    return t === "dark" || t === "system" || t === "purple" ? t : "light";
   } catch {
     return "light";
   }
@@ -31,14 +31,18 @@ export function AppearanceSection() {
   function applyTheme(t: Theme) {
     setTheme(t);
     const root = document.documentElement;
+    // Purple glass is the dark theme with a purple palette over it.
+    if (t === "purple") root.dataset.palette = "purple";
+    else delete root.dataset.palette;
+    const base = t === "purple" ? "dark" : t;
     try {
-      if (t === "system") delete root.dataset.theme;
-      else root.dataset.theme = t;
+      if (base === "system") delete root.dataset.theme;
+      else root.dataset.theme = base;
       // Light is the default, so only Dark and Automatic need remembering.
       if (t === "light") localStorage.removeItem("nc-theme");
       else localStorage.setItem("nc-theme", t);
     } catch {
-      if (t !== "system") root.dataset.theme = t;
+      if (base !== "system") root.dataset.theme = base;
     }
   }
 
@@ -58,6 +62,7 @@ export function AppearanceSection() {
   const options: { value: Theme; label: string }[] = [
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
+    { value: "purple", label: "Purple glass" },
     { value: "system", label: "Automatic" },
   ];
 
@@ -72,7 +77,10 @@ export function AppearanceSection() {
             </button>
           ))}
         </div>
-        <div className="muted small">Light is the default. Automatic follows your phone or computer, switching to dark at night if you've set it up that way.</div>
+        <div className="muted small">
+          Light is the default. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Automatic follows your phone or
+          computer, switching to dark at night if you've set it up that way.
+        </div>
       </Section>
       <Section title="Easier reading">
         <div className="setting-row">

@@ -1,0 +1,161 @@
+/* The drawing viewer: glass toolbar like the PDF tool, the drawing filling the rest, and a layers
+   panel on the right (a sheet from the bottom on phones). */
+.dwg-viewer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: #0b0f19;
+}
+
+.dwg-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border-bottom: 1px solid var(--separator);
+  z-index: 4;
+}
+.dwg-bar .spacer { flex: 1; }
+.dwg-tool {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dwg-tool svg { width: 17px; height: 17px; stroke-width: 1.9; flex: none; }
+.dwg-tool:hover:not(:disabled) { background: var(--fill); }
+.dwg-tool:disabled { opacity: 0.45; cursor: default; }
+.dwg-tool.on {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+.dwg-sheet select {
+  height: 30px;
+  max-width: 180px;
+  border-radius: 8px;
+  border: 1px solid var(--separator);
+  background: var(--solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0 6px;
+}
+.dwg-badge {
+  font-style: normal;
+  padding: 1px 7px;
+  border-radius: 9px;
+  background: var(--orange-soft);
+  color: var(--orange);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dwg-main { flex: 1; min-height: 0; position: relative; display: flex; }
+.dwg-stage { flex: 1; min-width: 0; position: relative; overflow: hidden; touch-action: none; }
+.dwg-cover {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  z-index: 3;
+  padding: 24px;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ the engine's canvas */
+.dwg-host { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
+/* Waiting off screen between uses (and while a list preview is made). */
+.dwg-host.parked {
+  position: fixed;
+  inset: auto;
+  left: -20000px;
+  top: 0;
+  width: 1400px;
+  height: 990px;
+  pointer-events: none;
+  contain: strict;
+}
+/* The engine brings its own command line, edit buttons and loading badge; the app has its own. */
+.dwg-host > :not(canvas),
+body > .ml-ui-simple-toolbar__menu,
+body > .ml-aci-loupe { display: none !important; }
+.dwg-host > canvas { display: block; outline: none; }
+
+/* ------------------------------------------------------------ layers */
+.dwg-layers {
+  flex: none;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border-left: 1px solid var(--separator);
+  z-index: 4;
+}
+.dwg-layers-head { display: flex; align-items: center; gap: 8px; padding: 10px 10px 6px 14px; }
+.dwg-layers-head .spacer { flex: 1; }
+.dwg-layers-tools { display: flex; align-items: center; gap: 8px; padding: 0 12px 8px; }
+.dwg-find {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 9px;
+  border-radius: 9px;
+  background: var(--fill);
+}
+.dwg-find svg { width: 15px; height: 15px; flex: none; color: var(--text-2); }
+.dwg-find input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; outline: none; }
+.dwg-layers-tools .btn { margin-left: auto; }
+.dwg-layer-list { list-style: none; margin: 0; padding: 0 6px 12px; overflow-y: auto; flex: 1; min-height: 0; }
+.dwg-layer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+.dwg-layer:hover { background: var(--fill); }
+.dwg-layer.off .dwg-layer-name { color: var(--text-2); }
+.dwg-swatch { width: 14px; height: 14px; border-radius: 4px; flex: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25); }
+.dwg-layer-name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 550; overflow-wrap: anywhere; }
+.dwg-layer .switch { transform: scale(0.82); transform-origin: right center; }
+.dwg-none { padding: 10px 8px; }
+
+@media (max-width: 760px) {
+  .dwg-wide { display: none; }
+  .dwg-bar { padding: 5px 6px; }
+  .dwg-tool { padding: 0 9px; }
+  .dwg-layers {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 62%;
+    border-left: 0;
+    border-top: 1px solid var(--separator);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.25);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

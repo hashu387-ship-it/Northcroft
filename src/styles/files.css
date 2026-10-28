@@ -40,6 +40,7 @@
 }
 .file-head-icon.sheet { background: #1f7a45; }
 .file-head-icon.image { background: #0a84ff; }
+.file-head-icon.drawing { background: #b5651d; }
 /* "3 of 12" with previous and next, when a photo was opened from a list. */
 .file-steps { flex: none; display: flex; align-items: center; gap: 0; }
 .file-steps .icon-btn:disabled { opacity: 0.35; }
