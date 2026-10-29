@@ -4,6 +4,7 @@
 // documents), so whatever is changed or added here shows there too, and the other way round.
 import "@/styles/tasks.css";
 import "@/styles/volog.css";
+import "@/styles/submissions.css";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FileDown, FileDiff, Paperclip, Search, X } from "lucide-react";
@@ -14,10 +15,12 @@ import { VO_STATUS } from "@/lib/constants";
 import { num, plural, sar } from "@/lib/format";
 import { errorMessage } from "@/lib/supabase";
 import { fmtDate } from "@/lib/time";
-import type { Variation } from "@/lib/types";
+import { dueDateText, submissionDue, useSubmissions } from "@/lib/submissions";
+import type { Submission, Variation } from "@/lib/types";
 import { latestRound, useVoFileCounts, voMatches, voRef } from "@/lib/volog";
 import { buildVoLogWorkbook, saveBlob, voLogFileName } from "@/lib/vologExcel";
 import { PageHead } from "@/components/PageHead";
+import { DueChip, DueTile } from "@/components/Submission";
 import { Empty, Loading, Pill, Segmented, useToast } from "@/components/ui";
 import { ordinal, voLogLine } from "./project/VoLog";
 import { VoSheet } from "./project/Variations";
@@ -43,6 +46,18 @@ export default function VoLogPage() {
   const projects = useProjectMap();
   const { data: vos = [], isLoading } = useVariations();
   const counts = useVoFileCounts();
+  const subs = useSubmissions();
+  // Each VO's next submission still to send (the soonest), and how many are open.
+  const nextSub = useMemo(() => {
+    const m = new Map<string, { next: Submission; open: number }>();
+    for (const s of subs.data ?? []) {
+      if (s.status !== "open" || !s.variation_id) continue;
+      const cur = m.get(s.variation_id);
+      if (!cur) m.set(s.variation_id, { next: s, open: 1 });
+      else m.set(s.variation_id, { next: s.due_on < cur.next.due_on ? s : cur.next, open: cur.open + 1 });
+    }
+    return m;
+  }, [subs.data]);
   const [params, setParams] = useSearchParams();
   const [group, setGroup] = useState<Group>("all");
   const [projectId, setProjectId] = useState<string>("");
@@ -195,6 +210,7 @@ export default function VoLogPage() {
                     <th>Instruction</th>
                     <th>Contractual submission</th>
                     <th>Latest submission</th>
+                    <th>Next submission</th>
                     <th className="r">Our amount</th>
                     <th className="r">ECJV assessed</th>
                     <th>ECJV response</th>
@@ -210,6 +226,7 @@ export default function VoLogPage() {
                   {shown.map((v, i) => {
                     const last = latestRound(v);
                     const sent = sentText(v);
+                    const next = nextSub.get(v.id);
                     const p = projects.get(v.project_id);
                     return (
                       <tr key={v.id} className="clickable" onClick={() => openVo(v)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openVo(v)}>
@@ -239,6 +256,22 @@ export default function VoLogPage() {
                             </>
                           ) : (
                             <span className="faint">Not sent yet</span>
+                          )}
+                        </td>
+                        <td className="nowrap">
+                          {next ? (
+                            <span className="vlog-next" title={submissionDue(next.next).text}>
+                              <DueTile s={next.next} small />
+                              <span>
+                                <b>{next.next.rev || next.next.title}</b>
+                                <div className="faint tiny">
+                                  {dueDateText(next.next.due_on)}
+                                  {next.open > 1 ? ` · ${next.open} to send` : ""}
+                                </div>
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="faint">–</span>
                           )}
                         </td>
                         <td className="r money">{num(last?.submitted_value)}</td>
@@ -275,7 +308,7 @@ export default function VoLogPage() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={12}>Total amount, {plural(shown.length, "VO")}</td>
+                    <td colSpan={13}>Total amount, {plural(shown.length, "VO")}</td>
                     <td className="r money">{num(totals.amount)}</td>
                     <td colSpan={4} />
                   </tr>
@@ -289,6 +322,7 @@ export default function VoLogPage() {
               const p = projects.get(v.project_id);
               const last = latestRound(v);
               const line = voLogLine(v);
+              const next = nextSub.get(v.id);
               return (
                 <button key={v.id} type="button" className="vo-card vlog-card" onClick={() => openVo(v)}>
                   <div className="row wrap" style={{ gap: 6 }}>
@@ -310,6 +344,12 @@ export default function VoLogPage() {
                     {v.title}
                   </div>
                   {line && <div className="faint small">{line}</div>}
+                  {next && (
+                    <div className="row wrap small" style={{ gap: 6 }}>
+                      <span className="bold">Next: {next.next.rev || next.next.title}</span>
+                      <DueChip s={next.next} />
+                    </div>
+                  )}
                   <div className="vals">
                     <span>
                       Amount<b>{sar(v.submitted_value, { compact: true })}</b>

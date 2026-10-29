@@ -303,6 +303,8 @@ type Target = {
   leave_id?: string | null;
   /** A file added to the project itself: the folder of its Project folder it goes in (the database checks it). */
   project_folder_id?: string | null;
+  /** A file on a submission (or on a message in its conversation): it goes in the submission's project folder. */
+  submission_id?: string | null;
 };
 
 async function checkTarget(t: Target, me: Me, req: Request): Promise<string | null> {
@@ -327,6 +329,16 @@ async function checkTarget(t: Target, me: Me, req: Request): Promise<string | nu
     if (!an) throw new UserError("That announcement no longer exists.", 404);
     if (an.author_id !== me.id && me.role !== "manager" && !me.can_assign) throw new UserError("Only whoever posted the announcement can add files to it.", 403);
     projectId = an.project_id;
+  } else if (t.submission_id) {
+    const { data: sub } = await admin.from("submissions").select("id, project_id").eq("id", t.submission_id).maybeSingle();
+    if (!sub) throw new UserError("That submission no longer exists.", 404);
+    // Files on the submission itself are for its project's team, managers and seniors; anyone can
+    // send a file in its conversation (the message check below covers that).
+    if (!t.comment_id) {
+      const { data: ok } = await asUser(req).rpc("submission_editor", { p_project: sub.project_id });
+      if (!ok) throw new UserError("Only the project's team can add files to this submission.", 403);
+    }
+    projectId = sub.project_id;
   } else if (t.leave_id) {
     const { data: lr } = await admin.from("leave_requests").select("id, user_id").eq("id", t.leave_id).maybeSingle();
     if (!lr) throw new UserError("That leave request no longer exists.", 404);
@@ -403,7 +415,8 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Re
     throw new UserError("That upload can't be attached.", 403);
   }
   // A file added to the project itself can go in one of its Project folder's folders.
-  const projectLevel = !body.task_id && !body.recurring_id && !body.variation_id && !body.announcement_id && !body.leave_id && !body.comment_id && !body.conversation_id;
+  const projectLevel =
+    !body.task_id && !body.recurring_id && !body.variation_id && !body.announcement_id && !body.leave_id && !body.comment_id && !body.conversation_id && !body.submission_id;
   const projectFolder = projectLevel && projectId && body.project_folder_id ? String(body.project_folder_id) : null;
   const row = {
     path: `drive/${f.id}`,
@@ -423,6 +436,8 @@ async function finishUpload(body: Target & { file_id?: string }, me: Me, req: Re
     announcement_id: body.task_id || body.variation_id ? null : body.announcement_id ?? null,
     leave_id: body.task_id || body.variation_id || body.announcement_id ? null : body.leave_id ?? null,
     project_folder_id: projectFolder,
+    // Only sent when set, so uploads keep working on a database without submissions yet.
+    ...(body.submission_id && !body.task_id && !body.variation_id ? { submission_id: body.submission_id } : {}),
     uploaded_by: me.id,
   };
   let { data, error } = await admin.from("attachments").insert(row).select().single();

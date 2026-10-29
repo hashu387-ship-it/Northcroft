@@ -211,8 +211,9 @@ function PendingBubble({ m }: { m: OutboxMessage }) {
 }
 
 /** The thread key the outbox files a message under. */
-export function outboxChat(scope: { kind: string; taskId?: string; projectId?: string | null; conversationId?: string }): string {
+export function outboxChat(scope: { kind: string; taskId?: string; projectId?: string | null; conversationId?: string; submissionId?: string }): string {
   if (scope.kind === "task") return `task:${scope.taskId}`;
+  if (scope.kind === "submission") return `submission:${scope.submissionId}`;
   if (scope.kind === "project") return `project:${scope.projectId}`;
   if (scope.kind === "conversation") return `conv:${scope.conversationId}`;
   return "team";

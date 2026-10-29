@@ -48,6 +48,8 @@ export interface UploadTarget {
   leaveId?: string | null;
   /** A file added to the project itself, into this folder of its Project folder. */
   projectFolderId?: string | null;
+  /** A file on a submission, or posted in its conversation. */
+  submissionId?: string | null;
   userId: string;
   onProgress?: (fraction: number) => void;
 }
@@ -82,7 +84,7 @@ async function saveFile(file: File, opts: UploadTarget): Promise<Attachment> {
     ? `c/${opts.conversationId}/${crypto.randomUUID()}-${safeName(file.name)}`
     : opts.leaveId
       ? `leave/${opts.leaveId}/${crypto.randomUUID()}-${safeName(file.name)}`
-      : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : opts.variationId ? `vo-${opts.variationId}` : opts.announcementId ? `ann-${opts.announcementId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
+      : `${opts.projectId ?? "general"}/${opts.taskId ?? (opts.recurringId ? `repeat-${opts.recurringId}` : opts.variationId ? `vo-${opts.variationId}` : opts.announcementId ? `ann-${opts.announcementId}` : opts.submissionId ? `sub-${opts.submissionId}` : "project")}/${crypto.randomUUID()}-${safeName(file.name)}`;
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
@@ -107,6 +109,7 @@ async function saveFile(file: File, opts: UploadTarget): Promise<Attachment> {
       announcement_id: opts.taskId || opts.variationId ? null : opts.announcementId ?? null,
       leave_id: opts.taskId || opts.variationId || opts.announcementId ? null : opts.leaveId ?? null,
       project_folder_id: opts.projectFolderId ?? null,
+      ...(opts.submissionId ? { submission_id: opts.submissionId } : {}),
       uploaded_by: opts.userId,
     })
     .select()
@@ -355,6 +358,7 @@ export async function saveNewVersion(
         task_id: original.task_id,
         project_id: original.project_id,
         conversation_id: original.conversation_id,
+        ...(original.submission_id ? { submission_id: original.submission_id } : {}),
       })
       .select("id")
       .single();
@@ -363,6 +367,7 @@ export async function saveNewVersion(
       taskId: original.task_id,
       projectId: original.project_id,
       conversationId: original.conversation_id,
+      submissionId: original.submission_id ?? null,
       commentId: posted.id,
       userId: opts.userId,
       onProgress: opts.onProgress,
@@ -389,10 +394,12 @@ export async function saveNewVersion(
     variationId?: string | null;
     voRound?: string | null;
     voSide?: "sent" | "assessment" | null;
+    submissionId?: string | null;
   } = {
     taskId: original.task_id,
     projectId: original.project_id,
     conversationId: original.conversation_id,
+    submissionId: original.submission_id ?? null,
     recurringId: original.recurring_id ?? null,
     variationId: original.task_id ? null : original.variation_id ?? null,
     voRound: original.task_id ? null : original.vo_round ?? null,
@@ -401,9 +408,10 @@ export async function saveNewVersion(
   let commentId: string | null = null;
 
   if (original.comment_id) {
-    const { data: msg } = await supabase.from("comments").select("task_id, project_id, conversation_id").eq("id", original.comment_id).maybeSingle();
+    const { data: msg } = await supabase.from("comments").select("task_id, project_id, conversation_id, submission_id").eq("id", original.comment_id).maybeSingle();
     if (msg) {
-      where = { taskId: msg.task_id, projectId: msg.project_id, conversationId: msg.conversation_id };
+      // Shared again in the same chat, task thread or submission conversation.
+      where = { taskId: msg.task_id, projectId: msg.project_id, conversationId: msg.conversation_id, submissionId: msg.submission_id ?? null };
       const { data: posted, error } = await supabase
         .from("comments")
         .insert({
@@ -413,6 +421,7 @@ export async function saveNewVersion(
           task_id: msg.task_id,
           project_id: msg.project_id,
           conversation_id: msg.conversation_id,
+          ...(msg.submission_id ? { submission_id: msg.submission_id } : {}),
         })
         .select("id")
         .single();

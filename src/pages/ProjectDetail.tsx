@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useParams } from "react-router-dom";
-import { Building2, CalendarRange, ChevronLeft, FileDiff, FolderOpen, History, Layers, LayoutDashboard, MapPin, MessagesSquare, Pencil, SearchX, SquareCheckBig, Wallet } from "lucide-react";
+import { Building2, CalendarRange, ChevronLeft, FileClock, FileDiff, FolderOpen, History, Layers, LayoutDashboard, MapPin, MessagesSquare, Pencil, SearchX, SquareCheckBig, Wallet } from "lucide-react";
 import { useProjectMap, useTasks } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { sar } from "@/lib/format";
@@ -15,6 +15,7 @@ import { ProjectFiles } from "./project/ProjectFiles";
 import { ProjectForm } from "./project/ProjectForm";
 import { ProjectTasks } from "./project/ProjectTasks";
 import { Variations } from "./project/Variations";
+import { ProjectSubmissions } from "./Submissions";
 import { useActivity } from "./project/api";
 import "@/styles/tasks.css";
 
@@ -22,6 +23,7 @@ const TABS = [
   { key: "", label: "Overview", icon: LayoutDashboard },
   { key: "tasks", label: "Tasks", icon: SquareCheckBig },
   { key: "variations", label: "Variations", icon: FileDiff },
+  { key: "submissions", label: "Submissions", icon: FileClock },
   { key: "boq", label: "BOQ", icon: Layers },
   { key: "chat", label: "Chat", icon: MessagesSquare },
   { key: "files", label: "Files", icon: FolderOpen },
@@ -124,6 +126,7 @@ export default function ProjectDetail() {
       {tab === "" && <Overview project={project} />}
       {tab === "tasks" && <ProjectTasks project={project} />}
       {tab === "variations" && <Variations project={project} />}
+      {tab === "submissions" && <ProjectSubmissions project={project} />}
       {tab === "boq" && <Boq project={project} />}
       {tab === "chat" && (
         <div className="glass card">

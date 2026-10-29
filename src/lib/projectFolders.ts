@@ -38,7 +38,7 @@ export function useProjectFolders(projectId: string) {
 
 /** A file added to the project itself (it can go in a folder), not on a task, VO, announcement or message. */
 export const isProjectLevelFile = (a: Attachment) =>
-  !!a.project_id && !a.task_id && !a.comment_id && !a.conversation_id && !a.recurring_id && !a.variation_id && !a.announcement_id && !a.leave_id;
+  !!a.project_id && !a.task_id && !a.comment_id && !a.conversation_id && !a.recurring_id && !a.variation_id && !a.announcement_id && !a.leave_id && !a.submission_id;
 
 /** A link added to the project itself. */
 export const isProjectLevelLink = (l: DriveLink) => !!l.project_id && !l.task_id && !l.recurring_id && !l.comment_id && !l.variation_id && !l.announcement_id;

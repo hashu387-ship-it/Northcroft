@@ -5,6 +5,7 @@ export const MENU_COLOR = {
   tasks: "#5E5CE6",
   projects: "#FF9F0A",
   volog: "#1D6F42",
+  submissions: "#DC6B19",
   updates: "#AF52DE",
   chats: "#30D158",
   announcements: "#F13E44",

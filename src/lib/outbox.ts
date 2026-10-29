@@ -22,6 +22,8 @@ export interface OutboxRow {
   task_id: string | null;
   project_id: string | null;
   conversation_id: string | null;
+  /** A message in a submission's conversation. */
+  submission_id?: string | null;
 }
 
 interface Base {
@@ -34,7 +36,7 @@ interface Base {
 
 export interface OutboxMessage extends Base {
   kind: "message";
-  /** The thread: "team", "project:<id>", "conv:<id>" or "task:<id>". */
+  /** The thread: "team", "project:<id>", "conv:<id>", "task:<id>" or "submission:<id>". */
   chat: string;
   row: OutboxRow;
   /** Posted already; only its files or links are still to go. */
@@ -284,6 +286,7 @@ async function deliverMessage(it: OutboxMessage, save: (p: Partial<OutboxMessage
       taskId: row.task_id,
       projectId: row.project_id,
       conversationId: row.conversation_id,
+      submissionId: row.submission_id ?? null,
       commentId: it.id,
       userId: it.userId,
     });

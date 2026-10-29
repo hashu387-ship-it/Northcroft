@@ -1,6 +1,6 @@
 import "@/styles/comms.css";
 import { Link } from "react-router-dom";
-import { BarChart3, CalendarDays, ClipboardList, FileSpreadsheet, LogOut, MapPin, Megaphone, MessagesSquare, Settings, type LucideIcon } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardList, FileClock, FileSpreadsheet, LogOut, MapPin, Megaphone, MessagesSquare, Settings, type LucideIcon } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, useConfirm } from "@/components/ui";
 import { useAuth, useMe } from "@/lib/auth";
@@ -9,6 +9,7 @@ import { sendsDailyUpdate } from "@/lib/dailyUpdates";
 import { needsMyAck, useAnnouncementsWithAcks } from "./home/data";
 import { showsManagerLabel } from "@/lib/people";
 import { MENU_COLOR, tileBackground } from "@/lib/menu";
+import { useSubmissionsDue } from "@/lib/submissions";
 
 interface Tile {
   to: string;
@@ -25,12 +26,14 @@ export default function More() {
   const confirm = useConfirm();
   const anns = useAnnouncementsWithAcks();
   const unacked = anns.data.filter((a) => needsMyAck(a, me.id)).length;
+  const subsLate = useSubmissionsDue();
 
   const tiles: Tile[] = [
     { to: "/announcements", label: "Announcements", hint: unacked ? `${unacked} to acknowledge` : "Team news", icon: Megaphone, color: MENU_COLOR.announcements, count: unacked },
     { to: "/calendar", label: "Calendar", hint: "Deadlines and visits", icon: CalendarDays, color: MENU_COLOR.calendar },
     { to: "/chats", label: "Chats", hint: "Team, projects, groups", icon: MessagesSquare, color: MENU_COLOR.chats },
     { to: "/vo-log", label: "VO log", hint: "Every project's VOs", icon: FileSpreadsheet, color: MENU_COLOR.volog },
+    { to: "/submissions", label: "Submissions", hint: subsLate ? `${subsLate} late or due today` : "What's due, and when", icon: FileClock, color: MENU_COLOR.submissions, count: subsLate },
     ...(!me.attendance_exempt
       ? [{ to: "/attendance", label: "Check in", hint: "Arrive and leave", icon: MapPin, color: MENU_COLOR.attendance }]
       : canAssign

@@ -1,18 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { FileDiff, Plus, Trash2 } from "lucide-react";
+import { FileClock, FileDiff, Plus, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { useInvalidate, usePeople } from "@/lib/api";
+import { useProjectTeams } from "@/lib/projectTeam";
+import { canEditSubmissions, sortSubmissions, useSubmissions } from "@/lib/submissions";
 import { useAuth, useMe } from "@/lib/auth";
 import { VO_STATUS, VO_STATUS_ORDER } from "@/lib/constants";
 import { num, parseMoney, pct, plural, sar } from "@/lib/format";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { dateOf, dueState, fmtDate, fmtDue, todayISO } from "@/lib/time";
-import type { Priority, Project, Variation, VoStatus } from "@/lib/types";
+import type { Priority, Project, Submission, Variation, VoStatus } from "@/lib/types";
+import { SubmissionRow, SubmissionSheet } from "@/components/Submission";
 import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, PriorityFlag, PriorityPicker, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
 import { VO_APPROVED, VO_PENDING, dueInline, nextVoNumber, useVariations, voTotals } from "./api";
 import { ownersOf } from "@/lib/people";
-import { VoLogFields, voLogForm, voLogLine, voLogRow, type VoLogForm } from "./VoLog";
+import { VoLogFields, mergeRounds, voLogForm, voLogLine, voLogRow, type VoLogForm } from "./VoLog";
 
 type Filter = "all" | "pending" | "approved" | "closed_out";
 const INITIATORS = ["Client", "Engineer", "Contractor", "Consultant", "Other"];
@@ -288,10 +291,14 @@ export function VoSheet({
   });
   const [log, setLog] = useState<VoLogForm>(() => voLogForm(null));
   const [saving, setSaving] = useState(false);
+  // The revisions as they were when the form was filled, to tell which ones were edited here.
+  const loadedRounds = useRef<VoLogForm["submissions"]>([]);
 
   useEffect(() => {
     if (!open) return;
-    setLog(voLogForm(vo));
+    const l = voLogForm(vo);
+    loadedRounds.current = l.submissions;
+    setLog(l);
     setF({
       vo_number: vo?.vo_number ?? suggestedNumber,
       title: vo?.title ?? "",
@@ -309,6 +316,18 @@ export function VoSheet({
       notes: vo?.notes ?? "",
     });
   }, [open, vo?.id]);
+
+  // A submission marked sent while this is open adds a revision to the VO: bring it in, so saving
+  // the form doesn't take it off again.
+  const roundsJson = JSON.stringify(vo?.submissions ?? []);
+  useEffect(() => {
+    if (!open || !vo || (vo.submissions ?? []).some((x) => !x.key)) return;
+    const fresh = voLogForm(vo).submissions;
+    const loaded = loadedRounds.current;
+    loadedRounds.current = fresh;
+    setLog((l) => ({ ...l, submissions: mergeRounds(l.submissions, loaded, fresh) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundsJson]);
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }));
 
@@ -434,6 +453,7 @@ export function VoSheet({
           <input className="input" type="date" value={f.approved_date} onChange={(e) => set("approved_date", e.target.value)} />
         </Field>
         <VoLogFields value={log} onChange={setLog} vo={vo} />
+        {vo && <VoSubmissions vo={vo} project={project} />}
         <Field label="Details" className="full">
           <textarea className="textarea" value={f.description} onChange={(e) => set("description", e.target.value)} placeholder="Scope of the change, instruction reference, drawings" />
         </Field>
@@ -448,5 +468,61 @@ export function VoSheet({
         )}
       </div>
     </Sheet>
+  );
+}
+
+/** A VO's submissions: what's still to send for it and by when, and what has gone. */
+function VoSubmissions({ vo, project }: { vo: Variation; project: Project }) {
+  const me = useMe();
+  const { canAssign } = useAuth();
+  const teams = useProjectTeams();
+  const subs = useSubmissions({ variationId: vo.id });
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  // One just added shows straight away, before the list has reloaded with it.
+  const [made, setMade] = useState<Submission | null>(null);
+  const list = sortSubmissions(subs.data ?? []);
+  const vos = useMemo(() => new Map([[vo.id, vo]]), [vo]);
+  const opened = openId ? list.find((s) => s.id === openId) ?? (made?.id === openId ? made : null) : null;
+  const canAdd = canEditSubmissions(project.id, me.id, canAssign, teams.team);
+  return (
+    <div className="full vo-rounds">
+      <div className="vo-rounds-head">
+        <b className="sub-h">
+          <FileClock /> Submissions
+        </b>
+        {canAdd && (
+          <button type="button" className="btn small" onClick={() => setAdding(true)}>
+            <Plus /> Add submission
+          </button>
+        )}
+      </div>
+      <p className="faint small" style={{ margin: "0 0 4px" }}>
+        What's due to send for this VO, with the days left. Marking one sent adds it to the revisions above.
+      </p>
+      {list.length === 0 ? (
+        <p className="faint small vo-rounds-empty">{subs.isLoading ? "Loading..." : "No deadlines for this VO yet."}</p>
+      ) : (
+        <div className="vo-subs">
+          {list.map((s: Submission) => (
+            <SubmissionRow key={s.id} s={s} vos={vos} project={project} showProject={false} compact onOpen={() => setOpenId(s.id)} />
+          ))}
+        </div>
+      )}
+      <SubmissionSheet
+        open={adding || !!opened}
+        onClose={() => {
+          setAdding(false);
+          setOpenId(null);
+        }}
+        submission={opened}
+        defaults={{ projectId: project.id, variationId: vo.id }}
+        onCreated={(s) => {
+          setMade(s);
+          setAdding(false);
+          setOpenId(s.id);
+        }}
+      />
+    </div>
   );
 }

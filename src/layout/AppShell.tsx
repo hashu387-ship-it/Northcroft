@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ClipboardList,
+  FileClock,
   FileSpreadsheet,
   FolderKanban,
   House,
@@ -23,6 +24,7 @@ import { usePeople, useUnreadCount } from "@/lib/api";
 import { useChats } from "@/lib/chats";
 import { useAuth, useMe } from "@/lib/auth";
 import { useRealtime } from "@/lib/realtime";
+import { useSubmissionsDue } from "@/lib/submissions";
 import { MENU_COLOR, tileBackground } from "@/lib/menu";
 import { useOnlineTracking } from "@/lib/online";
 import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/push";
@@ -100,6 +102,7 @@ export default function AppShell() {
   const unacked = useUnackedCount(me.id).data ?? 0;
   const people = usePeople();
   const chatUnread = useChats(me.id, people).unread;
+  const subsDue = useSubmissionsDue();
 
   useRealtime(me.id);
   useOnlineTracking(me.id);
@@ -193,6 +196,8 @@ export default function AppShell() {
         { to: "/projects", label: "Projects", icon: FolderKanban, color: MENU_COLOR.projects },
         // Every project's VOs in one table, laid out like the VO log spreadsheet.
         { to: "/vo-log", label: "VO log", icon: FileSpreadsheet, color: MENU_COLOR.volog },
+        // Deadlines for what the team has to send, with the days left on each.
+        { to: "/submissions", label: "Submissions", icon: FileClock, color: MENU_COLOR.submissions, count: subsDue },
         // The team sends a daily update; managers and seniors read everyone's.
         ...(sendsDailyUpdate(me) || canAssign ? [{ to: "/updates", label: "Daily updates", icon: ClipboardList, color: MENU_COLOR.updates }] : []),
       ],
@@ -349,7 +354,7 @@ export default function AppShell() {
           Inbox
           {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
         </NavLink>
-        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/vo-log", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
+        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/vo-log", "/submissions", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
           {tabIcon(Ellipsis, MENU_COLOR.more)}
           More
           {!!unacked && <span className="dot">{unacked}</span>}

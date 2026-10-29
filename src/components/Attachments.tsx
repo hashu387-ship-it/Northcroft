@@ -32,6 +32,8 @@ export interface AttachmentsWhere {
   knownRounds?: string[];
   announcementId?: string | null;
   leaveId?: string | null;
+  /** Files on a submission (its own, and those posted in its conversation). */
+  submissionId?: string | null;
 }
 
 /**
@@ -40,10 +42,18 @@ export interface AttachmentsWhere {
  * (the Project folder, its folders and "From tasks and VOs"), so it's loaded once.
  */
 export function useAttachmentList(w: AttachmentsWhere) {
-  const { taskId, projectId, repeatOf, variationId, voRound, voSide, knownRounds, announcementId, leaveId } = w;
+  const { taskId, projectId, repeatOf, variationId, voRound, voSide, knownRounds, announcementId, leaveId, submissionId } = w;
   return useQuery({
-    queryKey: ["attachments", taskId ? "task" : variationId ? "vo" : announcementId ? "announcement" : leaveId ? "leave" : "project", taskId ?? variationId ?? announcementId ?? leaveId ?? projectId, repeatOf ?? null, voRound ?? null, voSide ?? null, (knownRounds ?? []).join(",")],
-    enabled: !!(taskId || variationId || announcementId || leaveId || projectId),
+    queryKey: [
+      "attachments",
+      taskId ? "task" : variationId ? "vo" : announcementId ? "announcement" : leaveId ? "leave" : submissionId ? "submission" : "project",
+      taskId ?? variationId ?? announcementId ?? leaveId ?? submissionId ?? projectId,
+      repeatOf ?? null,
+      voRound ?? null,
+      voSide ?? null,
+      (knownRounds ?? []).join(","),
+    ],
+    enabled: !!(taskId || variationId || announcementId || leaveId || submissionId || projectId),
     queryFn: async () => {
       let query = supabase.from("attachments").select("*");
       if (taskId && repeatOf) query = query.or(`task_id.eq.${taskId},recurring_id.eq.${repeatOf}`);
@@ -52,6 +62,7 @@ export function useAttachmentList(w: AttachmentsWhere) {
         if (voRound) query = query.eq("vo_round", voRound).eq("vo_side", voSide ?? "sent");
       } else if (announcementId) query = query.eq("announcement_id", announcementId);
       else if (leaveId) query = query.eq("leave_id", leaveId);
+      else if (submissionId) query = query.eq("submission_id", submissionId);
       else query = taskId ? query.eq("task_id", taskId) : query.eq("project_id", projectId!);
       let rows = await unwrap<Attachment[]>(query.order("created_at", { ascending: false }).limit(500));
       // Supporting files: no revision, or one that has been taken off.
@@ -88,6 +99,7 @@ export function Attachments({
   onMove,
   toolbar = true,
   sortByName,
+  submissionId,
 }: {
   taskId?: string | null;
   projectId?: string | null;
@@ -123,6 +135,8 @@ export function Attachments({
   toolbar?: boolean;
   /** A to Z instead of newest first. */
   sortByName?: boolean;
+  /** Files on a submission. */
+  submissionId?: string | null;
 }) {
   const me = useMe();
   const { canAssign } = useAuth();
@@ -136,7 +150,7 @@ export function Attachments({
   const [progress, setProgress] = useState<string | null>(null);
   const driveOn = !!useSettings().data?.drive_connected_at;
 
-  const q = useAttachmentList({ taskId, projectId, repeatOf, variationId, voRound, voSide, knownRounds, announcementId, leaveId });
+  const q = useAttachmentList({ taskId, projectId, repeatOf, variationId, voRound, voSide, knownRounds, announcementId, leaveId, submissionId });
   usePreviewUpdates();
 
   async function onFiles(list: FileList | File[] | null) {
@@ -154,6 +168,7 @@ export function Attachments({
           announcementId: announcementId ?? null,
           leaveId: leaveId ?? null,
           projectFolderId: projectFolderId ?? null,
+          submissionId: submissionId ?? null,
           userId: me.id,
           onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
         });

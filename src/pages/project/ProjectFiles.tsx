@@ -30,6 +30,7 @@ import { DriveLinks } from "@/components/DriveLinks";
 import { DropZone } from "@/components/DropZone";
 import { Empty, Field, Sheet, useConfirm, useToast } from "@/components/ui";
 import { useVariations } from "./api";
+import { useSubmissions } from "@/lib/submissions";
 
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 const short = (s: string, max = 40) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}...` : s);
@@ -51,6 +52,7 @@ export function ProjectFiles({ project }: { project: Project }) {
   const links = useDriveLinks({ projectId: project.id });
   const tasks = useTasks({ projectId: project.id });
   const variations = useVariations(project.id);
+  const subs = useSubmissions({ projectId: project.id });
 
   // Where we are: ?folder=<id>, or the top of the Project folder.
   const wanted = params.get("folder");
@@ -90,7 +92,19 @@ export function ProjectFiles({ project }: { project: Project }) {
   // "Task: BOQ check", "VO 02", "Announcement", "Project chat".
   const taskTitle = useMemo(() => new Map((tasks.data ?? []).map((t) => [t.id, t.title])), [tasks.data]);
   const voNumber = useMemo(() => new Map((variations.data ?? []).map((v) => [v.id, v.vo_number])), [variations.data]);
-  const fromLabel = (x: { task_id: string | null; recurring_id?: string | null; variation_id?: string | null; announcement_id?: string | null; comment_id?: string | null }) => {
+  const subTitle = useMemo(() => new Map((subs.data ?? []).map((s) => [s.id, s.title])), [subs.data]);
+  const fromLabel = (x: {
+    task_id: string | null;
+    recurring_id?: string | null;
+    variation_id?: string | null;
+    announcement_id?: string | null;
+    comment_id?: string | null;
+    submission_id?: string | null;
+  }) => {
+    if (x.submission_id) {
+      const t = subTitle.get(x.submission_id);
+      return t ? `Submission: ${short(t)}` : "Submission";
+    }
     if (x.task_id) {
       const t = taskTitle.get(x.task_id);
       return t ? `Task: ${short(t)}` : "Task";

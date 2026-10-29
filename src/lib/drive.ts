@@ -61,6 +61,8 @@ export interface DriveTarget {
   leaveId?: string | null;
   /** A file added to the project itself, into this folder of its Project folder. */
   projectFolderId?: string | null;
+  /** A file on a submission, or posted in its conversation. */
+  submissionId?: string | null;
 }
 
 /**
@@ -81,6 +83,7 @@ export async function uploadToDrive(file: File, target: DriveTarget, onProgress?
     announcement_id: target.announcementId ?? null,
     leave_id: target.leaveId ?? null,
     project_folder_id: target.projectFolderId ?? null,
+    ...(target.submissionId ? { submission_id: target.submissionId } : {}),
   };
   const { upload_url } = await driveCall<{ upload_url: string }>("start_upload", {
     ...ids,

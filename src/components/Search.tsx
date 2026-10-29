@@ -346,7 +346,7 @@ function describe(hit: SearchHit, name: (id: string) => string | undefined): { s
     }
     case "message": {
       const where =
-        m.where_kind === "task" ? `On the task ${m.where ?? ""}` : m.where_kind === "direct" ? `Chat with ${m.where ?? "a former team member"}` : m.where_kind === "project" ? `${m.where ?? "Project"} chat` : (m.where ?? "Team chat");
+        m.where_kind === "task" ? `On the task ${m.where ?? ""}` : m.where_kind === "submission" ? `On the submission ${m.where ?? ""}` : m.where_kind === "direct" ? `Chat with ${m.where ?? "a former team member"}` : m.where_kind === "project" ? `${m.where ?? "Project"} chat` : (m.where ?? "Team chat");
       return { sub: join(where, m.voice ? "Voice note" : null), snippet: hit.snippet };
     }
     case "file":

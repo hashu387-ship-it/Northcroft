@@ -27,6 +27,9 @@ import { useBoqBetween, useEventsBetween, useVosBetween } from "./home/data";
 import { ActionPoints } from "./calendar/ActionPoints";
 import { fmtLeaveDates, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 import { nameList, ownersOf, peopleOn } from "@/lib/people";
+import { useProjectTeams } from "@/lib/projectTeam";
+import { SUBMISSION_COLOR, SUBMISSION_KIND, isMySubmission, submissionDue, submissionLabel, useSubmissions } from "@/lib/submissions";
+import { useVariations } from "./project/api";
 
 type View = "month" | "agenda";
 type Scope = "all" | "mine";
@@ -34,7 +37,7 @@ type Scope = "all" | "mine";
 interface Item {
   id: string;
   date: string;
-  kind: "event" | "task" | "boq" | "vo" | "leave";
+  kind: "event" | "task" | "boq" | "vo" | "submission" | "leave";
   title: string;
   sub: string;
   color: string;
@@ -45,7 +48,7 @@ interface Item {
   sort: string;
 }
 
-const KIND_RANK = { event: "0", leave: "0", task: "1", vo: "2", boq: "3" } as const;
+const KIND_RANK = { event: "0", leave: "0", task: "1", submission: "2", vo: "2", boq: "3" } as const;
 const TASK_COLOR = "#0A84FF";
 const BOQ_COLOR = "#30B0C7";
 const VO_COLOR = "#BF5AF2";
@@ -88,6 +91,9 @@ export default function Calendar() {
   const boqs = useBoqBetween(from, to);
   const vos = useVosBetween(from, to);
   const away = useTeamLeave(from, to);
+  const subs = useSubmissions();
+  const allVos = useVariations().data;
+  const teams = useProjectTeams();
   const loading = tasks.isLoading || events.isLoading || boqs.isLoading || vos.isLoading;
 
   // Opened from search or a link (?event=<id>): show that entry once it has loaded.
@@ -149,6 +155,23 @@ export default function Calendar() {
         sort: `${KIND_RANK.vo}${v.vo_number}`,
       });
     }
+    // Submissions still to send, on their deadline.
+    const voById = new Map((allVos ?? []).map((v) => [v.id, v]));
+    const myProjects = teams.projectsOf(me.id);
+    for (const s of subs.data ?? []) {
+      if (s.status !== "open" || s.due_on < from || s.due_on > to) continue;
+      out.push({
+        id: `s-${s.id}`,
+        date: s.due_on,
+        kind: "submission",
+        title: `${submissionLabel(s, voById)} due`,
+        sub: [s.rev, SUBMISSION_KIND[s.kind].short === "Other" ? null : SUBMISSION_KIND[s.kind].label, submissionDue(s, today).text, projects.get(s.project_id)?.name].filter(Boolean).join(" · "),
+        color: SUBMISSION_COLOR,
+        link: `/submissions?id=${s.id}`,
+        mine: isMySubmission(s, me.id, false, myProjects),
+        sort: `${KIND_RANK.submission}${s.title}`,
+      });
+    }
     for (const b of boqs.data ?? []) {
       if (!b.due_date) continue;
       out.push({
@@ -184,7 +207,7 @@ export default function Calendar() {
       }
     }
     return out.filter((i) => scope === "all" || i.mine).sort((a, b) => a.sort.localeCompare(b.sort));
-  }, [events.data, tasks.data, vos.data, boqs.data, away.data, from, to, scope, me.id, people, projects, settings?.work_days]);
+  }, [events.data, tasks.data, vos.data, boqs.data, away.data, subs.data, allVos, teams, today, from, to, scope, me.id, people, projects, settings?.work_days]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, Item[]>();
@@ -299,6 +322,9 @@ export default function Calendar() {
                 </span>
                 <span>
                   <i className="dot-swatch" style={{ background: VO_COLOR }} /> VO action
+                </span>
+                <span>
+                  <i className="dot-swatch" style={{ background: SUBMISSION_COLOR }} /> Submission due
                 </span>
                 <span>
                   <i className="dot-swatch" style={{ background: BOQ_COLOR }} /> BOQ due

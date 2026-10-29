@@ -218,11 +218,11 @@ export async function driveFileAttachment(screenId: string): Promise<Attachment 
     .maybeSingle();
   if (!link || link.removed_at) return null;
   // A link in a message: the file belongs to that chat (or task thread).
-  let where = { task_id: link.task_id as string | null, project_id: link.project_id as string | null, conversation_id: null as string | null };
+  let where = { task_id: link.task_id as string | null, project_id: link.project_id as string | null, conversation_id: null as string | null, submission_id: null as string | null };
   if (link.comment_id) {
-    const { data: msg } = await supabase.from("comments").select("task_id, project_id, conversation_id").eq("id", link.comment_id).maybeSingle();
+    const { data: msg } = await supabase.from("comments").select("task_id, project_id, conversation_id, submission_id").eq("id", link.comment_id).maybeSingle();
     if (!msg) return null;
-    where = { task_id: msg.task_id, project_id: msg.project_id, conversation_id: msg.conversation_id };
+    where = { task_id: msg.task_id, project_id: msg.project_id, conversation_id: msg.conversation_id, submission_id: msg.submission_id ?? null };
   }
   const f = await driveCall<DriveItem>("link_file", { link_id: p.linkId, file_id: p.fileId, file_rk: p.rk ?? "" });
   return {
@@ -237,6 +237,7 @@ export async function driveFileAttachment(screenId: string): Promise<Attachment 
     uploaded_by: link.added_by,
     drive_file_id: null,
     conversation_id: where.conversation_id,
+    submission_id: where.submission_id,
     version_of: null,
     version: 1,
     recurring_id: link.comment_id ? null : link.recurring_id,

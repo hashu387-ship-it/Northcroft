@@ -24,6 +24,7 @@ import { TaskRow } from "@/components/TaskRow";
 import { OngoingTasksCard } from "@/components/TeamTasks";
 import { useApprover, useTaskRequests } from "@/lib/taskApproval";
 import { OnlineCard } from "@/components/OnlineCard";
+import { SubmissionsHomeCard } from "@/components/Submission";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
 import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
@@ -189,6 +190,7 @@ export default function Home() {
         <div className="stack">
           <OnlineCard />
           <AnnouncementCard />
+          <SubmissionsHomeCard />
           <QsAlertsCard />
           <EventsCard />
         </div>

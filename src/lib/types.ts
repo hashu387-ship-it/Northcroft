@@ -180,6 +180,8 @@ export interface Comment {
   event: ChatEvent | null;
   /** Set when the message was forwarded from another one (shown as "Forwarded"). */
   forwarded_from?: string | null;
+  /** Set for a message in a submission's conversation (it never shows in the project chat). */
+  submission_id?: string | null;
 }
 
 export type ChatEvent = "created" | "added" | "removed" | "left" | "renamed" | "admin";
@@ -214,6 +216,8 @@ export interface Attachment {
   leave_id?: string | null;
   /** For a file added to the project itself: the folder it's in (null: the top of the Project folder). */
   project_folder_id?: string | null;
+  /** Set for a file on a submission (or posted in its conversation). */
+  submission_id?: string | null;
   /** A PDF's or drawing's preview picture (0043): made and kept ('ready'), or the file couldn't be
    *  drawn ('failed'); null until someone's phone or computer has made it. */
   preview?: "ready" | "failed" | null;
@@ -696,5 +700,36 @@ export interface LunchBreak {
   reminded_over_at: string | null;
   watchers_told_at: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+/* ---------------------------------------------------------------- submissions (0044) */
+export type SubmissionKind = "vo" | "boq" | "payment" | "letter" | "other";
+export type SubmissionStatus = "open" | "sent" | "cancelled";
+
+/**
+ * A deadline for something the team has to send: a VO revision, a BOQ, a payment application, a
+ * letter. It has its own files and conversation, and the project's team hears about it.
+ */
+export interface Submission {
+  id: string;
+  project_id: string;
+  /** The VO it's for (then kind is "vo" and the project is the VO's). */
+  variation_id: string | null;
+  kind: SubmissionKind;
+  title: string;
+  /** The revision's name ("Rev 1"); optional. */
+  rev: string | null;
+  details: string | null;
+  due_on: string;
+  status: SubmissionStatus;
+  sent_on: string | null;
+  sent_by: string | null;
+  /** The VO revision made when a VO submission was marked sent. */
+  revision_key: string | null;
+  reminded: string[];
+  created_by: string | null;
+  created_at: string;
+  updated_by: string | null;
   updated_at: string;
 }

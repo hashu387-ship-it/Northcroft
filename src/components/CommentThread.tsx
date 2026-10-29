@@ -55,6 +55,8 @@ import { WORDING_MIN } from "@/lib/wording";
 
 export type Scope =
   | { kind: "task"; taskId: string; projectId: string | null }
+  /** The conversation on a submission: like task comments, never in the project chat. */
+  | { kind: "submission"; submissionId: string; projectId: string }
   | { kind: "project"; projectId: string }
   | { kind: "team" }
   /** A private group or one-to-one chat. `members` are the people in it now. */
@@ -63,6 +65,8 @@ export type Scope =
 function scopeKey(s: Scope) {
   return s.kind === "task"
     ? ["task", s.taskId]
+    : s.kind === "submission"
+      ? ["submission", s.submissionId]
     : s.kind === "project"
       ? ["project", s.projectId]
       : s.kind === "conversation"
@@ -141,7 +145,8 @@ export function CommentThread({
   const invalidate = useInvalidate();
   const openFile = useOpenFile();
   const listRef = useRef<HTMLDivElement>(null);
-  const isChat = scope.kind !== "task";
+  // Task and submission conversations are comments, not chats (no seen ticks, typing or pins).
+  const isChat = scope.kind !== "task" && scope.kind !== "submission";
   const direct = scope.kind === "conversation" && scope.direct;
   const chatKey = chatKeyOf(scope);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
@@ -161,7 +166,9 @@ export function CommentThread({
     queryFn: async () => {
       let q = supabase.from("comments").select("*");
       if (scope.kind === "task") q = q.eq("task_id", scope.taskId);
-      else if (scope.kind === "project") q = q.eq("project_id", scope.projectId).is("task_id", null);
+      else if (scope.kind === "submission") q = q.eq("submission_id", scope.submissionId);
+      // A project's chat leaves out its task comments and its submissions' conversations.
+      else if (scope.kind === "project") q = q.eq("project_id", scope.projectId).is("task_id", null).is("submission_id", null);
       else if (scope.kind === "conversation") q = q.eq("conversation_id", scope.conversationId);
       else q = q.is("task_id", null).is("project_id", null).is("conversation_id", null);
       const rows = await unwrap<Comment[]>(q.order("created_at", { ascending: false }).limit(300));
@@ -229,7 +236,7 @@ export function CommentThread({
   // Who receives messages here (for seen ticks), not counting me.
   const audience = useMemo(() => {
     if (scope.kind === "conversation") return scope.members.filter((id) => id !== me.id);
-    if (scope.kind === "task") return [];
+    if (scope.kind === "task" || scope.kind === "submission") return [];
     return people.active.filter((p) => p.id !== me.id).map((p) => p.id);
   }, [scope, people.active, me.id]);
   // Who can be @mentioned: the people in a group, nobody in a one-to-one chat, everyone elsewhere.
@@ -883,8 +890,9 @@ function Composer({
   function where() {
     return {
       task_id: scope.kind === "task" ? scope.taskId : null,
-      project_id: scope.kind === "task" ? scope.projectId : scope.kind === "project" ? scope.projectId : null,
+      project_id: scope.kind === "task" || scope.kind === "project" || scope.kind === "submission" ? scope.projectId : null,
       conversation_id: conversationId,
+      ...(scope.kind === "submission" ? { submission_id: scope.submissionId } : {}),
     };
   }
 
@@ -1047,6 +1055,7 @@ function Composer({
           taskId: row.task_id,
           projectId: row.project_id,
           conversationId,
+          submissionId: scope.kind === "submission" ? scope.submissionId : null,
           commentId: data.id,
           userId: me.id,
           onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
@@ -1054,8 +1063,8 @@ function Composer({
         done.files++;
       }
       setFiles([]);
-      // In chats everyone is notified anyway, so only confirm mentions on task comments.
-      if (mentions.length && scope.kind === "task") {
+      // In chats everyone is notified anyway, so only confirm mentions on task and submission comments.
+      if (mentions.length && (scope.kind === "task" || scope.kind === "submission")) {
         const names = mentions.map((id) => people.get(id)?.short_name).filter(Boolean);
         toast(names.length > 3 ? `Notified ${names.length} people` : `Notified ${names.join(", ")}`, "info");
       }
@@ -1193,7 +1202,7 @@ function Composer({
               <CheckWording
                 compact
                 value={body}
-                kind={scope.kind === "task" ? "comment" : "chat"}
+                kind={scope.kind === "task" || scope.kind === "submission" ? "comment" : "chat"}
                 onUse={(v) => {
                   onChange(v);
                   ref.current?.focus();

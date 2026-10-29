@@ -63,6 +63,31 @@ export function voLogForm(vo: Variation | null): VoLogForm {
   };
 }
 
+/**
+ * Revisions changed elsewhere while the VO form is open (marking a submission sent adds one, and
+ * someone else may save the VO). New ones come in, ones not touched here take the saved version,
+ * and ones being edited here are kept as they are.
+ */
+export function mergeRounds(current: VoLogForm["submissions"], loaded: VoLogForm["submissions"], fresh: VoLogForm["submissions"]) {
+  const same = (a: RoundForm, b: RoundForm) => JSON.stringify(a) === JSON.stringify(b);
+  const loadedBy = new Map(loaded.map((r) => [r.key, r]));
+  const freshBy = new Map(fresh.map((r) => [r.key, r]));
+  const out: RoundForm[] = [];
+  for (const r of current) {
+    const was = loadedBy.get(r.key);
+    const now = freshBy.get(r.key);
+    // Added here and not saved yet.
+    if (!was) out.push(r);
+    // Gone from the saved VO: dropped too, unless it's being edited here.
+    else if (!now) {
+      if (!same(r, was)) out.push(r);
+    } else out.push(same(r, was) ? now : r);
+  }
+  // New ones saved elsewhere (not ones removed here, which were in what was loaded).
+  for (const r of fresh) if (!loadedBy.has(r.key) && !out.some((x) => x.key === r.key)) out.push(r);
+  return out;
+}
+
 /** What gets saved: blanks become empty, empty rounds are dropped. */
 export function voLogRow(f: VoLogForm) {
   const t = (s: string) => s.trim() || null;
