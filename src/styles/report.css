@@ -97,6 +97,10 @@
 
 .rp-foot { padding: 12px 28px 16px; border-top: 1px solid var(--rp-line); font-size: 11.5px; color: var(--rp-muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
+/* ---- the PDF copy: an A4 page, no rounded card, and job titles stay in the app */
+.rp-doc.rp-paper { max-width: none; width: 720px; border-radius: 0; box-shadow: none; }
+.rp-paper .rp-role, .rp-paper .rp-foot { display: none !important; }
+
 /* ---- phones */
 @media (max-width: 560px) {
   .rp-doc { border-radius: 12px; font-size: 13px; }
@@ -117,6 +121,7 @@
   @page { size: A4; margin: 14mm 12mm; }
   html, body { background: #fff !important; margin: 0; }
   .rp-doc { max-width: none; border-radius: 0; box-shadow: none; font-size: 10.5pt; }
+  .rp-role { display: none !important; }
   .rp-doc.rp-with-team .rp-person { break-before: page; border-top: 0; padding-top: 0; }
   .rp-section-head, .rp-project h3, .rp-label { break-after: avoid; }
   .rp-tasks tr, .rp-blockers li, .rp-projects li, .rp-stat { break-inside: avoid; }

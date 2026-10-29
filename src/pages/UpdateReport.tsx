@@ -67,21 +67,33 @@ function Report({ kind, start, end, who }: { kind: ReportKind; start: string; en
   // The PDF is made as soon as the report is in, so Send can open the share menu straight away.
   const version = rows.map((r) => `${r.id}:${r.updated_at}:${r.status}`).join("|");
   const [pdf, setPdf] = useState<{ version: string; blob: Blob } | null>(null);
+  const reportEl = () => docRef.current?.querySelector(".rp-doc") as HTMLElement | null;
   useEffect(() => {
     if (!rows.length || writing) return;
     let gone = false;
-    buildReportPdf({ kind, start, end, team: view.team, people: view.people, over })
-      .then((blob) => !gone && setPdf({ version, blob }))
-      .catch(() => undefined);
+    // A moment after it's on screen (fonts in), so the copy matches what's shown.
+    const t = window.setTimeout(() => {
+      const el = reportEl();
+      if (!el) return;
+      buildReportPdf(el, title)
+        .then((blob) => !gone && setPdf({ version, blob }))
+        .catch(() => undefined);
+    }, 600);
     return () => {
       gone = true;
+      window.clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version, writing]);
-  const pdfFor = async () => (pdf && pdf.version === version ? pdf.blob : buildReportPdf({ kind, start, end, team: view.team, people: view.people, over }));
+  const pdfFor = async () => {
+    if (pdf && pdf.version === version) return pdf.blob;
+    const el = reportEl();
+    if (!el) throw new Error("no report");
+    return buildReportPdf(el, title);
+  };
 
   const onPrint = async () => {
-    const el = docRef.current?.querySelector(".rp-doc") as HTMLElement | null;
+    const el = reportEl();
     if (!el) return;
     setBusy("print");
     try {
