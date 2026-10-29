@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import {
+  CalendarRange,
   Archive,
   ArchiveRestore,
   AtSign,
@@ -64,6 +65,7 @@ const TYPE_META: Record<string, { icon: LucideIcon; color: string; label: string
   daily_update: { icon: ClipboardList, color: "#0A84FF", label: "Daily update" },
   daily_update_edit: { icon: ClipboardList, color: "#0A84FF", label: "Daily update" },
   daily_update_reply: { icon: MessageCircle, color: "#FF9F0A", label: "Blocker reply" },
+  weekly_update: { icon: CalendarRange, color: "#30B0C7", label: "Weekly update" },
   checklist_assigned: { icon: ListChecks, color: "#0A84FF", label: "Checklist step" },
   mention: { icon: AtSign, color: "#FF375F", label: "Mention" },
   comment: { icon: MessageCircle, color: "#30B0C7", label: "Comment" },

@@ -15,20 +15,24 @@ import { Avatar, Empty, Loading, Pill, Segmented } from "@/components/ui";
 import { UpdateForm } from "./updates/UpdateForm";
 import { UpdateCard } from "./updates/UpdateCard";
 import { PeopleBoard } from "./updates/PeopleBoard";
+import { Weekly } from "./updates/Weekly";
 
-type Tab = "mine" | "team" | "board";
+type Tab = "mine" | "team" | "board" | "week";
 
 export default function DailyUpdates() {
   const me = useMe();
   const { canAssign } = useAuth();
   const mine = sendsDailyUpdate(me);
   const [params, setParams] = useSearchParams();
-  // Members only have their own; managers have the team's day and the people board; seniors have all three.
+  // Members have their own day and their weeks; managers have the team's day, the people board and
+  // the team's weeks; seniors have all four.
   const asked = params.get("tab");
-  const tab: Tab = !canAssign ? "mine" : asked === "board" ? "board" : asked === "team" || !mine ? "team" : "mine";
+  const tab: Tab =
+    asked === "week" ? "week" : !canAssign ? "mine" : asked === "board" ? "board" : asked === "team" || !mine ? "team" : "mine";
   const tabs: { value: Tab; label: string }[] = [
     ...(mine ? [{ value: "mine" as Tab, label: "My update" }] : []),
     ...(canAssign ? [{ value: "team" as Tab, label: mine ? "Team" : "Updates" }, { value: "board" as Tab, label: "People" }] : []),
+    { value: "week" as Tab, label: "Weekly" },
   ];
 
   if (!mine && !canAssign) {
@@ -47,7 +51,11 @@ export default function DailyUpdates() {
       <PageHead
         title="Daily updates"
         sub={
-          mine && canAssign
+          tab === "week"
+            ? canAssign
+              ? "Each week, Sunday to Thursday, written up from the daily updates on Friday morning."
+              : "Your week, Sunday to Thursday, written up from your daily updates on Friday morning."
+            : mine && canAssign
             ? "Send yours before you check out, and see the team's day."
             : mine
               ? "Before you check out, say how far your tasks got and what you did on them."
@@ -63,7 +71,7 @@ export default function DailyUpdates() {
           />
         </div>
       )}
-      {tab === "mine" ? <MyUpdates /> : tab === "team" ? <TeamDay /> : <PeopleBoard />}
+      {tab === "mine" ? <MyUpdates /> : tab === "team" ? <TeamDay /> : tab === "board" ? <PeopleBoard /> : <Weekly />}
     </div>
   );
 }

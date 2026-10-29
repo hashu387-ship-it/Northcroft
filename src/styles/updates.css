@@ -197,3 +197,26 @@
 .du-reply-form { display: flex; gap: 8px; align-items: flex-end; }
 .du-reply-form .textarea { flex: 1; min-height: 38px; resize: vertical; background: var(--solid); }
 .du-reply-form .btn { flex: none; }
+
+/* ---- the weekly update */
+.wk-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.wk-card .du-card-head > span:first-child { min-width: 0; }
+.wk-text { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text); overflow-wrap: anywhere; }
+.wk-error { margin: 0; padding: 10px 12px; border-radius: var(--r-sm); background: var(--red-soft); color: var(--text); font-size: 13.5px; }
+.wk-handed { display: inline-flex; align-items: center; gap: 4px; color: var(--green); font-weight: 600; }
+.wk-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.wk-notes li { font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
+.wk-notes .pill { vertical-align: 1px; margin-left: 2px; }
+.wk-projects { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.wk-projects li { display: flex; flex-direction: column; gap: 4px; padding-top: 12px; border-top: 1px solid var(--separator); }
+.wk-projects li:first-child { padding-top: 0; border-top: 0; }
+.wk-attention { padding: 10px 12px; border-radius: var(--r-sm); background: var(--orange-soft); }
+.wk-attention .field-label { display: inline-flex; align-items: center; gap: 5px; color: var(--orange); }
+.wk-stats { grid-template-columns: repeat(4, 1fr); }
+.wk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wk-coming { display: flex; align-items: flex-start; gap: 12px; }
+.wk-coming > svg { flex: none; width: 22px; height: 22px; color: var(--accent); margin-top: 2px; }
+.wk-coming p { margin-top: 4px; line-height: 1.45; }
+@media (max-width: 560px) {
+  .wk-stats { grid-template-columns: repeat(2, 1fr); }
+}
