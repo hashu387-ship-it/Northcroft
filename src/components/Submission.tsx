@@ -5,7 +5,7 @@ import "@/styles/submissions.css";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
-import { Ban, CircleCheck, FileClock, Paperclip, Send, Trash2, Undo2 } from "lucide-react";
+import { Ban, CircleCheck, FileClock, Paperclip, Plus, Send, Trash2, Undo2 } from "lucide-react";
 import { useInvalidate, usePeople, useProjectMap } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useProjectTeams } from "@/lib/projectTeam";
@@ -28,7 +28,7 @@ import type { Project, Submission, SubmissionKind, Variation } from "@/lib/types
 import { useVariations } from "@/pages/project/api";
 import { Attachments } from "./Attachments";
 import { CommentThread } from "./CommentThread";
-import { Empty, Field, Loading, Pill, Sheet, useConfirm, useToast } from "./ui";
+import { Field, Loading, Pill, Sheet, useConfirm, useToast } from "./ui";
 
 /* ---------------------------------------------------------------- the timer */
 
@@ -50,7 +50,8 @@ export function DueChip({ s }: { s: Pick<Submission, "due_on" | "status" | "sent
 
 /* ---------------------------------------------------------------- the Home card */
 
-/** Home: my submissions that are late or due in the next 7 days, soonest first. */
+/** Home, at the top: my submissions that are late or due in the next 7 days, soonest first, as
+ *  tiles across the page. With nothing due this week it's one line, with the next one coming. */
 export function SubmissionsHomeCard() {
   const me = useMe();
   const { canAssign } = useAuth();
@@ -61,32 +62,53 @@ export function SubmissionsHomeCard() {
   const vos = useMemo(() => new Map((allVos ?? []).map((v) => [v.id, v])), [allVos]);
   const today = todayISO();
   const mine = teams.projectsOf(me.id);
-  const list = sortSubmissions(subs.data ?? []).filter(
-    (s) => s.status === "open" && (submissionDue(s, today).days ?? 0) <= 7 && isMySubmission(s, me.id, canAssign, mine),
-  );
+  const open = sortSubmissions(subs.data ?? []).filter((s) => s.status === "open" && isMySubmission(s, me.id, canAssign, mine));
+  const list = open.filter((s) => (submissionDue(s, today).days ?? 0) <= 7);
   const late = list.filter((s) => submissionDue(s, today).tone === "red").length;
+  const soon = list.length - late;
+  const next = open.find((s) => (submissionDue(s, today).days ?? 0) > 7);
+  const canAdd = canAssign || mine.length > 0;
 
   return (
-    <div className="glass card">
+    <div className="glass card sub-home">
       <div className="card-head">
         <h2 className="tone-orange">
           <FileClock /> Submissions
         </h2>
-        <div className="row" style={{ gap: 6 }}>
+        <div className="row wrap" style={{ gap: 6, justifyContent: "flex-end" }}>
           {late > 0 && <Pill tone="red">{late} late or today</Pill>}
-          <Link to="/submissions">All</Link>
+          {soon > 0 && <Pill tone="orange">{soon} this week</Pill>}
+          {canAdd && (
+            <Link to="/submissions?new=1" className="btn small">
+              <Plus /> New
+            </Link>
+          )}
+          <Link to="/submissions" className="btn small ghost">
+            All
+          </Link>
         </div>
       </div>
       {subs.isLoading ? (
         <Loading />
       ) : list.length === 0 ? (
-        <Empty icon={<CircleCheck />} title="Nothing due in the next 7 days" />
+        <p className="sub-home-none">
+          <CircleCheck aria-hidden />
+          <span>
+            Nothing due in the next 7 days.
+            {next && (
+              <>
+                {" "}
+                Next: <Link to={`/submissions?id=${next.id}`}>{submissionLabel(next, vos)}</Link>, {dueDateText(next.due_on).replace(/^Due/, "due")}.
+              </>
+            )}
+          </span>
+        </p>
       ) : (
         <div className="list">
           {list.slice(0, 6).map((s) => {
             const d = submissionDue(s, today);
             return (
-              <Link key={s.id} to={`/submissions?id=${s.id}`} className="alert-row">
+              <Link key={s.id} to={`/submissions?id=${s.id}`} className={clsx("alert-row", d.tone === "red" && "late")}>
                 <DueTile s={s} small />
                 <span className="grow">
                   <span className="title" style={{ display: "block" }}>
@@ -101,8 +123,8 @@ export function SubmissionsHomeCard() {
             );
           })}
           {list.length > 6 && (
-            <Link to="/submissions" className="faint small" style={{ padding: "8px 4px" }}>
-              {list.length - 6} more on the Submissions page
+            <Link to="/submissions" className="sub-home-more">
+              {list.length - 6} more due this week on the Submissions page
             </Link>
           )}
         </div>

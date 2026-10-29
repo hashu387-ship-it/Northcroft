@@ -175,6 +175,9 @@ export default function Home() {
         </Link>
       </div>
 
+      {/* What the team has to send, and by when: first thing on the page. */}
+      <SubmissionsHomeCard />
+
       <div className="home-grid">
         <div className="stack">
           {!me.attendance_exempt && <CheckInCard />}
@@ -190,7 +193,6 @@ export default function Home() {
         <div className="stack">
           <OnlineCard />
           <AnnouncementCard />
-          <SubmissionsHomeCard />
           <QsAlertsCard />
           <EventsCard />
         </div>

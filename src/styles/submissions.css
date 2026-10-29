@@ -144,3 +144,33 @@
 @media (max-width: 560px) {
   .alert-row > .due-tile ~ .pill { margin-left: 56px; }
 }
+
+/* Home: the Submissions card across the top of the page, its rows as tiles. */
+.sub-home { margin-bottom: 16px; animation: rise 0.5s var(--ease) 0.12s backwards; }
+.sub-home .card-head .btn.small { min-height: 30px; }
+.sub-home .list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 8px;
+}
+.sub-home .alert-row {
+  border: 0;
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: var(--fill);
+}
+.sub-home .alert-row:hover { background: var(--fill-2); border-radius: 14px; }
+.sub-home .alert-row.late { background: color-mix(in srgb, var(--red-soft) 70%, transparent); }
+.sub-home .alert-row.late:hover { background: var(--red-soft); }
+.sub-home-more { grid-column: 1 / -1; padding: 6px 4px 0; font-size: 13px; font-weight: 600; }
+.sub-home-none { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 2px 4px; color: var(--text-2); font-size: 14px; }
+.sub-home-none svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--green); }
+.sub-home-none a { font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .sub-home { animation: none; } }
+@media (max-width: 560px) {
+  .sub-home .list { grid-template-columns: minmax(0, 1fr); }
+  /* On a phone the timer says it all: no counts in the heading, no pill under each row. */
+  .sub-home .card-head .pill,
+  .sub-home .alert-row > .pill { display: none; }
+  .sub-home .alert-row { flex-wrap: nowrap; }
+}
