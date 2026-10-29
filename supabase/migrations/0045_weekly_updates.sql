@@ -1,43 +1,61 @@
--- Weekly updates. On Thursday at 5:45 pm each person's daily updates from Sunday to Thursday
--- become their weekly update: a short write-up of the week, what they did on each project, every task with
--- where it started and finished the week, other work and anything that blocked them. Managers and
--- seniors also get the team's week in one report, with each person's, and can download it as Excel.
---   * The weekly Edge Function writes them (with Claude); the counting (days sent, tasks, %) is done
---     in code from the daily updates, so the figures are exact.
---   * Thursday 5:45 pm Riyadh it runs for the week, and again at 6:15 and 7:00 pm for anything that
---     didn't finish. At 9:30 pm it tops up: anyone whose daily updates came in or changed after their
---     week was written gets it written again, and Thursday counts as missed only from then. A manager
---     or senior can write any week again from the app.
---   * Each person sees only their own; managers and seniors see everyone's and the team report.
---   * Once the week is over (Thursday 5:45 pm), each person is told their weekly update is ready,
---     and managers and seniors are told the team's is ready. Running it again, or the 9:30 pm top-up,
---     doesn't tell them twice.
+-- Weekly updates: the team's daily updates written up for a stretch of days, in three kinds.
+--   * week: on Thursday at 5:45 pm each person's daily updates from Sunday to Thursday become their
+--     weekly update, and the team's week becomes one report for managers and seniors. Runs again at
+--     6:15 and 7:00 pm for anything that didn't finish. At 9:30 pm it tops up: anyone whose daily
+--     updates came in or changed after their week was written gets it written again, and Thursday
+--     counts as missed only from then. Each person is told theirs is ready, and managers and seniors
+--     are told the team's is ready, once.
+--   * rolling: the last 7 days, written again every evening at 9:35 pm for the card at the top of
+--     Home (the team's for managers and seniors, each person's own for them). Nobody is told; the
+--     last two weeks of these are kept.
+--   * custom: days someone picks (up to 62). Managers and seniors get the team's update and each
+--     person's; members get their own. Kept so they can be opened again.
+-- The weekly Edge Function writes them all (with Claude); the counting (days sent, tasks, %) is done
+-- in code from the daily updates, so the figures are exact. Each person sees only their own;
+-- managers and seniors see everyone's and the team's.
 
 /* ---------------------------------------------------------------- the table */
+-- An earlier draft of this file had a narrower table; it never held anything that matters.
+do $d$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'weekly_updates')
+     and not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'weekly_updates' and column_name = 'kind') then
+    drop table public.weekly_updates cascade;
+  end if;
+end $d$;
+drop function if exists public.weekly_update_source(date);
+drop function if exists public.weekly_update_save(date, uuid, text, jsonb, jsonb, text, uuid);
+drop function if exists public.request_weekly_updates();
+
 create table if not exists public.weekly_updates (
   id uuid primary key default gen_random_uuid(),
-  -- The Sunday the week starts on, and the Thursday it ends on.
-  week_start date not null check (extract(dow from week_start) = 0),
-  week_end date not null,
-  -- Whose week it is; empty for the team report.
+  -- week: Sunday to Thursday, written Thursday 5:45 pm; rolling: the last 7 days, every evening;
+  -- custom: days someone picked.
+  kind text not null default 'week' check (kind in ('week', 'rolling', 'custom')),
+  period_start date not null,
+  period_end date not null,
+  -- Whose it is; empty for the team's.
   user_id uuid references public.profiles (id) on delete cascade,
-  -- pending: being written; ready; empty: no daily updates that week; failed: try again.
+  -- pending: being written; ready; empty: no daily updates in those days; failed: try again.
   status text not null default 'pending' check (status in ('pending', 'ready', 'empty', 'failed')),
-  -- Counted from the daily updates: days sent, each task's % at the start and end of the week, etc.
+  -- Counted from the daily updates: days sent, each task's % at the start and end, etc.
   facts jsonb not null default '{}'::jsonb,
   -- The written part: the summary, each project, other work, blockers (team: headline, projects, points to look at).
   summary jsonb,
   error text,
   generated_at timestamptz,
-  -- Who asked for it again; empty when it ran on its own on Friday.
+  -- Who asked for it (again); empty when it ran on its own.
   generated_by uuid references public.profiles (id) on delete set null,
   notified_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint weekly_updates_days check (period_end >= period_start and period_end - period_start <= 61),
+  constraint weekly_updates_week check (kind <> 'week' or (extract(dow from period_start) = 0 and period_end = period_start + 4))
 );
-create unique index if not exists weekly_updates_one_per_week
-  on public.weekly_updates (week_start, (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid)));
-create index if not exists weekly_updates_user_idx on public.weekly_updates (user_id, week_start desc);
+create unique index if not exists weekly_updates_one_each
+  on public.weekly_updates (kind, period_start, period_end, (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid)));
+create index if not exists weekly_updates_user_idx on public.weekly_updates (user_id, kind, period_end desc);
+create index if not exists weekly_updates_kind_idx on public.weekly_updates (kind, period_end desc);
 
 alter table public.weekly_updates enable row level security;
 drop policy if exists "see weekly updates" on public.weekly_updates;
@@ -48,9 +66,10 @@ revoke all on public.weekly_updates from authenticated, anon;
 grant select on public.weekly_updates to authenticated;
 
 /* ---------------------------------------------------------------- what the function reads */
--- Everything for one week: the work days, and for everyone who sends daily updates (or sent one that
--- week) their projects, days on leave and each day's update with its tasks, blockers and replies.
-create or replace function public.weekly_update_source(p_week_start date)
+-- Everything for some days: the work days among them, and for everyone who sends daily updates (or
+-- sent one in those days) their projects, days on leave and each day's update with its tasks,
+-- blockers and replies.
+create or replace function public.weekly_update_source(p_start date, p_end date)
 returns jsonb
 language sql
 stable
@@ -59,7 +78,7 @@ set search_path = public
 as $$
   with days as (
     select d::date as day
-      from generate_series(p_week_start, p_week_start + 4, interval '1 day') d
+      from generate_series(p_start, p_end, interval '1 day') d
      where public.is_workday(d::date)
   ),
   people as (
@@ -70,11 +89,11 @@ as $$
     select p.id, p.full_name, p.short_name, p.title
       from public.profiles p
       join public.daily_updates u on u.user_id = p.id
-     where u.work_date between p_week_start and p_week_start + 4
+     where u.work_date between p_start and p_end
   )
   select jsonb_build_object(
-    'week_start', p_week_start,
-    'week_end', p_week_start + 4,
+    'start', p_start,
+    'end', p_end,
     'work_days', coalesce((select jsonb_agg(day order by day) from days), '[]'::jsonb),
     'people', coalesce((
       select jsonb_agg(jsonb_build_object(
@@ -124,17 +143,17 @@ as $$
                where i.update_id = u.id), '[]'::jsonb)
           ) order by u.work_date)
             from public.daily_updates u
-           where u.user_id = pe.id and u.work_date between p_week_start and p_week_start + 4), '[]'::jsonb)
+           where u.user_id = pe.id and u.work_date between p_start and p_end), '[]'::jsonb)
       ) order by pe.full_name)
         from people pe), '[]'::jsonb)
   );
 $$;
-revoke all on function public.weekly_update_source(date) from public, anon, authenticated;
-grant execute on function public.weekly_update_source(date) to service_role;
+revoke all on function public.weekly_update_source(date, date) from public, anon, authenticated;
+grant execute on function public.weekly_update_source(date, date) to service_role;
 
 /* ---------------------------------------------------------------- saving one */
 create or replace function public.weekly_update_save(
-  p_week_start date, p_user uuid, p_status text, p_facts jsonb, p_summary jsonb, p_error text, p_by uuid)
+  p_kind text, p_start date, p_end date, p_user uuid, p_status text, p_facts jsonb, p_summary jsonb, p_error text, p_by uuid)
 returns uuid
 language plpgsql
 security definer
@@ -143,10 +162,10 @@ as $$
 declare
   rid uuid;
 begin
-  insert into public.weekly_updates as w (week_start, week_end, user_id, status, facts, summary, error, generated_at, generated_by, updated_at)
-  values (p_week_start, p_week_start + 4, p_user, p_status, coalesce(p_facts, '{}'::jsonb), p_summary, p_error,
+  insert into public.weekly_updates as w (kind, period_start, period_end, user_id, status, facts, summary, error, generated_at, generated_by, updated_at)
+  values (p_kind, p_start, p_end, p_user, p_status, coalesce(p_facts, '{}'::jsonb), p_summary, p_error,
           case when p_status in ('ready', 'empty') then now() end, p_by, now())
-  on conflict (week_start, (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid))) do update
+  on conflict (kind, period_start, period_end, (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid))) do update
      set status = excluded.status,
          -- While it's being written again, the last version stays readable.
          facts = case when excluded.status = 'pending' then w.facts else excluded.facts end,
@@ -160,10 +179,10 @@ begin
   returning id into rid;
   return rid;
 end $$;
-revoke all on function public.weekly_update_save(date, uuid, text, jsonb, jsonb, text, uuid) from public, anon, authenticated;
-grant execute on function public.weekly_update_save(date, uuid, text, jsonb, jsonb, text, uuid) to service_role;
+revoke all on function public.weekly_update_save(text, date, date, uuid, text, jsonb, jsonb, text, uuid) from public, anon, authenticated;
+grant execute on function public.weekly_update_save(text, date, date, uuid, text, jsonb, jsonb, text, uuid) to service_role;
 
-/* ---------------------------------------------------------------- telling people */
+/* ---------------------------------------------------------------- telling people (the Thursday week only) */
 -- Each person whose week is written is told once; managers and seniors are told once about the team's.
 create or replace function public.weekly_update_notify(p_week_start date)
 returns integer
@@ -181,7 +200,7 @@ begin
   for r in
     select w.id, w.user_id, w.facts
       from public.weekly_updates w
-     where w.week_start = p_week_start and w.user_id is not null and w.status = 'ready' and w.notified_at is null
+     where w.kind = 'week' and w.period_start = p_week_start and w.user_id is not null and w.status = 'ready' and w.notified_at is null
   loop
     perform public.notify(r.user_id, 'weekly_update', 'Your weekly update is ready',
       label || coalesce(' · ' || nullif(r.facts->>'line', ''), ''), link, null);
@@ -192,7 +211,7 @@ begin
   for r in
     select w.id, w.facts
       from public.weekly_updates w
-     where w.week_start = p_week_start and w.user_id is null and w.status = 'ready' and w.notified_at is null
+     where w.kind = 'week' and w.period_start = p_week_start and w.user_id is null and w.status = 'ready' and w.notified_at is null
   loop
     for m in select p.id from public.profiles p where p.active and (p.role = 'manager' or p.can_assign) loop
       perform public.notify(m.id, 'weekly_update', 'The team''s weekly update is ready',
@@ -206,10 +225,10 @@ end $$;
 revoke all on function public.weekly_update_notify(date) from public, anon, authenticated;
 grant execute on function public.weekly_update_notify(date) to service_role;
 
-/* ---------------------------------------------------------------- Friday morning */
--- Asks the weekly function to write the week, with the same shared secret as push. "missing" writes
--- what isn't done yet; "topup" also writes again anyone whose daily updates changed since.
-drop function if exists public.request_weekly_updates();
+/* ---------------------------------------------------------------- on a schedule */
+-- Asks the weekly function to write, with the same shared secret as push.
+--   missing: the Thursday week, what isn't done yet; topup: the Thursday week again for anyone whose
+--   daily updates changed since; rolling: the last 7 days for Home (and the old ones tidied away).
 create or replace function public.request_weekly_updates(p_mode text default 'missing')
 returns void
 language plpgsql
@@ -219,7 +238,11 @@ as $$
 declare
   fn_url text;
   secret text;
+  mode text := case when p_mode in ('topup', 'rolling') then p_mode else 'missing' end;
 begin
+  if mode = 'rolling' then
+    delete from public.weekly_updates where kind = 'rolling' and period_end < current_date - 14;
+  end if;
   select replace(decrypted_secret, '/send-push', '/weekly') into fn_url from vault.decrypted_secrets where name = 'push_function_url';
   select decrypted_secret into secret from vault.decrypted_secrets where name = 'push_webhook_secret';
   if fn_url is null or secret is null then
@@ -227,7 +250,7 @@ begin
   end if;
   perform net.http_post(
     url := fn_url,
-    body := jsonb_build_object('mode', case when p_mode = 'topup' then 'topup' else 'missing' end),
+    body := jsonb_build_object('mode', mode),
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', secret),
     timeout_milliseconds := 10000
   );
@@ -235,12 +258,14 @@ end $$;
 revoke all on function public.request_weekly_updates(text) from public, anon, authenticated;
 
 -- Thursday 14:45, 15:15 and 16:00 UTC = 5:45, 6:15 and 7:00 pm Riyadh. The later runs only do what's
--- missing (a write-up that failed or stopped part way), and tell anyone not yet told. 18:30 UTC =
--- 9:30 pm Riyadh, after the last daily update reminder: the top-up.
+-- missing (a write-up that failed or stopped part way), and tell anyone not yet told. Thursday 18:30
+-- UTC = 9:30 pm Riyadh, after the last daily update reminder: the top-up. Every day 18:35 UTC =
+-- 9:35 pm Riyadh: the last 7 days for Home.
 select cron.schedule('northcroft-weekly-updates', '45 14 * * 4', $c$select public.request_weekly_updates('missing')$c$);
 select cron.schedule('northcroft-weekly-updates-again', '15 15 * * 4', $c$select public.request_weekly_updates('missing')$c$);
 select cron.schedule('northcroft-weekly-updates-last', '0 16 * * 4', $c$select public.request_weekly_updates('missing')$c$);
 select cron.schedule('northcroft-weekly-updates-topup', '30 18 * * 4', $c$select public.request_weekly_updates('topup')$c$);
+select cron.schedule('northcroft-last-7-days', '35 18 * * *', $c$select public.request_weekly_updates('rolling')$c$);
 
 /* ---------------------------------------------------------------- live updates */
 do $m$
