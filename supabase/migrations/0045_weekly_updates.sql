@@ -192,7 +192,8 @@ set search_path = public
 as $$
 declare
   label text := to_char(p_week_start, 'FMDy FMDD Mon') || ' to ' || to_char(p_week_start + 4, 'FMDy FMDD Mon');
-  link text := '/updates?tab=week&week=' || p_week_start;
+  -- Opens the report itself: theirs for each person, the team's for managers and seniors.
+  link text := '/updates/report?kind=week&from=' || p_week_start || '&to=' || (p_week_start + 4);
   r record;
   m record;
   n integer := 0;
@@ -215,7 +216,7 @@ begin
   loop
     for m in select p.id from public.profiles p where p.active and (p.role = 'manager' or p.can_assign) loop
       perform public.notify(m.id, 'weekly_update', 'The team''s weekly update is ready',
-        label || coalesce(' · ' || nullif(r.facts->>'line', ''), ''), link || '&team=1', null);
+        label || coalesce(' · ' || nullif(r.facts->>'line', ''), ''), link, null);
       n := n + 1;
     end loop;
     update public.weekly_updates set notified_at = now() where id = r.id;

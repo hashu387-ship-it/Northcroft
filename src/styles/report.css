@@ -1,0 +1,123 @@
+/* The weekly update report: a white A4-like document, the same on screen and on paper. Colours come
+   from REPORT_BRAND as CSS variables on .rp-doc; fonts are bundled in /fonts/report. This file is
+   also put, as it is, into the page that prints. */
+@font-face { font-family: "RP Heading"; src: url("/fonts/report/Marcellus-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "RP Body"; src: url("/fonts/report/OpenSans-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "RP Body"; src: url("/fonts/report/OpenSans-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "RP Body"; src: url("/fonts/report/OpenSans-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "RP Body"; src: url("/fonts/report/OpenSans-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+
+.rp-doc {
+  --rp-primary: #0b1f35;
+  --rp-accent: #b08d57;
+  --rp-tint: #f3eee3;
+  --rp-ink: #1b1b1f;
+  --rp-muted: #4a4f5c;
+  --rp-line: color-mix(in srgb, var(--rp-primary) 16%, white);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  background: #fff;
+  color: var(--rp-ink);
+  font-family: "RP Body", "Open Sans", system-ui, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.55;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(11, 31, 53, 0.06), 0 12px 32px rgba(11, 31, 53, 0.1);
+  overflow: hidden;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.rp-doc *, .rp-doc *::before, .rp-doc *::after { box-sizing: border-box; }
+.rp-doc p { margin: 0; }
+/* Stronger than the app's own heading rule, so the report keeps its Salam-style headings. */
+:root:root .rp-doc :is(h1, h2, h3) { font-family: "RP Heading", Georgia, serif; font-weight: 400; color: var(--rp-primary); margin: 0; letter-spacing: 0.01em; }
+
+/* ---- heading band */
+.rp-head { display: flex; align-items: center; gap: 18px; padding: 22px 28px 18px; background: var(--rp-primary); color: #fff; }
+.rp-logo { flex: none; display: flex; align-items: center; justify-content: center; min-width: 64px; height: 56px; padding: 6px 10px; border-radius: 8px; background: #fff; }
+.rp-logo img { max-height: 44px; max-width: 160px; display: block; }
+.rp-wordmark { font-family: "RP Heading", Georgia, serif; font-size: 22px; letter-spacing: 0.14em; color: var(--rp-primary); text-transform: uppercase; }
+.rp-head-text { min-width: 0; flex: 1; }
+:root:root .rp-head h1 { color: #fff; font-size: 24px; line-height: 1.2; }
+.rp-period { font-weight: 600; font-size: 14px; margin-top: 2px; color: #fff; }
+.rp-by { font-size: 12px; margin-top: 2px; color: color-mix(in srgb, #fff 82%, var(--rp-primary)); }
+.rp-rule { height: 4px; background: var(--rp-accent); }
+
+.rp-body { padding: 22px 28px 26px; display: flex; flex-direction: column; gap: 22px; }
+.rp-section { display: flex; flex-direction: column; gap: 12px; }
+.rp-section + .rp-section { border-top: 1px solid var(--rp-line); padding-top: 22px; }
+.rp-section-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+:root:root .rp-section-head h2 { font-size: 21px; line-height: 1.25; }
+.rp-role { color: var(--rp-muted); font-size: 12.5px; }
+.rp-counts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--rp-muted); }
+.rp-counts b { color: var(--rp-ink); font-weight: 700; }
+.rp-lead { font-size: 14px; }
+.rp-note { font-size: 12.5px; color: var(--rp-muted); }
+.rp-state { font-size: 13px; padding: 8px 12px; border-radius: 8px; background: var(--rp-tint); color: var(--rp-ink); }
+
+/* ---- the team's figures */
+.rp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.rp-stat { background: var(--rp-tint); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; }
+.rp-stat b { font-family: "RP Heading", Georgia, serif; font-weight: 400; font-size: 24px; line-height: 1.1; color: var(--rp-primary); }
+.rp-stat b small { font-family: "RP Body", sans-serif; font-size: 12px; font-weight: 600; color: var(--rp-muted); }
+.rp-stat span { font-size: 12px; font-weight: 600; color: var(--rp-muted); }
+
+/* ---- small headings inside a section */
+.rp-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rp-primary); padding-bottom: 4px; border-bottom: 2px solid var(--rp-accent); align-self: flex-start; }
+.rp-block { display: flex; flex-direction: column; gap: 8px; }
+
+.rp-projects { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rp-projects li { display: flex; flex-direction: column; gap: 2px; }
+.rp-project-name { font-weight: 700; color: var(--rp-primary); }
+.rp-project-meta { font-size: 12px; color: var(--rp-muted); }
+
+.rp-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.rp-list li::marker { color: var(--rp-accent); }
+
+/* ---- a project and its tasks in a person's section */
+.rp-project { display: flex; flex-direction: column; gap: 6px; }
+:root:root .rp-project h3 { font-size: 16px; }
+.rp-tasks { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rp-tasks th { text-align: left; font-weight: 700; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--rp-muted); padding: 4px 6px; border-bottom: 1px solid var(--rp-line); }
+.rp-tasks td { padding: 7px 6px; border-bottom: 1px solid var(--rp-line); vertical-align: top; }
+.rp-tasks .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rp-task-title { font-weight: 600; }
+.rp-task-notes { margin: 3px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--rp-muted); }
+.rp-bar { position: relative; height: 6px; width: 84px; border-radius: 3px; background: var(--rp-tint); display: inline-block; vertical-align: middle; overflow: hidden; }
+.rp-bar i { position: absolute; top: 0; bottom: 0; left: 0; background: color-mix(in srgb, var(--rp-primary) 30%, white); }
+.rp-bar i.gain { background: var(--rp-primary); }
+.rp-done { font-weight: 700; color: var(--rp-primary); white-space: nowrap; }
+
+.rp-blockers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rp-blockers li { padding: 8px 10px; border-left: 3px solid var(--rp-accent); background: var(--rp-tint); border-radius: 0 8px 8px 0; }
+.rp-blockers .rp-when { font-weight: 600; }
+.rp-blockers .rp-reply { font-size: 12px; color: var(--rp-muted); margin-top: 2px; }
+
+.rp-foot { padding: 12px 28px 16px; border-top: 1px solid var(--rp-line); font-size: 11.5px; color: var(--rp-muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* ---- phones */
+@media (max-width: 560px) {
+  .rp-doc { border-radius: 12px; font-size: 13px; }
+  .rp-head { padding: 16px 16px 14px; gap: 12px; align-items: flex-start; }
+  .rp-logo { min-width: 48px; height: 44px; }
+  .rp-logo img { max-height: 32px; max-width: 110px; }
+  .rp-wordmark { font-size: 16px; }
+  :root:root .rp-head h1 { font-size: 19px; }
+  .rp-body { padding: 16px 16px 20px; }
+  .rp-foot { padding: 10px 16px 14px; }
+  .rp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rp-bar { width: 48px; }
+  .rp-tasks .rp-col-days { display: none; }
+}
+
+/* ---- paper: A4, the team on the first page, then each person on their own page */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  html, body { background: #fff !important; margin: 0; }
+  .rp-doc { max-width: none; border-radius: 0; box-shadow: none; font-size: 10.5pt; }
+  .rp-doc.rp-with-team .rp-person { break-before: page; border-top: 0; padding-top: 0; }
+  .rp-section-head, .rp-project h3, .rp-label { break-after: avoid; }
+  .rp-tasks tr, .rp-blockers li, .rp-projects li, .rp-stat { break-inside: avoid; }
+}

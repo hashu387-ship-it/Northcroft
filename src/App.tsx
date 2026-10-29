@@ -21,6 +21,7 @@ const More = lazy(() => import("@/pages/More"));
 const FileView = lazy(() => import("@/pages/FileView"));
 const Share = lazy(() => import("@/pages/Share"));
 const DailyUpdates = lazy(() => import("@/pages/DailyUpdates"));
+const UpdateReport = lazy(() => import("@/pages/UpdateReport"));
 const VoLogPage = lazy(() => import("@/pages/VoLogPage"));
 const Submissions = lazy(() => import("@/pages/Submissions"));
 
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="files/:id" element={<FileView />} />
           <Route path="share" element={<Share />} />
           <Route path="updates" element={<DailyUpdates />} />
+          <Route path="updates/report" element={<UpdateReport />} />
           <Route path="vo-log" element={<VoLogPage />} />
           <Route path="submissions" element={<Submissions />} />
           <Route path="*" element={<Navigate to="/" replace />} />

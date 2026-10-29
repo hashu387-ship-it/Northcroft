@@ -71,10 +71,13 @@ export interface TeamSummary {
   attention: string[];
 }
 
+export type ReportKind = "week" | "rolling" | "custom";
+
 interface Row<F, S> {
   id: string;
-  week_start: string;
-  week_end: string;
+  kind: ReportKind;
+  period_start: string;
+  period_end: string;
   status: WeeklyStatus;
   facts: F | Record<string, never>;
   summary: S | null;
@@ -96,41 +99,107 @@ export function hasFacts<F extends object>(f: F | Record<string, never> | null |
 
 const KEY = "weekly_updates";
 
-/** My weekly updates, newest first (everyone sees only their own). */
+/** One report: the team's (if there is one) and each person's, by name. */
+export interface Report {
+  team: TeamWeek | null;
+  people: PersonWeek[];
+}
+function toReport(rows: WeeklyUpdate[]): Report {
+  const team = (rows.find((r) => r.user_id === null) as TeamWeek | undefined) ?? null;
+  const people = rows.filter((r): r is PersonWeek => r.user_id !== null).sort(byName);
+  return { team, people };
+}
+
+/** Everything for one stretch of days (each person sees only their own; managers everyone's). */
+export function useReport(kind: ReportKind, start: string, end: string, enabled = true) {
+  return useQuery({
+    queryKey: [KEY, "report", kind, start, end],
+    enabled: enabled && !!start && !!end,
+    queryFn: async () =>
+      toReport(
+        await unwrap<WeeklyUpdate[]>(
+          supabase.from("weekly_updates").select("*").eq("kind", kind).eq("period_start", start).eq("period_end", end),
+        ),
+      ),
+  });
+}
+
+/** Everything for one Thursday week. */
+export const useWeek = (week: string, enabled = true) => useReport("week", week, weekEnd(week), enabled);
+
+/** My Thursday weekly updates, newest first. */
 export function useMyWeeklyUpdates(userId: string, enabled = true) {
   return useQuery({
     queryKey: [KEY, "mine", userId],
     enabled: enabled && !!userId,
     queryFn: () =>
       unwrap<PersonWeek[]>(
-        supabase.from("weekly_updates").select("*").eq("user_id", userId).order("week_start", { ascending: false }).limit(12),
+        supabase.from("weekly_updates").select("*").eq("kind", "week").eq("user_id", userId).order("period_start", { ascending: false }).limit(12),
       ),
   });
 }
 
-/** Everything for one week: the team report and each person's (managers and seniors). */
-export function useWeek(week: string, enabled = true) {
+/**
+ * The newest last-7-days write-up for the card on Home: the team's for managers and seniors, the
+ * person's own otherwise.
+ */
+export function useLastSevenDays(userId: string, team: boolean, enabled = true) {
   return useQuery({
-    queryKey: [KEY, "week", week],
-    enabled,
+    queryKey: [KEY, "rolling", team ? "team" : userId],
+    enabled: enabled && !!userId,
     queryFn: async () => {
-      const rows = await unwrap<WeeklyUpdate[]>(supabase.from("weekly_updates").select("*").eq("week_start", week));
-      const team = (rows.find((r) => r.user_id === null) as TeamWeek | undefined) ?? null;
-      const people = rows.filter((r): r is PersonWeek => r.user_id !== null);
-      return { team, people };
+      let q = supabase.from("weekly_updates").select("*").eq("kind", "rolling");
+      q = team ? q.is("user_id", null) : q.eq("user_id", userId);
+      const rows = await unwrap<WeeklyUpdate[]>(q.order("period_end", { ascending: false }).limit(1));
+      return rows[0] ?? null;
     },
   });
 }
 
-/**
- * Ask for the week to be written (again): everyone's, or one person's (and the team report with
- * it). Managers and seniors only. It answers straight away; the rows fill in over a minute or two.
- */
-export async function makeWeeklyUpdate(opts: { week_start: string; user_id?: string }): Promise<void> {
-  if (looksOffline()) throw new Error("Writing the weekly update needs signal. Try again when you're back online.");
-  const { error } = await supabase.functions.invoke("weekly", { body: { week_start: opts.week_start, user_id: opts.user_id, mode: "all" } });
-  if (!error) return;
-  let msg = "The weekly update didn't start. Try again in a moment.";
+/** A stretch of picked days someone generated, for the list on the Weekly tab. */
+export interface Generated {
+  start: string;
+  end: string;
+  /** Whose: null for the team's. */
+  userId: string | null;
+  status: WeeklyStatus;
+  generatedAt: string | null;
+  generatedBy: string | null;
+  line: string;
+}
+
+/** The days picked with Generate update, newest first: the team's and single people's for managers, your own otherwise. */
+export function useGenerated(userId: string, manager: boolean, enabled = true) {
+  return useQuery({
+    queryKey: [KEY, "custom", manager ? "all" : userId],
+    enabled: enabled && !!userId,
+    queryFn: async () => {
+      let q = supabase.from("weekly_updates").select("period_start, period_end, user_id, status, generated_at, generated_by, updated_at, facts").eq("kind", "custom");
+      if (!manager) q = q.eq("user_id", userId);
+      const rows = await unwrap<(Pick<WeeklyUpdate, "period_start" | "period_end" | "user_id" | "status" | "generated_at" | "generated_by" | "updated_at"> & { facts: { line?: string } })[]>(
+        q.order("updated_at", { ascending: false }).limit(300),
+      );
+      // One entry per stretch of days: the team's when there is one (its people are part of it),
+      // otherwise each single person's.
+      const teamDays = new Set(rows.filter((r) => r.user_id === null).map((r) => `${r.period_start}|${r.period_end}`));
+      const out = new Map<string, Generated>();
+      for (const r of rows) {
+        const days = `${r.period_start}|${r.period_end}`;
+        if (r.user_id !== null && manager && teamDays.has(days)) continue;
+        const key = `${days}|${r.user_id ?? "team"}`;
+        if (out.has(key)) continue;
+        out.set(key, { start: r.period_start, end: r.period_end, userId: r.user_id, status: r.status, generatedAt: r.generated_at, generatedBy: r.generated_by, line: r.facts?.line ?? "" });
+      }
+      return [...out.values()].slice(0, 40);
+    },
+  });
+}
+
+async function invokeWeekly(body: Record<string, unknown>, fallback: string): Promise<{ start: string; end: string }> {
+  if (looksOffline()) throw new Error("Writing an update needs signal. Try again when you're back online.");
+  const { data, error } = await supabase.functions.invoke("weekly", { body });
+  if (!error) return data as { start: string; end: string };
+  let msg = fallback;
   try {
     const ctx = (error as { context?: Response }).context;
     if (ctx && typeof ctx.json === "function") {
@@ -143,6 +212,29 @@ export async function makeWeeklyUpdate(opts: { week_start: string; user_id?: str
     /* keep the friendly default */
   }
   throw new Error(msg);
+}
+
+/**
+ * Ask for the Thursday week to be written (again): everyone's, or one person's (and the team report
+ * with it). Managers and seniors only. It answers straight away; the rows fill in over a minute or two.
+ */
+export async function makeWeeklyUpdate(opts: { week_start: string; user_id?: string }): Promise<void> {
+  await invokeWeekly({ kind: "week", week_start: opts.week_start, user_id: opts.user_id, mode: "all" }, "The weekly update didn't start. Try again in a moment.");
+}
+
+/**
+ * Generate an update for days someone picks. Managers and seniors: the team's and everyone's, or one
+ * person's (user_id). Members: always their own. Returns the days as the function took them.
+ */
+export async function generateUpdate(opts: { start: string; end: string; user_id?: string | null }) {
+  return invokeWeekly({ kind: "custom", start: opts.start, end: opts.end, user_id: opts.user_id ?? undefined }, "The update didn't start. Try again in a moment.");
+}
+
+/** Where a report opens. */
+export function reportLink(kind: ReportKind, start: string, end: string, who?: string | null): string {
+  const q = new URLSearchParams({ kind, from: start, to: end });
+  if (who) q.set("who", who);
+  return `/updates/report?${q.toString()}`;
 }
 
 /* ---------------------------------------------------------------- weeks (Sunday to Thursday) */
@@ -172,7 +264,12 @@ export function dayLabel(iso: string, withYear = false): string {
 
 /** "Sun 25 Oct to Thu 29 Oct", or "... Thu 29 Oct 2026" */
 export function weekLabel(week: string, withYear = false): string {
-  return `${dayLabel(week)} to ${dayLabel(weekEnd(week), withYear)}`;
+  return rangeLabel(week, weekEnd(week), withYear);
+}
+
+/** "Mon 26 Oct to Wed 28 Oct", one day as "Mon 26 Oct". */
+export function rangeLabel(start: string, end: string, withYear = false): string {
+  return start === end ? dayLabel(start, withYear) : `${dayLabel(start)} to ${dayLabel(end, withYear)}`;
 }
 
 /** A valid Sunday from the address bar, no later than this week. */
@@ -182,6 +279,10 @@ export function weekFromParam(v: string | null, today = todayISO()): string | nu
   return v;
 }
 
-/** Order people's weeks the way the team reads them: by name. */
-export const byName = (a: PersonWeek, b: PersonWeek) =>
-  (hasFacts(a.facts) ? a.facts.name : "").localeCompare(hasFacts(b.facts) ? b.facts.name : "");
+/** A day from the address bar, or null. */
+export const dayFromParam = (v: string | null): string | null => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : null);
+
+/** Order people's write-ups the way the team reads them: by name. */
+export function byName(a: PersonWeek, b: PersonWeek) {
+  return (hasFacts(a.facts) ? a.facts.name : "").localeCompare(hasFacts(b.facts) ? b.facts.name : "");
+}

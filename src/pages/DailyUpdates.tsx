@@ -53,8 +53,8 @@ export default function DailyUpdates() {
         sub={
           tab === "week"
             ? canAssign
-              ? "Each week, Sunday to Thursday, written up from the daily updates on Thursday at 5:45 pm."
-              : "Your week, Sunday to Thursday, written up from your daily updates on Thursday at 5:45 pm."
+              ? "The daily updates written up: any days you pick, the last 7 days, and every Thursday at 5:45 pm."
+              : "Your daily updates written up: any days you pick, the last 7 days, and every Thursday at 5:45 pm."
             : mine && canAssign
             ? "Send yours before you check out, and see the team's day."
             : mine

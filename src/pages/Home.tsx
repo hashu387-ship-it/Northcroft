@@ -28,6 +28,7 @@ import { SubmissionsHomeCard } from "@/components/Submission";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
 import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
+import { LastSevenDaysCard } from "./updates/LastSevenDays";
 import { leaveByDay, useTeamLeave } from "@/lib/leave";
 import { VoiceNote } from "@/components/Voice";
 import { Avatar, CountUp, Empty, Fab, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
@@ -175,7 +176,8 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* What the team has to send, and by when: first thing on the page. */}
+      {/* The last 7 days, written up every evening; then what the team has to send, and by when. */}
+      <LastSevenDaysCard />
       <SubmissionsHomeCard />
 
       <div className="home-grid">
