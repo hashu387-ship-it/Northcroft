@@ -1,6 +1,7 @@
-// Weekly updates: on Friday morning each person's daily updates from Sunday to Thursday become
-// their weekly update, and the team's week becomes one report for managers and seniors. The
-// `weekly` Edge Function writes them (migration 0045 holds the table and the Friday schedule);
+// Weekly updates: on Thursday at 5:45 pm each person's daily updates from Sunday to Thursday become
+// their weekly update, and the team's week becomes one report for managers and seniors (topped up at
+// 9:30 pm for daily updates that came in late). The `weekly` Edge Function writes them (migration
+// 0045 holds the table and the Thursday schedule);
 // these are the types, hooks and week helpers the app uses.
 import { useQuery } from "@tanstack/react-query";
 import { unwrap } from "./api";
@@ -149,16 +150,20 @@ export async function makeWeeklyUpdate(opts: { week_start: string; user_id?: str
 /** The Sunday of the week we're in. */
 export const thisWeek = (today = todayISO()) => weekStart(today);
 
-/** The Sunday of the last week that's over: from Friday it's this week, before that last week. */
-export function lastFinishedWeek(today = todayISO()): string {
-  const d = dow(today);
-  return addDays(today, d >= 5 ? -d : -d - 7);
-}
-
 export const weekEnd = (week: string) => addDays(week, 4);
 
-/** Thursday has passed. */
-export const weekIsOver = (week: string, today = todayISO()) => today > weekEnd(week);
+/** The week closes on Thursday at 5:45 pm Riyadh: it's written up then and people are told. */
+export const WEEK_CLOSES = "5:45 pm";
+const closesAt = (week: string) => new Date(`${weekEnd(week)}T17:45:00+03:00`).getTime();
+
+/** Thursday 5:45 pm has passed. */
+export const weekIsOver = (week: string, now = Date.now()) => now >= closesAt(week);
+
+/** The Sunday of the last week that's closed: from Thursday 5:45 pm it's this week, before that last week. */
+export function lastFinishedWeek(today = todayISO(), now = Date.now()): string {
+  const sunday = addDays(today, -dow(today));
+  return weekIsOver(sunday, now) ? sunday : addDays(sunday, -7);
+}
 
 /** "Sun 25 Oct", or "Sun 25 Oct 2026" */
 export function dayLabel(iso: string, withYear = false): string {

@@ -1,14 +1,17 @@
--- Weekly updates. On Friday morning each person's daily updates from Sunday to Thursday become
--- their weekly update: a short write-up of the week, what they did on each project, every task with
+-- Weekly updates. On Thursday at 5:45 pm each person's daily updates from Sunday to Thursday
+-- become their weekly update: a short write-up of the week, what they did on each project, every task with
 -- where it started and finished the week, other work and anything that blocked them. Managers and
 -- seniors also get the team's week in one report, with each person's, and can download it as Excel.
 --   * The weekly Edge Function writes them (with Claude); the counting (days sent, tasks, %) is done
 --     in code from the daily updates, so the figures are exact.
---   * Friday 08:00 Riyadh it runs for the week just finished, and again at 08:30 and 10:00 for
---     anything that didn't finish. A manager or senior can write any week again from the app.
+--   * Thursday 5:45 pm Riyadh it runs for the week, and again at 6:15 and 7:00 pm for anything that
+--     didn't finish. At 9:30 pm it tops up: anyone whose daily updates came in or changed after their
+--     week was written gets it written again, and Thursday counts as missed only from then. A manager
+--     or senior can write any week again from the app.
 --   * Each person sees only their own; managers and seniors see everyone's and the team report.
---   * Once the week is over, each person is told their weekly update is ready, and managers and
---     seniors are told the team's is ready. Running it again doesn't tell them twice.
+--   * Once the week is over (Thursday 5:45 pm), each person is told their weekly update is ready,
+--     and managers and seniors are told the team's is ready. Running it again, or the 9:30 pm top-up,
+--     doesn't tell them twice.
 
 /* ---------------------------------------------------------------- the table */
 create table if not exists public.weekly_updates (
@@ -94,6 +97,10 @@ as $$
           select jsonb_agg(jsonb_build_object(
             'date', u.work_date,
             'sent_at', u.submitted_at,
+            -- The last time anything in it changed: sent again, a task edited, a reply under a blocker.
+            'changed_at', greatest(u.submitted_at, u.updated_at, u.blocker_cleared_at,
+              (select max(i.updated_at) from public.daily_update_items i where i.update_id = u.id),
+              (select max(rp.created_at) from public.daily_update_replies rp where rp.update_id = u.id)),
             'other_work', u.other_work,
             'blockers', u.blockers,
             'blocker_cleared', u.blocker_cleared_at is not null,
@@ -200,8 +207,10 @@ revoke all on function public.weekly_update_notify(date) from public, anon, auth
 grant execute on function public.weekly_update_notify(date) to service_role;
 
 /* ---------------------------------------------------------------- Friday morning */
--- Asks the weekly function to write last week's updates, with the same shared secret as push.
-create or replace function public.request_weekly_updates()
+-- Asks the weekly function to write the week, with the same shared secret as push. "missing" writes
+-- what isn't done yet; "topup" also writes again anyone whose daily updates changed since.
+drop function if exists public.request_weekly_updates();
+create or replace function public.request_weekly_updates(p_mode text default 'missing')
 returns void
 language plpgsql
 security definer
@@ -218,18 +227,20 @@ begin
   end if;
   perform net.http_post(
     url := fn_url,
-    body := jsonb_build_object('mode', 'missing'),
+    body := jsonb_build_object('mode', case when p_mode = 'topup' then 'topup' else 'missing' end),
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', secret),
     timeout_milliseconds := 10000
   );
 end $$;
-revoke all on function public.request_weekly_updates() from public, anon, authenticated;
+revoke all on function public.request_weekly_updates(text) from public, anon, authenticated;
 
--- 05:00, 05:30 and 07:00 UTC on Friday = 08:00, 08:30 and 10:00 Riyadh. The later runs only do
--- what's missing (a write-up that failed or stopped part way), and tell anyone not yet told.
-select cron.schedule('northcroft-weekly-updates', '0 5 * * 5', $c$select public.request_weekly_updates()$c$);
-select cron.schedule('northcroft-weekly-updates-again', '30 5 * * 5', $c$select public.request_weekly_updates()$c$);
-select cron.schedule('northcroft-weekly-updates-last', '0 7 * * 5', $c$select public.request_weekly_updates()$c$);
+-- Thursday 14:45, 15:15 and 16:00 UTC = 5:45, 6:15 and 7:00 pm Riyadh. The later runs only do what's
+-- missing (a write-up that failed or stopped part way), and tell anyone not yet told. 18:30 UTC =
+-- 9:30 pm Riyadh, after the last daily update reminder: the top-up.
+select cron.schedule('northcroft-weekly-updates', '45 14 * * 4', $c$select public.request_weekly_updates('missing')$c$);
+select cron.schedule('northcroft-weekly-updates-again', '15 15 * * 4', $c$select public.request_weekly_updates('missing')$c$);
+select cron.schedule('northcroft-weekly-updates-last', '0 16 * * 4', $c$select public.request_weekly_updates('missing')$c$);
+select cron.schedule('northcroft-weekly-updates-topup', '30 18 * * 4', $c$select public.request_weekly_updates('topup')$c$);
 
 /* ---------------------------------------------------------------- live updates */
 do $m$

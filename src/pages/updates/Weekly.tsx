@@ -1,5 +1,5 @@
 // The Weekly tab. Each person's daily updates from Sunday to Thursday, written up as their week on
-// Friday morning: a few lines on the week, each project with every task's % at the start and end of
+// Thursday at 5:45 pm: a few lines on the week, each project with every task's % at the start and end of
 // the week, other work and what blocked them. Members see their own weeks; managers and seniors see
 // the team's week (with each person's), can write it again, and download it all as Excel.
 import "@/styles/updates.css";
@@ -263,28 +263,28 @@ function MyWeeks() {
 
   return (
     <div className="du-page stack" style={{ gap: 14 }}>
-      {!currentWritten && !weekIsOver(current, today) && (
+      {!currentWritten && !weekIsOver(current) && (
         <div className="glass card wk-coming">
           <CalendarRange />
           <div style={{ minWidth: 0 }}>
             <b>This week, {weekLabel(current)}</b>
             <p className="small du-none">
-              Your daily updates from Sunday to Thursday are written up as your week on Friday morning, and you'll get a notification when it's
-              ready. {sendsDailyUpdate(me) ? `So far you've sent ${sentThisWeek} this week.` : ""}
+              Your daily updates from Sunday to Thursday are written up as your week on Thursday at 5:45 pm, and you'll get a notification when
+              it's ready. {sendsDailyUpdate(me) ? `So far you've sent ${sentThisWeek} this week.` : ""}
             </p>
           </div>
         </div>
       )}
       {rows.length === 0 ? (
         <Empty icon={<CalendarRange />} title="No weekly updates yet">
-          Your first one is written on Friday morning from the week's daily updates.
+          Your first one is written on Thursday at 5:45 pm from the week's daily updates.
         </Empty>
       ) : (
         rows.map((r) => (
           <PersonWeekCard
             key={r.id}
             row={r}
-            over={weekIsOver(r.week_start, today)}
+            over={weekIsOver(r.week_start)}
             open={open === r.week_start}
             onToggle={() => setOpen(open === r.week_start ? "" : r.week_start)}
             showWho={false}
@@ -312,7 +312,7 @@ function TeamWeeks() {
   const today = todayISO();
   const current = thisWeek(today);
   const week = weekFromParam(params.get("week"), today) ?? lastFinishedWeek(today);
-  const over = weekIsOver(week, today);
+  const over = weekIsOver(week);
   const q = useWeek(week);
   const download = useDownload();
   const [starting, setStarting] = useState<string | null>(null);
@@ -415,8 +415,8 @@ function TeamWeeks() {
       ) : rows.length === 0 ? (
         <Empty icon={<CalendarRange />} title={over ? "Not written yet" : "This week isn't over yet"}>
           {over
-            ? "Each week is written on Friday morning from the daily updates. You can write this one now."
-            : "It's written on Friday morning from the daily updates. You can write the week so far now, to see how it's going; nobody is told until Friday."}
+            ? "Each week is written on Thursday at 5:45 pm from the daily updates. You can write this one now."
+            : "It's written on Thursday at 5:45 pm from the daily updates. You can write the week so far now, to see how it's going; nobody is told until then."}
         </Empty>
       ) : (
         <>

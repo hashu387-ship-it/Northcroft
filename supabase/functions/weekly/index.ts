@@ -6,10 +6,15 @@
 // summary of the week, what was done on each project, other work and what blocked them; and for the
 // team, the week in a few lines, each project across the people on it, and what needs a look.
 //
+// The week closes on Thursday at 5:45 pm Riyadh: that's when it's written and people are told. At
+// 9:30 pm (after the last daily update reminder) it's topped up: anyone whose daily updates came in or
+// changed after their week was written gets it written again, without being told twice. Today's
+// daily update only counts as missed after 9:30 pm.
+//
 // POST, either:
-//   from the database on Friday morning (header x-push-secret)      { mode: "missing" }
+//   from the database (header x-push-secret)                         { mode: "missing" | "topup" }
 //   from a manager or senior in the app (signed in)                 { week_start?, user_id?, mode? }
-//     week_start: the Sunday (default: the last week that's over); user_id: just that person (and
+//     week_start: the Sunday (default: the last week that's closed); user_id: just that person (and
 //     the team report); mode "all" (default) writes them again, "missing" only what isn't done.
 // It answers straight away (202) and carries on writing; the app watches the rows fill in.
 //
@@ -61,6 +66,17 @@ function same(a: string, b: string) {
 
 /* ---------------------------------------------------------------- dates (Riyadh) */
 const riyadhToday = () => new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+/** Minutes since midnight in Riyadh. */
+const riyadhMinutes = () => {
+  const d = new Date(Date.now() + 3 * 3600e3);
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
+};
+// The week closes at 5:45 pm on Thursday (a few minutes' leeway for the scheduled run), and a day's
+// daily update counts as missed from 9:30 pm (the top-up) on that day.
+const CLOSE = "17:40";
+const MISSED_FROM = 21 * 60 + 25;
+/** When the week ending on this Thursday closes. */
+const closesAt = (weekEnd: string) => new Date(`${weekEnd}T${CLOSE}:00+03:00`).getTime();
 const addDays = (iso: string, n: number) => {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
@@ -71,12 +87,13 @@ const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fmtDay = (iso: string) => `${DAY[dow(iso)]} ${Number(iso.slice(8, 10))} ${MON[Number(iso.slice(5, 7)) - 1]}`;
 
-/** The Sunday of the last week that's over (Sunday to Thursday), or the one asked for. */
+/** The Sunday of the last week that's closed (Thursday 5:45 pm), or the one asked for. */
 function weekToWrite(asked: unknown): string {
   const today = riyadhToday();
   if (typeof asked === "string" && /^\d{4}-\d{2}-\d{2}$/.test(asked) && dow(asked) === 0 && asked <= today) return asked;
   const d = dow(today);
-  return addDays(today, d >= 5 ? -d : -d - 7);
+  const sunday = addDays(today, -d);
+  return Date.now() >= closesAt(addDays(sunday, 4)) ? sunday : addDays(sunday, -7);
 }
 
 /* ---------------------------------------------------------------- what the database gives us */
@@ -93,6 +110,7 @@ interface Item {
 interface DayUpdate {
   date: string;
   sent_at: string;
+  changed_at: string;
   other_work: string | null;
   blockers: string | null;
   blocker_cleared: boolean;
@@ -145,14 +163,18 @@ interface PersonFacts {
   blockers: { date: string; text: string; cleared: boolean; replies: { by: string; body: string }[] }[];
   open_blockers: number;
   line: string;
+  /** When the daily updates were read for this write-up (the top-up looks for anything newer). */
+  read_at: string;
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-function countPerson(p: Person, src: Source, today: string): PersonFacts {
+function countPerson(p: Person, src: Source, today: string, readAt: string): PersonFacts {
   const leave = new Set(p.leave_days);
   const sent = new Set(p.updates.map((u) => u.date));
-  const due = src.work_days.filter((d) => !leave.has(d) && d <= today);
+  // Days that count: earlier days, today once it's sent or the last reminder has gone (9:30 pm).
+  const late = riyadhMinutes() >= MISSED_FROM;
+  const due = src.work_days.filter((d) => !leave.has(d) && (d < today || (d === today && (late || sent.has(d)))));
   const tasks = new Map<string, TaskFacts>();
   for (const u of p.updates) {
     for (const i of u.items) {
@@ -212,6 +234,7 @@ function countPerson(p: Person, src: Source, today: string): PersonFacts {
     blockers,
     open_blockers: openBlockers,
     line: p.updates.length ? parts.join(", ") : "No daily updates",
+    read_at: readAt,
   };
 }
 
@@ -409,6 +432,7 @@ interface Row {
   summary: unknown;
   facts: unknown;
   generated_at: string | null;
+  generated_by: string | null;
   updated_at: string;
 }
 
@@ -434,26 +458,53 @@ async function pool<T>(items: T[], n: number, fn: (t: T) => Promise<void>) {
   );
 }
 
-async function run(week: string, opts: { mode: "all" | "missing"; onlyUser: string | null; by: string | null }) {
+type Mode = "all" | "missing" | "topup";
+
+async function run(week: string, opts: { mode: Mode; onlyUser: string | null; by: string | null }) {
   const today = riyadhToday();
+  const readAt = new Date(Date.now()).toISOString();
   const { data, error } = await admin.rpc("weekly_update_source", { p_week_start: week });
   if (error) throw new Error(`Could not read the week: ${error.message}`);
   const src = data as Source;
-  const { data: rowsData } = await admin.from("weekly_updates").select("user_id, status, summary, facts, generated_at, updated_at").eq("week_start", week);
+  const { data: rowsData } = await admin.from("weekly_updates").select("user_id, status, summary, facts, generated_at, generated_by, updated_at").eq("week_start", week);
   const rows = new Map(((rowsData ?? []) as Row[]).map((r) => [r.user_id ?? "team", r]));
 
-  const over = today > src.week_end;
-  // Written before the week was over (or never), failed, or stuck: needs doing.
-  const fridayStart = new Date(`${addDays(src.week_end, 1)}T00:00:00+03:00`).getTime();
+  const close = closesAt(src.week_end);
+  const over = Date.now() >= close;
+  const at = (ts: string | null | undefined) => (ts ? new Date(ts).getTime() : 0);
+  // Written before the week closed (or never), failed, or stuck: needs doing.
   const needs = (r: Row | undefined) =>
     !r ||
     r.status === "failed" ||
-    (r.status === "pending" && Date.now() - new Date(r.updated_at).getTime() > 10 * 60_000) ||
-    ((r.status === "ready" || r.status === "empty") && over && (!r.generated_at || new Date(r.generated_at).getTime() < fridayStart));
+    (r.status === "pending" && Date.now() - at(r.updated_at) > 10 * 60_000) ||
+    ((r.status === "ready" || r.status === "empty") && over && at(r.generated_at) < close);
+  // The top-up: their daily updates came in or changed after their week was written.
+  const changedSince = (p: Person, r: Row | undefined) => {
+    if (!r) return false;
+    const read = (r.facts as { read_at?: string } | null)?.read_at ?? r.generated_at;
+    return p.updates.some((u) => at(u.changed_at) > at(read));
+  };
 
-  const facts = new Map(src.people.map((p) => [p.id, countPerson(p, src, today)]));
-  const targets = src.people.filter((p) => (!opts.onlyUser || p.id === opts.onlyUser) && (opts.mode === "all" || needs(rows.get(p.id))));
+  const facts = new Map(src.people.map((p) => [p.id, countPerson(p, src, today, readAt)]));
+  const targets = src.people.filter(
+    (p) =>
+      (!opts.onlyUser || p.id === opts.onlyUser) &&
+      (opts.mode === "all" || needs(rows.get(p.id)) || (opts.mode === "topup" && changedSince(p, rows.get(p.id)))),
+  );
+  // Everyone else keeps their write-up; on the top-up their figures are brought up to date (today's
+  // daily update now counts as missed if it never came).
+  const refresh = opts.mode === "topup" ? src.people.filter((p) => !targets.includes(p) && rows.get(p.id)) : [];
   const teamNeeded = opts.mode === "all" || targets.length > 0 || needs(rows.get("team"));
+  for (const p of refresh) {
+    const r = rows.get(p.id)!;
+    if (r.status === "ready") await save(week, p.id, "ready", facts.get(p.id), r.summary, null, r.generated_by ?? null);
+    else if (r.status === "empty") await save(week, p.id, "empty", facts.get(p.id), null, null, r.generated_by ?? null);
+  }
+  if (!teamNeeded && refresh.length && rows.get("team")?.status === "ready") {
+    const team = rows.get("team")!;
+    const t = countTeam(src.people.map((p) => facts.get(p.id)!));
+    await save(week, null, "ready", t, team.summary, null, team.generated_by ?? null);
+  }
   if (!targets.length && !teamNeeded) {
     // Nothing left to write; if an earlier run stopped before telling people, tell them now.
     if (over) await notifyWeek(week);
@@ -513,7 +564,7 @@ async function run(week: string, opts: { mode: "all" | "missing"; onlyUser: stri
     }
   }
 
-  // Once the week is over, everyone hears about theirs (once).
+  // Once the week has closed, everyone hears about theirs (once).
   if (over) await notifyWeek(week);
   return { written: targets.length };
 }
@@ -551,7 +602,9 @@ Deno.serve(async (req) => {
   }
 
   const week = weekToWrite(body.week_start);
-  const mode: "all" | "missing" = by && body.mode !== "missing" ? "all" : "missing";
+  // The database asks for what's missing or the top-up; a manager or senior writes it all again
+  // unless they ask for what's missing.
+  const mode: Mode = by ? (body.mode === "missing" ? "missing" : "all") : body.mode === "topup" ? "topup" : "missing";
   const onlyUser = by && typeof body.user_id === "string" && /^[0-9a-f-]{36}$/i.test(body.user_id) ? body.user_id : null;
 
   if (by) {
