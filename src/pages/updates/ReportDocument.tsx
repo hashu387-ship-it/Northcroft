@@ -1,7 +1,9 @@
-// The weekly update as a document in Salam's branding: the same on screen, on paper and (drawn the
-// same way) in the PDF. The team's part first when there is one, then each person: what they did,
-// each project with every task's % at the start and end, other work and blockers.
+// The weekly update as a document in Northcroft's colours and fonts, with the Northcroft and Salam
+// logos at the top: the same on screen, on paper and in the PDF (a copy of this page). The team's
+// part first when there is one, then each person: what they did, each project with every task's %
+// at the start and end, other work and blockers.
 import { Fragment, type CSSProperties } from "react";
+import { LogoMark, Wordmark } from "@/components/Brand";
 import { REPORT_BRAND } from "@/lib/reportBrand";
 import { dateOf } from "@/lib/time";
 import {
@@ -72,8 +74,19 @@ export function ReportDocument({
   return (
     <article className={`rp-doc${team ? " rp-with-team" : ""}`} style={reportVars()}>
       <header className="rp-head">
-        <div className="rp-logo">
-          {REPORT_BRAND.logo ? <img src={REPORT_BRAND.logo} alt={REPORT_BRAND.name} /> : <span className="rp-wordmark">{REPORT_BRAND.name}</span>}
+        <div className="rp-logos">
+          <span className="rp-nc">
+            <LogoMark variant="color" size={34} />
+            <Wordmark height={15} className="rp-nc-word" />
+          </span>
+          <span className="rp-logo-sep" aria-hidden />
+          <span className="rp-salam">
+            {REPORT_BRAND.salamLogo ? (
+              <img src={REPORT_BRAND.salamLogo} alt={REPORT_BRAND.salamName} />
+            ) : (
+              <span className="rp-wordmark">{REPORT_BRAND.salamName}</span>
+            )}
+          </span>
         </div>
         <div className="rp-head-text">
           <h1>{reportTitle(kind, !!team, single)}</h1>

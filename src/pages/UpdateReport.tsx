@@ -1,4 +1,4 @@
-// One weekly update report, in Salam's branding: the Thursday week, the last 7 days, or days someone
+// One weekly update report, in Northcroft's colours with the Northcroft and Salam logos: the Thursday week, the last 7 days, or days someone
 // picked. Print it, download it as a PDF, or send it from the phone's share menu. Managers and seniors
 // see the team's and everyone's; everyone else sees their own.
 import "@/styles/updates.css";

@@ -1,33 +1,32 @@
-// The look of the weekly update report, on screen, printed and as a PDF: Salam's branding, with a
-// line saying Northcroft's QS team prepared it. The colours come from Salam's logo.
+// The look of the weekly update report, on screen, printed and as a PDF: Northcroft's colours and
+// fonts (the app's own), with the Northcroft and Salam logos side by side at the top.
 //
-// Until the logo is in public/brand, the report shows Salam's name in the heading font instead, and
-// these colours stand in.
+// Until Salam's logo is in public/brand, its place shows "SALAM" in lettering like their wordmark.
 export const REPORT_BRAND = {
-  /** Shown at the top when there's no logo, and in the file name. */
-  name: "Salam",
-  /** The logo at the top of the report (PNG, JPG or SVG in public/brand), or null. */
-  logo: null as string | null,
-  /** Headings, the band at the top and the bars. */
-  primary: "#0B1F35",
-  /** The rule under the heading and small highlights. */
-  accent: "#B08D57",
-  /** Light fill behind the figures and section headings. */
-  tint: "#F3EEE3",
+  /** In the file name. */
+  name: "Northcroft",
+  /** Salam's logo next to Northcroft's (PNG, JPG or SVG in public/brand), or null for the lettering. */
+  salamLogo: null as string | null,
+  salamName: "Salam",
+  /** Northcroft navy: the band at the top, headings and the bars. */
+  primary: "#012061",
+  /** Northcroft red: the rule under the band and small highlights. */
+  accent: "#F13E44",
+  /** Light navy behind the figures and notes. */
+  tint: "#EEF2F9",
   /** Text on white. */
-  ink: "#1B1B1F",
+  ink: "#14171F",
   /** Quieter text: dates, labels. */
-  muted: "#4A4F5C",
+  muted: "#4A5570",
   preparedBy: "Prepared by Northcroft QS team",
-  /** Fonts bundled in public/fonts/report (also embedded in the PDF). */
-  headingFont: "Marcellus",
-  bodyFont: "Open Sans",
 };
 
+/** Fonts bundled in public/fonts/report, also put inside the PDF. */
 export const REPORT_FONTS = {
-  heading: "/fonts/report/Marcellus-Regular.ttf",
-  regular: "/fonts/report/OpenSans-Regular.ttf",
-  semibold: "/fonts/report/OpenSans-SemiBold.ttf",
-  bold: "/fonts/report/OpenSans-Bold.ttf",
-  italic: "/fonts/report/OpenSans-Italic.ttf",
+  headingSemi: "/fonts/report/SairaSemiCondensed-SemiBold.ttf",
+  heading: "/fonts/report/SairaSemiCondensed-Bold.ttf",
+  regular: "/fonts/report/Inter-Regular.ttf",
+  semibold: "/fonts/report/Inter-SemiBold.ttf",
+  bold: "/fonts/report/Inter-Bold.ttf",
+  salam: "/fonts/report/Marcellus-Regular.ttf",
 };

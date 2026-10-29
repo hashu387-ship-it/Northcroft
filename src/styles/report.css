@@ -1,18 +1,20 @@
-/* The weekly update report: a white A4-like document, the same on screen and on paper. Colours come
-   from REPORT_BRAND as CSS variables on .rp-doc; fonts are bundled in /fonts/report. This file is
-   also put, as it is, into the page that prints. */
-@font-face { font-family: "RP Heading"; src: url("/fonts/report/Marcellus-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "RP Body"; src: url("/fonts/report/OpenSans-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "RP Body"; src: url("/fonts/report/OpenSans-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "RP Body"; src: url("/fonts/report/OpenSans-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "RP Body"; src: url("/fonts/report/OpenSans-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+/* The weekly update report: a white A4-like document in Northcroft's colours and fonts, with the
+   Northcroft and Salam logos at the top; the same on screen and on paper. Colours come from
+   REPORT_BRAND as CSS variables on .rp-doc; fonts are bundled in /fonts/report. This file is also
+   put, as it is, into the page that prints. */
+@font-face { font-family: "RP Heading"; src: url("/fonts/report/SairaSemiCondensed-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "RP Heading"; src: url("/fonts/report/SairaSemiCondensed-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "RP Body"; src: url("/fonts/report/Inter-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "RP Body"; src: url("/fonts/report/Inter-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "RP Body"; src: url("/fonts/report/Inter-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "RP Salam"; src: url("/fonts/report/Marcellus-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
 
 .rp-doc {
-  --rp-primary: #0b1f35;
-  --rp-accent: #b08d57;
-  --rp-tint: #f3eee3;
-  --rp-ink: #1b1b1f;
-  --rp-muted: #4a4f5c;
+  --rp-primary: #012061;
+  --rp-accent: #f13e44;
+  --rp-tint: #eef2f9;
+  --rp-ink: #14171f;
+  --rp-muted: #4a5570;
   --rp-line: color-mix(in srgb, var(--rp-primary) 16%, white);
   box-sizing: border-box;
   width: 100%;
@@ -20,7 +22,7 @@
   margin: 0 auto;
   background: #fff;
   color: var(--rp-ink);
-  font-family: "RP Body", "Open Sans", system-ui, sans-serif;
+  font-family: "RP Body", "Inter", system-ui, sans-serif;
   font-size: 13.5px;
   line-height: 1.55;
   border-radius: 14px;
@@ -32,13 +34,17 @@
 .rp-doc *, .rp-doc *::before, .rp-doc *::after { box-sizing: border-box; }
 .rp-doc p { margin: 0; }
 /* Stronger than the app's own heading rule, so the report keeps its Salam-style headings. */
-:root:root .rp-doc :is(h1, h2, h3) { font-family: "RP Heading", Georgia, serif; font-weight: 400; color: var(--rp-primary); margin: 0; letter-spacing: 0.01em; }
+:root:root .rp-doc :is(h1, h2, h3) { font-family: "RP Heading", "Saira Semi Condensed", sans-serif; font-weight: 700; color: var(--rp-primary); margin: 0; letter-spacing: 0; }
 
 /* ---- heading band */
 .rp-head { display: flex; align-items: center; gap: 18px; padding: 22px 28px 18px; background: var(--rp-primary); color: #fff; }
-.rp-logo { flex: none; display: flex; align-items: center; justify-content: center; min-width: 64px; height: 56px; padding: 6px 10px; border-radius: 8px; background: #fff; }
-.rp-logo img { max-height: 44px; max-width: 160px; display: block; }
-.rp-wordmark { font-family: "RP Heading", Georgia, serif; font-size: 22px; letter-spacing: 0.14em; color: var(--rp-primary); text-transform: uppercase; }
+.rp-logos { flex: none; display: flex; align-items: center; gap: 12px; height: 58px; padding: 8px 14px; border-radius: 8px; background: #fff; }
+.rp-nc { display: flex; align-items: center; gap: 8px; color: var(--rp-primary); }
+.rp-nc svg { display: block; }
+.rp-logo-sep { width: 1px; align-self: stretch; background: color-mix(in srgb, var(--rp-primary) 22%, white); }
+.rp-salam { display: flex; align-items: center; }
+.rp-salam img { max-height: 38px; max-width: 130px; display: block; }
+.rp-wordmark { font-family: "RP Salam", Georgia, serif; font-size: 19px; letter-spacing: 0.16em; color: var(--rp-primary); text-transform: uppercase; }
 .rp-head-text { min-width: 0; flex: 1; }
 :root:root .rp-head h1 { color: #fff; font-size: 24px; line-height: 1.2; }
 .rp-period { font-weight: 600; font-size: 14px; margin-top: 2px; color: #fff; }
@@ -60,7 +66,7 @@
 /* ---- the team's figures */
 .rp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .rp-stat { background: var(--rp-tint); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; }
-.rp-stat b { font-family: "RP Heading", Georgia, serif; font-weight: 400; font-size: 24px; line-height: 1.1; color: var(--rp-primary); }
+.rp-stat b { font-family: "RP Heading", "Saira Semi Condensed", sans-serif; font-weight: 700; font-size: 26px; line-height: 1.1; color: var(--rp-primary); }
 .rp-stat b small { font-family: "RP Body", sans-serif; font-size: 12px; font-weight: 600; color: var(--rp-muted); }
 .rp-stat span { font-size: 12px; font-weight: 600; color: var(--rp-muted); }
 
@@ -105,9 +111,10 @@
 @media (max-width: 560px) {
   .rp-doc { border-radius: 12px; font-size: 13px; }
   .rp-head { padding: 16px 16px 14px; gap: 12px; align-items: flex-start; }
-  .rp-logo { min-width: 48px; height: 44px; }
-  .rp-logo img { max-height: 32px; max-width: 110px; }
-  .rp-wordmark { font-size: 16px; }
+  .rp-logos { height: 44px; padding: 6px 10px; gap: 8px; }
+  .rp-nc .rp-nc-word { display: none; }
+  .rp-salam img { max-height: 28px; max-width: 90px; }
+  .rp-wordmark { font-size: 14px; }
   :root:root .rp-head h1 { font-size: 19px; }
   .rp-body { padding: 16px 16px 20px; }
   .rp-foot { padding: 10px 16px 14px; }

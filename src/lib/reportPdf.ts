@@ -1,5 +1,5 @@
-// The weekly update report as a PDF: an exact copy of the report page in the app, the same fonts,
-// colours and layout, laid out like the printout (the team on the first page, then each person on
+// The weekly update report as a PDF: an exact copy of the report page in the app (Northcroft's
+// colours and fonts, the Northcroft and Salam logos), the same layout, laid out like the printout (the team on the first page, then each person on
 // their own page; a long part carries on to the next page between lines, never through one). Job
 // titles are only shown in the app, so they're left out here. Each page is a sharp picture of the
 // page, with "Prepared by Northcroft QS team" and the page number underneath.
@@ -25,10 +25,12 @@ let fontCss: Promise<string> | null = null;
 function reportFontCss(): Promise<string> {
   if (!fontCss) {
     const faces: [string, string, number][] = [
-      ["RP Heading", REPORT_FONTS.heading, 400],
+      ["RP Heading", REPORT_FONTS.headingSemi, 600],
+      ["RP Heading", REPORT_FONTS.heading, 700],
       ["RP Body", REPORT_FONTS.regular, 400],
       ["RP Body", REPORT_FONTS.semibold, 600],
       ["RP Body", REPORT_FONTS.bold, 700],
+      ["RP Salam", REPORT_FONTS.salam, 400],
     ];
     fontCss = Promise.all(
       faces.map(async ([family, url, weight]) => {
@@ -98,12 +100,7 @@ function cutPoints(paper: HTMLElement, height: number): number[] {
 }
 
 export async function buildReportPdf(doc: HTMLElement, title: string): Promise<Blob> {
-  const [{ toCanvas }, { PDFDocument, rgb }, fontkitMod, css] = await Promise.all([
-    import("html-to-image"),
-    import("pdf-lib"),
-    import("@pdf-lib/fontkit"),
-    reportFontCss(),
-  ]);
+  const [{ toCanvas }, { PDFDocument, StandardFonts, rgb }, css] = await Promise.all([import("html-to-image"), import("pdf-lib"), reportFontCss()]);
   await document.fonts?.ready;
 
   // The copy is laid out off screen, at A4 width.
@@ -141,12 +138,12 @@ export async function buildReportPdf(doc: HTMLElement, title: string): Promise<B
   }
 
   const pdf = await PDFDocument.create();
-  pdf.registerFontkit(((fontkitMod as unknown as { default: unknown }).default ?? fontkitMod) as Parameters<typeof pdf.registerFontkit>[0]);
   pdf.setTitle(title);
   pdf.setAuthor("");
   pdf.setCreator("");
   pdf.setProducer("");
-  const font = await pdf.embedFont(new Uint8Array(await (await fetch(REPORT_FONTS.regular)).arrayBuffer()), { subset: true });
+  // The line at the foot is plain text in a font every PDF reader has, so it always prints whole.
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
   const muted = (() => {
     const n = parseInt(REPORT_BRAND.muted.replace("#", ""), 16);
     return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
