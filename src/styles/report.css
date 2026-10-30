@@ -102,7 +102,7 @@
 
 /* ---- the PDF copy: an A4 page, no rounded card, and job titles stay in the app */
 .rp-doc.rp-paper { max-width: none; width: 720px; border-radius: 0; box-shadow: none; }
-.rp-paper .rp-role, .rp-paper .rp-foot { display: none !important; }
+.rp-paper .rp-role, .rp-paper .rp-foot, .rp-paper .rp-app-only { display: none !important; }
 
 /* ---- phones (the page on screen only: a PDF made on a phone is the same A4 page as one made on a
    computer) */
@@ -123,8 +123,12 @@
   @page { size: A4; margin: 14mm 12mm; }
   html, body { background: #fff !important; margin: 0; }
   .rp-doc { max-width: none; border-radius: 0; box-shadow: none; font-size: 10.5pt; }
-  .rp-role { display: none !important; }
+  .rp-role, .rp-app-only { display: none !important; }
   .rp-doc.rp-with-team .rp-person { break-before: page; border-top: 0; padding-top: 0; }
   .rp-section-head, .rp-project h3, .rp-label { break-after: avoid; }
   .rp-tasks tr, .rp-blockers li, .rp-projects li, .rp-stat { break-inside: avoid; }
 }
+
+/* Whether the person checked their week and sent it back. */
+.rp-checked { margin: 0 0 10px; font-size: 0.85em; font-weight: 600; color: var(--rp-primary); }
+.rp-checked.wait { color: var(--rp-muted); font-weight: 500; }

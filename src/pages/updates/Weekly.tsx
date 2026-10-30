@@ -7,13 +7,16 @@
 import "@/styles/updates.css";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { CalendarRange, ChevronLeft, ChevronRight, FileText, RotateCcw, Sparkles } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, ClipboardCheck, FileText, RotateCcw, Sparkles } from "lucide-react";
 import { usePeople } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { sendsDailyUpdate, useMyDailyUpdates } from "@/lib/dailyUpdates";
 import { addDays, addMonths, dateOf, diffDays, dow, fmtDate, monthStart, todayISO } from "@/lib/time";
 import {
+  checkLink,
+  checkState,
   dayLabel,
+  dueLabel,
   generateUpdate,
   hasFacts,
   lastFinishedWeek,
@@ -74,6 +77,36 @@ function StatusPill({ status, over = true }: { status: WeeklyStatus; over?: bool
 }
 
 const writtenOn = (ts: string | null) => (ts ? dayLabel(dateOf(ts)) : "");
+
+const shortName = (r: PersonWeek) => (hasFacts(r.facts) ? (r.facts as PersonFacts).short_name : "One person");
+
+/** A person's week once it's ready: where checking it stands, else the usual status. */
+function WeekPill({ row, over }: { row: PersonWeek; over: boolean }) {
+  const state = row.status === "ready" ? checkState(row) : "none";
+  if (state === "sent") return row.check_edited ? <Pill tone="teal">Changed, sent back</Pill> : <Pill tone="green">Checked</Pill>;
+  if (state === "open") return <Pill tone="blue">To check</Pill>;
+  if (state === "missed") return <Pill tone="gray">Not checked</Pill>;
+  return <StatusPill status={row.status} over={over} />;
+}
+
+/** "Your weekly update to check" with the button, when there is one. */
+function CheckCard({ row }: { row: PersonWeek | undefined }) {
+  if (!row || row.status !== "ready" || checkState(row) !== "open") return null;
+  return (
+    <div className="glass card wk-check">
+      <ClipboardCheck />
+      <div className="grow">
+        <b>Check your weekly update</b>
+        <p className="small du-none">
+          {weekLabel(row.period_start)}. Change or add anything, then send it back by {dueLabel(row.check_due)}.
+        </p>
+      </div>
+      <Link className="btn primary small" to={checkLink(row.period_start)}>
+        Check and send back
+      </Link>
+    </div>
+  );
+}
 
 /* ---------------------------------------------------------------- Generate update */
 
@@ -210,6 +243,7 @@ function LastSevenRow({ userId, team }: { userId: string; team: boolean }) {
 /* ---------------------------------------------------------------- the Thursday week: managers and seniors */
 
 function TeamWeekSection() {
+  const me = useMe();
   const toast = useToast();
   const confirm = useConfirm();
   const [params, setParams] = useSearchParams();
@@ -223,6 +257,11 @@ function TeamWeekSection() {
   const people: PersonWeek[] = q.data?.people ?? [];
   const writing = [team, ...people].some((r) => r?.status === "pending");
   const f = team && hasFacts(team.facts) ? team.facts : null;
+  // Who has checked theirs and sent it back.
+  const asked = people.filter((p) => p.status === "ready" && checkState(p) !== "none");
+  const sentBack = asked.filter((p) => checkState(p) === "sent");
+  const changed = sentBack.filter((p) => p.check_edited);
+  const stillOpen = asked.some((p) => checkState(p) === "open");
 
   const setWeek = (w: string) => {
     const next = new URLSearchParams(params);
@@ -236,7 +275,11 @@ function TeamWeekSection() {
       team?.status === "ready" &&
       !(await confirm({
         title: "Write the week again?",
-        message: "Everyone's week and the team's are written again from the daily updates as they are now. Nobody is told again.",
+        message: sentBack.length
+          ? `Everyone's week and the team's are written again from the daily updates as they are now. ${
+              sentBack.length === 1 ? `${shortName(sentBack[0])} sent theirs back, so it stays as they sent it` : `${sentBack.length} people sent theirs back, so theirs stay as they sent them`
+            }. Nobody is told again.`
+          : "Everyone's week and the team's are written again from the daily updates as they are now. Nobody is told again.",
         confirmLabel: "Write it again",
       }))
     )
@@ -273,6 +316,7 @@ function TeamWeekSection() {
           <ChevronRight />
         </button>
       </div>
+      <CheckCard row={people.find((p) => p.user_id === me.id)} />
       {q.isLoading ? (
         <Loading rows={2} />
       ) : !team && !people.length ? (
@@ -320,6 +364,15 @@ function TeamWeekSection() {
             </button>
             {team?.generated_at && !writing && <span className="faint small">Written {writtenOn(team.generated_at)}</span>}
           </div>
+          {asked.length > 0 && (
+            <p className="wk-check-line">
+              <b>
+                {sentBack.length} of {asked.length}
+              </b>{" "}
+              checked and sent back{changed.length ? `, ${changed.length} with changes` : ""}
+              {stillOpen ? " · open until Sunday 12 pm" : ""}
+            </p>
+          )}
           {people.length > 0 && (
             <ul className="wk-people">
               {people.map((p) => {
@@ -330,7 +383,7 @@ function TeamWeekSection() {
                       <b>{pf?.name ?? "Someone"}</b>
                       <span className="faint small">{pf ? `${pf.days_sent} of ${pf.days_expected} · ${pf.line}` : ""}</span>
                     </Link>
-                    <StatusPill status={p.status} over={over} />
+                    <WeekPill row={p} over={over} />
                   </li>
                 );
               })}
@@ -358,6 +411,9 @@ function MyWeeksSection() {
         <h2>Your weekly updates</h2>
         <span className="faint small">Thursday at 5:45 pm</span>
       </div>
+      {rows.map((r) => (
+        <CheckCard key={`check-${r.id}`} row={r} />
+      ))}
       {!rows.some((r) => r.period_start === current) && !weekIsOver(current) && (
         <div className="glass card wk-coming">
           <CalendarRange />
@@ -386,7 +442,7 @@ function MyWeeksSection() {
                   {pf ? `${pf.days_sent} of ${pf.days_expected} daily updates · ${pf.line}` : ""}
                 </span>
               </span>
-              <StatusPill status={r.status} over={weekIsOver(r.period_start)} />
+              <WeekPill row={r} over={weekIsOver(r.period_start)} />
             </Link>
           );
         })

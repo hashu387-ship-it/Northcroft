@@ -364,3 +364,11 @@
 .dl-section.compact { gap: 6px; }
 .dl-brand { color: #fff; }
 .dl-brand svg { color: #fff; }
+
+/* A weekly update to check: shown like a task, but it isn't one. */
+.check-row { align-items: center; }
+.check-row .check-ic { flex: none; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--accent); }
+.check-row .check-ic svg { width: 15px; height: 15px; }
+.check-row .m { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.check-row .check-due { color: var(--text); font-weight: 600; }
+.check-row .check-go { flex: none; width: 18px; height: 18px; color: var(--text-2); }

@@ -3,10 +3,13 @@
 // 9:30 pm for daily updates that came in late). The `weekly` Edge Function writes them (migration
 // 0045 holds the table and the Thursday schedule);
 // these are the types, hooks and week helpers the app uses.
+// Once the week is written each person checks theirs (migration 0046): it shows in My tasks as
+// "Check your weekly update" until Sunday 12 pm, they can change the words and add lines, and what
+// they send back goes straight into the report.
 import { useQuery } from "@tanstack/react-query";
 import { unwrap } from "./api";
 import { looksOffline, supabase } from "./supabase";
-import { addDays, dow, DOW_SHORT, fmtDate, todayISO, weekStart } from "./time";
+import { addDays, dateOf, dow, DOW_SHORT, fmtDate, fmtTime12, todayISO, weekStart } from "./time";
 
 export type WeeklyStatus = "pending" | "ready" | "empty" | "failed";
 
@@ -63,6 +66,8 @@ export interface PersonSummary {
   projects: { project: string; summary: string }[];
   other_work: string;
   blockers: string;
+  /** Anything the person added when they checked it. */
+  added?: string;
 }
 
 export interface TeamSummary {
@@ -87,6 +92,15 @@ interface Row<F, S> {
   notified_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Checking (the Thursday week only): when they were asked, until when, and when they sent it back. */
+  check_sent_at?: string | null;
+  check_due?: string | null;
+  checked_at?: string | null;
+  checked_by?: string | null;
+  /** They changed the words or added something when they sent it back. */
+  check_edited?: boolean;
+  /** The words as they were written, before the person changed them. */
+  written_summary?: S | null;
 }
 export type PersonWeek = Row<PersonFacts, PersonSummary> & { user_id: string };
 export type TeamWeek = Row<TeamFacts, TeamSummary> & { user_id: null };
@@ -228,6 +242,89 @@ export async function makeWeeklyUpdate(opts: { week_start: string; user_id?: str
  */
 export async function generateUpdate(opts: { start: string; end: string; user_id?: string | null }) {
   return invokeWeekly({ kind: "custom", start: opts.start, end: opts.end, user_id: opts.user_id ?? undefined }, "The update didn't start. Try again in a moment.");
+}
+
+/* ---------------------------------------------------------------- checking it and sending it back */
+
+/**
+ * Where someone's weekly update stands on checking:
+ *   none: never sent to them to check (an older week, or no daily updates);
+ *   open: waiting for them until Sunday 12 pm;
+ *   sent: they sent it back (as it was, or changed);
+ *   missed: Sunday 12 pm passed, so it stays as it was written.
+ */
+export type CheckState = "none" | "open" | "sent" | "missed";
+export function checkState(r: Pick<PersonWeek, "check_sent_at" | "check_due" | "checked_at"> | null | undefined, now = Date.now()): CheckState {
+  if (!r || !r.check_sent_at || !r.check_due) return "none";
+  if (r.checked_at) return "sent";
+  return now < Date.parse(r.check_due) ? "open" : "missed";
+}
+
+/** "Sun 1 Nov, 12 pm" */
+export function dueLabel(ts: string | null | undefined): string {
+  if (!ts) return "";
+  return `${dayLabel(dateOf(ts))}, ${fmtTime12(ts).replace(":00", "")}`;
+}
+
+/** "Sat 31 Oct, 3:10 pm" */
+export const whenLabel = (ts: string | null | undefined) => (ts ? `${dayLabel(dateOf(ts))}, ${fmtTime12(ts)}` : "");
+
+/** Where someone checks their week. */
+export const checkLink = (week: string) => `/updates/check?week=${week}`;
+
+/** My weekly updates waiting for me to check (for My tasks). */
+export function useMyChecks(userId: string, enabled = true) {
+  return useQuery({
+    queryKey: [KEY, "to-check", userId],
+    enabled: enabled && !!userId,
+    // Looked at again each minute, so it goes at 12 pm on Sunday without a reload.
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const rows = await unwrap<PersonWeek[]>(
+        supabase
+          .from("weekly_updates")
+          .select("*")
+          .eq("kind", "week")
+          .eq("user_id", userId)
+          .not("check_sent_at", "is", null)
+          .is("checked_at", null)
+          .order("period_start", { ascending: false })
+          .limit(4),
+      );
+      return rows.filter((r) => checkState(r) === "open");
+    },
+  });
+}
+
+/** The words someone may change, tidied the way the database keeps them. */
+export function cleanWords(s: Partial<PersonSummary> | null | undefined): PersonSummary {
+  return {
+    summary: (s?.summary ?? "").trim(),
+    projects: (s?.projects ?? []).map((p) => ({ project: (p.project ?? "").trim(), summary: (p.summary ?? "").trim() })).filter((p) => p.project),
+    other_work: (s?.other_work ?? "").trim(),
+    blockers: (s?.blockers ?? "").trim(),
+    added: (s?.added ?? "").trim(),
+  };
+}
+
+/** The same words (after tidying)? */
+export const sameWords = (a: Partial<PersonSummary> | null | undefined, b: Partial<PersonSummary> | null | undefined) =>
+  JSON.stringify(cleanWords(a)) === JSON.stringify(cleanWords(b));
+
+/**
+ * Send my weekly update back, changed or as it was, before Sunday 12 pm. It goes straight into the
+ * report; if I changed it, the team report is written again with it.
+ */
+export async function sendBack(id: string, words: PersonSummary): Promise<{ edited: boolean }> {
+  if (looksOffline()) throw new Error("Sending it back needs signal. Your changes are kept here; try again when you're back online.");
+  const { data, error } = await supabase.rpc("weekly_update_send_back", { p_id: id, p_summary: cleanWords(words) });
+  if (error) {
+    const msg = error.message || "";
+    if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) throw new Error("No connection. Your changes are kept here; try again in a moment.");
+    if (/JWT expired|invalid JWT/i.test(msg)) throw new Error("Your session expired. Please sign in again; your changes are kept here.");
+    throw new Error(msg && msg.length < 160 ? msg : "It didn't send. Try again in a moment.");
+  }
+  return { edited: !!(data as { edited?: boolean } | null)?.edited };
 }
 
 /** Where a report opens. */

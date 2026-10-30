@@ -10,6 +10,7 @@ import { REPORT_BRAND } from "@/lib/reportBrand";
 import { buildReportPdf, reportFileName } from "@/lib/reportPdf";
 import { downloadPdf, printReport, sendPdf } from "@/lib/reportShare";
 import {
+  checkState,
   dayFromParam,
   generateUpdate,
   hasFacts,
@@ -125,13 +126,18 @@ function Report({ kind, start, end, who }: { kind: ReportKind; start: string; en
       setBusy(null);
     }
   };
-  const canWrite = kind !== "rolling" && (canAssign || kind === "custom");
+  // Someone who checked theirs and sent it back keeps it as they sent it.
+  const sentBack = kind === "week" ? view.people.filter((p) => checkState(p) === "sent") : [];
+  const onlyChecked = !!who && view.people.length === 1 && sentBack.length === 1;
+  const canWrite = kind !== "rolling" && (canAssign || kind === "custom") && !onlyChecked;
   const onWrite = async () => {
     if (
       rows.some((r) => r.status === "ready") &&
       !(await confirm({
         title: "Write it again?",
-        message: "It's written again from the daily updates as they are now. Nobody is told again.",
+        message: sentBack.length
+          ? `It's written again from the daily updates as they are now. Anyone who checked theirs and sent it back keeps their own. Nobody is told again.`
+          : "It's written again from the daily updates as they are now. Nobody is told again.",
         confirmLabel: "Write it again",
       }))
     )

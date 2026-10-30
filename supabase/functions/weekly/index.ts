@@ -15,8 +15,13 @@
 // changed after their week was written gets it written again, without being told twice. Today's
 // daily update only counts as missed after 9:30 pm.
 //
+// Each person then checks theirs and can send it back with changes (migration 0046); an update someone
+// has sent back is never written again here, and the team report is rewritten with it.
+//
 // POST, either:
 //   from the database (header x-push-secret)         { mode: "missing" | "topup" | "rolling" }
+//                                                    { mode: "team", week_start }: only the team report,
+//                                                    after someone changed theirs when checking it
 //   signed in, a manager or senior, the Thursday week { kind: "week", week_start?, user_id?, mode? }
 //     week_start: the Sunday (default: the last week that's closed); user_id: just that person (and
 //     the team report); mode "all" (default) writes them again, "missing" only what isn't done.
@@ -333,7 +338,8 @@ What to write:
 - headline: two or three sentences on the team's work in those days: the main work finished and under way, with the counted totals where they help.
 - projects: one entry per project, in the order given, with one to three sentences on what was done on it across the people working on it, naming who did what.
 - attention: up to five short points a manager should look at, taken only from the material: blockers still open, daily updates not sent, tasks that didn't move. Each point names the person and is one short sentence. Empty when there's nothing.
-Use the counted figures as they are given; don't work out your own.`;
+Use the counted figures as they are given; don't work out your own.
+Some people checked their own update and changed it or added lines; take their words as they wrote them.`;
 
 const TEAM_SCHEMA = {
   type: "object",
@@ -398,6 +404,7 @@ function teamMaterial(src: Source, people: { facts: PersonFacts; summary: Person
     for (const task of f.tasks) lines.push(`- [${task.project ?? "Other"}] ${task.title}: ${task.start}% to ${task.end}%${task.handed_in ? ", handed in" : ""}`);
     if (s.other_work) lines.push(`Other work: ${s.other_work}`);
     if (s.blockers) lines.push(`Blockers: ${s.blockers}`);
+    if (s.added) lines.push(`Added by ${f.short_name} when checking: ${s.added}`);
   }
   return lines.join("\n");
 }
@@ -407,6 +414,8 @@ interface PersonSummary {
   projects: { project: string; summary: string }[];
   other_work: string;
   blockers: string;
+  /** Anything the person added when they checked it. */
+  added?: string;
 }
 interface TeamSummary {
   headline: string;
@@ -440,6 +449,8 @@ interface Row {
   generated_at: string | null;
   generated_by: string | null;
   updated_at: string;
+  /** When the person checked it and sent it back (then it's theirs and never written again). */
+  checked_at: string | null;
 }
 
 type Kind = "week" | "rolling" | "custom";
@@ -452,6 +463,8 @@ interface Job {
   onlyUser: string | null;
   /** Write the team's too (not for a member's own, or one person picked). */
   team: boolean;
+  /** Only the team's (someone changed theirs when checking it). */
+  teamOnly?: boolean;
   by: string | null;
 }
 
@@ -495,7 +508,7 @@ async function run(job: Job) {
   const src = data as Source;
   const { data: rowsData } = await admin
     .from("weekly_updates")
-    .select("user_id, status, summary, facts, generated_at, generated_by, updated_at")
+    .select("user_id, status, summary, facts, generated_at, generated_by, updated_at, checked_at")
     .eq("kind", job.kind)
     .eq("period_start", job.start)
     .eq("period_end", job.end);
@@ -524,15 +537,20 @@ async function run(job: Job) {
     if (who) src.people.push({ id: who.id, name: who.full_name, short_name: who.short_name, title: who.title, projects: [], leave_days: [], updates: [] });
   }
   const facts = new Map(src.people.map((p) => [p.id, countPerson(p, src, today, readAt)]));
-  const targets = src.people.filter(
-    (p) =>
-      (!opts.onlyUser || p.id === opts.onlyUser) &&
-      (opts.mode === "all" || needs(rows.get(p.id)) || (opts.mode === "topup" && changedSince(p, rows.get(p.id)))),
-  );
+  // Someone who checked theirs and sent it back keeps it as they sent it.
+  const checked = (id: string) => !!rows.get(id)?.checked_at;
+  const targets = job.teamOnly
+    ? []
+    : src.people.filter(
+        (p) =>
+          !checked(p.id) &&
+          (!opts.onlyUser || p.id === opts.onlyUser) &&
+          (opts.mode === "all" || needs(rows.get(p.id)) || (opts.mode === "topup" && changedSince(p, rows.get(p.id)))),
+      );
   // Everyone else keeps their write-up; on the top-up their figures are brought up to date (today's
   // daily update now counts as missed if it never came).
-  const refresh = opts.mode === "topup" ? src.people.filter((p) => !targets.includes(p) && rows.get(p.id)) : [];
-  const teamNeeded = job.team && (opts.mode === "all" || targets.length > 0 || needs(rows.get("team")));
+  const refresh = opts.mode === "topup" && !job.teamOnly ? src.people.filter((p) => !targets.includes(p) && rows.get(p.id)) : [];
+  const teamNeeded = job.team && (!!job.teamOnly || opts.mode === "all" || targets.length > 0 || needs(rows.get("team")));
   for (const p of refresh) {
     const r = rows.get(p.id)!;
     if (r.status === "ready") await save(job, p.id, "ready", facts.get(p.id), r.summary, null, r.generated_by ?? null);
@@ -637,6 +655,10 @@ Deno.serve(async (req) => {
     if (body.mode === "rolling") {
       // The last 7 days, for Home: everyone and the team, written fresh.
       job = { kind: "rolling", start: addDays(today, -6), end: today, mode: "all", onlyUser: null, team: true, by: null };
+    } else if (body.mode === "team") {
+      // Someone changed theirs when checking it: the team report is written again with it.
+      const week = weekToWrite(body.week_start);
+      job = { kind: "week", start: week, end: addDays(week, 4), mode: "missing", onlyUser: null, team: true, teamOnly: true, by: null };
     } else {
       const week = weekToWrite(body.week_start);
       job = { kind: "week", start: week, end: addDays(week, 4), mode: body.mode === "topup" ? "topup" : "missing", onlyUser: null, team: true, by: null };

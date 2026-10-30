@@ -24,6 +24,7 @@ const DailyUpdates = lazy(() => import("@/pages/DailyUpdates"));
 const UpdateReport = lazy(() => import("@/pages/UpdateReport"));
 const VoLogPage = lazy(() => import("@/pages/VoLogPage"));
 const Submissions = lazy(() => import("@/pages/Submissions"));
+const WeeklyCheck = lazy(() => import("@/pages/WeeklyCheck"));
 
 function Gate() {
   const { session, profile, loading } = useAuth();
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="share" element={<Share />} />
           <Route path="updates" element={<DailyUpdates />} />
           <Route path="updates/report" element={<UpdateReport />} />
+          <Route path="updates/check" element={<WeeklyCheck />} />
           <Route path="vo-log" element={<VoLogPage />} />
           <Route path="submissions" element={<Submissions />} />
           <Route path="*" element={<Navigate to="/" replace />} />

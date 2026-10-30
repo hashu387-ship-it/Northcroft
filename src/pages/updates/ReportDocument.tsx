@@ -7,7 +7,9 @@ import { LogoMark, Wordmark } from "@/components/Brand";
 import { REPORT_BRAND } from "@/lib/reportBrand";
 import { dateOf } from "@/lib/time";
 import {
+  checkState,
   dayLabel,
+  dueLabel,
   hasFacts,
   rangeLabel,
   type PersonFacts,
@@ -194,6 +196,26 @@ function TeamPart({ row }: { row: TeamWeek }) {
   );
 }
 
+/**
+ * Whether the person checked it. Sent back shows on paper too; waiting and not checked only in the
+ * app (they're about the app, not the week).
+ */
+function CheckLine({ row, name }: { row: PersonWeek; name?: string }) {
+  const state = checkState(row);
+  if (state === "none") return null;
+  if (state === "sent")
+    return (
+      <p className="rp-checked">
+        {row.check_edited ? `Changed and sent back by ${name ?? "them"}` : `Checked by ${name ?? "them"}`} · {dayLabel(dateOf(row.checked_at!))}
+      </p>
+    );
+  return (
+    <p className="rp-checked rp-app-only wait">
+      {state === "open" ? `Waiting for ${name ?? "them"} to check it, until ${dueLabel(row.check_due)}` : `Not checked by ${name ?? "them"}: it stays as it was written`}
+    </p>
+  );
+}
+
 /** Tasks grouped by project, "Other" last. */
 export function tasksByProject(f: PersonFacts) {
   const map = new Map<string, PersonFacts["tasks"]>();
@@ -232,6 +254,7 @@ function PersonPart({ row, showName }: { row: PersonWeek; showName: boolean }) {
         </div>
       )}
       <StateNote status={row.status} error={row.error} empty="No daily updates in these days." />
+      {row.kind === "week" && row.status === "ready" && <CheckLine row={row} name={f?.short_name} />}
       {s?.summary && <p className="rp-lead">{s.summary}</p>}
       {f &&
         tasksByProject(f).map(([project, tasks]) => (
@@ -292,6 +315,18 @@ function PersonPart({ row, showName }: { row: PersonWeek; showName: boolean }) {
               ))}
             </ul>
           )}
+        </div>
+      )}
+      {s?.added && (
+        <div className="rp-block">
+          <span className="rp-label">Added by {f?.short_name ?? "them"}</span>
+          <p>{s.added}</p>
+        </div>
+      )}
+      {s?.blockers && !(f && f.blockers.length > 0) && (
+        <div className="rp-block">
+          <span className="rp-label">Blockers</span>
+          <p>{s.blockers}</p>
         </div>
       )}
       {f && f.blockers.length > 0 && (

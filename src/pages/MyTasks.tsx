@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CircleCheck, ClipboardList, Inbox, Plus, SquareCheckBig } from "lucide-react";
+import { ChevronRight, CircleCheck, ClipboardCheck, ClipboardList, Inbox, Plus, SquareCheckBig } from "lucide-react";
 import { useChecklistCounts, usePeople, useTasks } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useSignoff, waitingOn } from "@/lib/signoff";
@@ -17,6 +17,7 @@ import type { Task } from "@/lib/types";
 import { DUE_GROUP_LABEL, dueGroup, type DueGroup } from "./project/api";
 import "@/styles/tasks.css";
 import { peopleOn } from "@/lib/people";
+import { checkLink, dueLabel, useMyChecks, weekLabel, type PersonWeek } from "@/lib/weeklyUpdates";
 
 type View = "mine" | "approve" | "review" | "team" | "byme" | "done";
 
@@ -30,6 +31,38 @@ function Group({ title, tasks, counts, tone, showAssignee = false }: { title: st
       <div className="glass group-card">
         {tasks.map((t) => (
           <SwipeTaskRow key={t.id} task={t} showAssignee={showAssignee} checklist={counts?.[t.id]} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Weekly updates waiting for me to check. It looks like a task but isn't one: no sign-off, no daily
+ * update, not counted in the workload. Sending it back finishes it.
+ */
+function ChecksGroup({ checks }: { checks: PersonWeek[] }) {
+  if (!checks.length) return null;
+  return (
+    <section>
+      <div className="section-title">
+        To check <span className="n">{checks.length}</span>
+      </div>
+      <div className="glass group-card">
+        {checks.map((c) => (
+          <Link key={c.id} to={checkLink(c.period_start)} className="task-row check-row">
+            <span className="check-ic" aria-hidden>
+              <ClipboardCheck />
+            </span>
+            <div className="body">
+              <div className="t">Check your weekly update</div>
+              <div className="m">
+                <span>{weekLabel(c.period_start)}</span>
+                <span className="check-due">Due {dueLabel(c.check_due)}</span>
+              </div>
+            </div>
+            <ChevronRight className="check-go" />
+          </Link>
         ))}
       </div>
     </section>
@@ -80,6 +113,7 @@ export default function MyTasks() {
   // Tasks team members made: the approver sees all of them, a team member their own.
   const requestsQ = useTaskRequests();
   const recentDone = useRecentDone(givesOnly && view === "done");
+  const checks = useMyChecks(me.id).data ?? [];
 
   const today = todayISO();
   const myTasks = givesOnly ? [] : mine.data ?? [];
@@ -153,7 +187,7 @@ export default function MyTasks() {
 
   const reviewLabel = signoff.on && signoff.final?.id === me.id ? "Final OK" : "To review";
   const options: { value: View; label: string; count?: number }[] = [
-    ...(allowed.includes("mine") ? [{ value: "mine" as View, label: "Mine", count: open.length }] : []),
+    ...(allowed.includes("mine") ? [{ value: "mine" as View, label: "Mine", count: open.length + checks.length }] : []),
     ...(allowed.includes("approve") ? [{ value: "approve" as View, label: "To approve", count: toApprove.length + holdAsks.length }] : []),
     ...(canAssign || toReview.length ? [{ value: "review" as View, label: reviewLabel, count: toReview.length }] : []),
     ...(allowed.includes("team") ? [{ value: "team" as View, label: givesOnly ? "Assigned" : "Everyone", count: allOpen.length }] : []),
@@ -161,11 +195,14 @@ export default function MyTasks() {
     { value: "done", label: "Done" },
   ];
 
+  const toCheck = checks.length ? `${checks.length === 1 ? "your weekly update" : `${checks.length} weekly updates`} to check` : "";
   const sub =
     view === "mine"
       ? open.length
-        ? `${open.length} open${overdueCount ? `, ${overdueCount} overdue` : ""}${waiting.length ? `, ${waiting.length} waiting for review` : ""}${held.length ? `, ${held.length} on hold` : ""}`
-        : "Nothing on your plate right now"
+        ? `${open.length} open${overdueCount ? `, ${overdueCount} overdue` : ""}${waiting.length ? `, ${waiting.length} waiting for review` : ""}${held.length ? `, ${held.length} on hold` : ""}${toCheck ? `, ${toCheck}` : ""}`
+        : toCheck
+          ? toCheck.charAt(0).toUpperCase() + toCheck.slice(1)
+          : "Nothing on your plate right now"
       : view === "approve"
         ? toApprove.length + holdAsks.length
           ? `${toApprove.length + holdAsks.length} waiting for your OK`
@@ -200,10 +237,12 @@ export default function MyTasks() {
         <Segmented<View> value={view} onChange={setView} options={options} />
       </div>
 
+      {/* Someone who only gives out tasks has no Mine view, so a weekly update to check shows on top. */}
+      {givesOnly && <ChecksGroup checks={checks} />}
       {loading ? (
         <Loading />
       ) : view === "mine" ? (
-        open.length + waiting.length + held.length + myRequests.length === 0 ? (
+        open.length + waiting.length + held.length + myRequests.length + checks.length === 0 ? (
           <div className="glass" style={{ marginTop: 16 }}>
             <Empty
               icon={<CircleCheck />}
@@ -223,6 +262,7 @@ export default function MyTasks() {
           </div>
         ) : (
           <>
+            <ChecksGroup checks={checks} />
             <Group title={`Waiting for ${approver.name}'s OK`} tasks={myRequests.filter((t) => t.approval === "pending")} counts={counts} showAssignee />
             <Group title="Turned down" tasks={myRequests.filter((t) => t.approval === "declined")} counts={counts} tone="red" showAssignee />
             {(["overdue", "today", "week", "later", "none"] as DueGroup[]).map((g) => (
