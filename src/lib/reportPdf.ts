@@ -30,7 +30,6 @@ function reportFontCss(): Promise<string> {
       ["RP Body", REPORT_FONTS.regular, 400],
       ["RP Body", REPORT_FONTS.semibold, 600],
       ["RP Body", REPORT_FONTS.bold, 700],
-      ["RP Salam", REPORT_FONTS.salam, 400],
     ];
     fontCss = Promise.all(
       faces.map(async ([family, url, weight]) => {
@@ -115,6 +114,11 @@ export async function buildReportPdf(doc: HTMLElement, title: string): Promise<B
     for (const parts of pageGroups(doc)) {
       const paper = paperFor(doc, parts);
       host.replaceChildren(paper);
+      // The copy's pictures (the Salam logo) load again; wait for them, or they come out blank.
+      await Promise.race([
+        Promise.all([...paper.querySelectorAll("img")].map((img) => img.decode().catch(() => undefined))),
+        new Promise((r) => setTimeout(r, 5000)),
+      ]);
       await new Promise((r) => requestAnimationFrame(() => r(null)));
       const height = Math.ceil(paper.getBoundingClientRect().height);
       const cuts = cutPoints(paper, height);

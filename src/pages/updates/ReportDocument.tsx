@@ -80,12 +80,10 @@ export function ReportDocument({
             <Wordmark height={15} className="rp-nc-word" />
           </span>
           <span className="rp-logo-sep" aria-hidden />
-          <span className="rp-salam">
-            {REPORT_BRAND.salamLogo ? (
-              <img src={REPORT_BRAND.salamLogo} alt={REPORT_BRAND.salamName} />
-            ) : (
-              <span className="rp-wordmark">{REPORT_BRAND.salamName}</span>
-            )}
+          <span className="rp-salam" role="img" aria-label={REPORT_BRAND.salamName}>
+            {/* Their real sizes, so the heading is laid out right before the pictures arrive. */}
+            <img className="rp-salam-mark" src={REPORT_BRAND.salamMark} width={246} height={236} alt="" />
+            <img className="rp-salam-words" src={REPORT_BRAND.salamWords} width={381} height={76} alt="" />
           </span>
         </div>
         <div className="rp-head-text">
@@ -96,7 +94,12 @@ export function ReportDocument({
           </p>
           <p className="rp-by">
             {REPORT_BRAND.preparedBy}
-            {written ? ` · Written ${writtenOn(written)}` : ""}
+            {written && (
+              <>
+                {" · "}
+                <span className="rp-keep">Written {writtenOn(written)}</span>
+              </>
+            )}
           </p>
         </div>
       </header>

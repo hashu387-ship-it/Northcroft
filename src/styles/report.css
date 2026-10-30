@@ -7,7 +7,6 @@
 @font-face { font-family: "RP Body"; src: url("/fonts/report/Inter-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "RP Body"; src: url("/fonts/report/Inter-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "RP Body"; src: url("/fonts/report/Inter-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "RP Salam"; src: url("/fonts/report/Marcellus-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
 
 .rp-doc {
   --rp-primary: #012061;
@@ -33,22 +32,25 @@
 }
 .rp-doc *, .rp-doc *::before, .rp-doc *::after { box-sizing: border-box; }
 .rp-doc p { margin: 0; }
-/* Stronger than the app's own heading rule, so the report keeps its Salam-style headings. */
+/* Stronger than the app's own heading rule, so the report keeps its own headings. */
 :root:root .rp-doc :is(h1, h2, h3) { font-family: "RP Heading", "Saira Semi Condensed", sans-serif; font-weight: 700; color: var(--rp-primary); margin: 0; letter-spacing: 0; }
 
-/* ---- heading band */
-.rp-head { display: flex; align-items: center; gap: 18px; padding: 22px 28px 18px; background: var(--rp-primary); color: #fff; }
+/* ---- heading band: the logos on a white tile, the title beside them (or under them when there
+   isn't room for both on one line, as on a phone) */
+.rp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; padding: 22px 28px 18px; background: var(--rp-primary); color: #fff; }
 .rp-logos { flex: none; display: flex; align-items: center; gap: 12px; height: 58px; padding: 8px 14px; border-radius: 8px; background: #fff; }
 .rp-nc { display: flex; align-items: center; gap: 8px; color: var(--rp-primary); }
 .rp-nc svg { display: block; }
 .rp-logo-sep { width: 1px; align-self: stretch; background: color-mix(in srgb, var(--rp-primary) 22%, white); }
-.rp-salam { display: flex; align-items: center; }
-.rp-salam img { max-height: 38px; max-width: 130px; display: block; }
-.rp-wordmark { font-family: "RP Salam", Georgia, serif; font-size: 19px; letter-spacing: 0.16em; color: var(--rp-primary); text-transform: uppercase; }
-.rp-head-text { min-width: 0; flex: 1; }
+.rp-salam { display: flex; align-items: center; gap: 7px; }
+.rp-salam img { display: block; width: auto; max-width: none; }
+.rp-salam-mark { height: 40px; }
+.rp-salam-words { height: 28px; }
+.rp-head-text { min-width: 0; flex: 1 1 250px; }
 :root:root .rp-head h1 { color: #fff; font-size: 24px; line-height: 1.2; }
 .rp-period { font-weight: 600; font-size: 14px; margin-top: 2px; color: #fff; }
 .rp-by { font-size: 12px; margin-top: 2px; color: color-mix(in srgb, #fff 82%, var(--rp-primary)); }
+.rp-keep { white-space: nowrap; }
 .rp-rule { height: 4px; background: var(--rp-accent); }
 
 .rp-body { padding: 22px 28px 26px; display: flex; flex-direction: column; gap: 22px; }
@@ -107,20 +109,22 @@
 .rp-doc.rp-paper { max-width: none; width: 720px; border-radius: 0; box-shadow: none; }
 .rp-paper .rp-role, .rp-paper .rp-foot { display: none !important; }
 
-/* ---- phones */
+/* ---- phones (the page on screen only: a PDF made on a phone is the same A4 page as one made on a
+   computer) */
 @media (max-width: 560px) {
-  .rp-doc { border-radius: 12px; font-size: 13px; }
-  .rp-head { padding: 16px 16px 14px; gap: 12px; align-items: flex-start; }
-  .rp-logos { height: 44px; padding: 6px 10px; gap: 8px; }
-  .rp-nc .rp-nc-word { display: none; }
-  .rp-salam img { max-height: 28px; max-width: 90px; }
-  .rp-wordmark { font-size: 14px; }
-  :root:root .rp-head h1 { font-size: 19px; }
-  .rp-body { padding: 16px 16px 20px; }
-  .rp-foot { padding: 10px 16px 14px; }
-  .rp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .rp-bar { width: 48px; }
-  .rp-tasks .rp-col-days { display: none; }
+  .rp-doc:not(.rp-paper) { border-radius: 12px; font-size: 13px; }
+  .rp-doc:not(.rp-paper) .rp-head { padding: 16px 16px 14px; gap: 12px; align-items: flex-start; }
+  .rp-doc:not(.rp-paper) .rp-logos { height: 50px; padding: 6px 10px; gap: 9px; }
+  .rp-doc:not(.rp-paper) .rp-nc .rp-nc-word { display: none; }
+  .rp-doc:not(.rp-paper) .rp-salam { gap: 5px; }
+  .rp-doc:not(.rp-paper) .rp-salam-mark { height: 36px; }
+  .rp-doc:not(.rp-paper) .rp-salam-words { height: 25px; }
+  :root:root .rp-doc:not(.rp-paper) .rp-head h1 { font-size: 19px; }
+  .rp-doc:not(.rp-paper) .rp-body { padding: 16px 16px 20px; }
+  .rp-doc:not(.rp-paper) .rp-foot { padding: 10px 16px 14px; }
+  .rp-doc:not(.rp-paper) .rp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rp-doc:not(.rp-paper) .rp-bar { width: 48px; }
+  .rp-doc:not(.rp-paper) .rp-tasks .rp-col-days { display: none; }
 }
 
 /* ---- paper: A4, the team on the first page, then each person on their own page */
