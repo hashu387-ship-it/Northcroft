@@ -1,5 +1,5 @@
 // The weekly update report as a PDF: an exact copy of the report page in the app (Northcroft's
-// colours and fonts, the Northcroft and Salam logos), the same layout, laid out like the printout (the team on the first page, then each person on
+// colours, fonts and logo), the same layout, laid out like the printout (the team on the first page, then each person on
 // their own page; a long part carries on to the next page between lines, never through one). Job
 // titles are only shown in the app, so they're left out here. Each page is a sharp picture of the
 // page, with "Prepared by Northcroft QS team" and the page number underneath.
@@ -114,7 +114,7 @@ export async function buildReportPdf(doc: HTMLElement, title: string): Promise<B
     for (const parts of pageGroups(doc)) {
       const paper = paperFor(doc, parts);
       host.replaceChildren(paper);
-      // The copy's pictures (the Salam logo) load again; wait for them, or they come out blank.
+      // Any pictures in the copy load again; wait for them, or they come out blank.
       await Promise.race([
         Promise.all([...paper.querySelectorAll("img")].map((img) => img.decode().catch(() => undefined))),
         new Promise((r) => setTimeout(r, 5000)),
@@ -176,7 +176,7 @@ export async function buildReportPdf(doc: HTMLElement, title: string): Promise<B
   return new Blob([out as BlobPart], { type: "application/pdf" });
 }
 
-/** "Salam Weekly update 25 Oct to 29 Oct 2026.pdf", with the person's name for one person. */
+/** "Northcroft Weekly update 25 Oct to 29 Oct 2026.pdf", with the person's name for one person. */
 export function reportFileName(kind: ReportKind, start: string, end: string, who?: string) {
   const noun = kind === "week" ? "Weekly update" : kind === "rolling" ? "Last 7 days" : "Update";
   const range = start === end ? dayLabel(start, true) : `${dayLabel(start).slice(4)} to ${dayLabel(end, true).slice(4)}`;

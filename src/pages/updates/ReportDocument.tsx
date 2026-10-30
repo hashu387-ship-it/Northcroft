@@ -1,5 +1,5 @@
-// The weekly update as a document in Northcroft's colours and fonts, with the Northcroft and Salam
-// logos at the top: the same on screen, on paper and in the PDF (a copy of this page). The team's
+// The weekly update as a document in Northcroft's colours and fonts, with the Northcroft logo at
+// the top: the same on screen, on paper and in the PDF (a copy of this page). The team's
 // part first when there is one, then each person: what they did, each project with every task's %
 // at the start and end, other work and blockers.
 import { Fragment, type CSSProperties } from "react";
@@ -76,14 +76,8 @@ export function ReportDocument({
       <header className="rp-head">
         <div className="rp-logos">
           <span className="rp-nc">
-            <LogoMark variant="color" size={34} />
-            <Wordmark height={15} className="rp-nc-word" />
-          </span>
-          <span className="rp-logo-sep" aria-hidden />
-          <span className="rp-salam" role="img" aria-label={REPORT_BRAND.salamName}>
-            {/* Their real sizes, so the heading is laid out right before the pictures arrive. */}
-            <img className="rp-salam-mark" src={REPORT_BRAND.salamMark} width={246} height={236} alt="" />
-            <img className="rp-salam-words" src={REPORT_BRAND.salamWords} width={381} height={76} alt="" />
+            <LogoMark variant="color" size={38} />
+            <Wordmark height={17} className="rp-nc-word" />
           </span>
         </div>
         <div className="rp-head-text">

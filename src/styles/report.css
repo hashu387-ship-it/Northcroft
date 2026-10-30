@@ -1,5 +1,5 @@
 /* The weekly update report: a white A4-like document in Northcroft's colours and fonts, with the
-   Northcroft and Salam logos at the top; the same on screen and on paper. Colours come from
+   Northcroft logo at the top; the same on screen and on paper. Colours come from
    REPORT_BRAND as CSS variables on .rp-doc; fonts are bundled in /fonts/report. This file is also
    put, as it is, into the page that prints. */
 @font-face { font-family: "RP Heading"; src: url("/fonts/report/SairaSemiCondensed-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
@@ -35,17 +35,12 @@
 /* Stronger than the app's own heading rule, so the report keeps its own headings. */
 :root:root .rp-doc :is(h1, h2, h3) { font-family: "RP Heading", "Saira Semi Condensed", sans-serif; font-weight: 700; color: var(--rp-primary); margin: 0; letter-spacing: 0; }
 
-/* ---- heading band: the logos on a white tile, the title beside them (or under them when there
-   isn't room for both on one line, as on a phone) */
+/* ---- heading band: the Northcroft logo on a white tile, the title beside it (or under it when
+   there isn't room for both on one line) */
 .rp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; padding: 22px 28px 18px; background: var(--rp-primary); color: #fff; }
 .rp-logos { flex: none; display: flex; align-items: center; gap: 12px; height: 58px; padding: 8px 14px; border-radius: 8px; background: #fff; }
 .rp-nc { display: flex; align-items: center; gap: 8px; color: var(--rp-primary); }
 .rp-nc svg { display: block; }
-.rp-logo-sep { width: 1px; align-self: stretch; background: color-mix(in srgb, var(--rp-primary) 22%, white); }
-.rp-salam { display: flex; align-items: center; gap: 7px; }
-.rp-salam img { display: block; width: auto; max-width: none; }
-.rp-salam-mark { height: 40px; }
-.rp-salam-words { height: 28px; }
 .rp-head-text { min-width: 0; flex: 1 1 250px; }
 :root:root .rp-head h1 { color: #fff; font-size: 24px; line-height: 1.2; }
 .rp-period { font-weight: 600; font-size: 14px; margin-top: 2px; color: #fff; }
@@ -114,11 +109,7 @@
 @media (max-width: 560px) {
   .rp-doc:not(.rp-paper) { border-radius: 12px; font-size: 13px; }
   .rp-doc:not(.rp-paper) .rp-head { padding: 16px 16px 14px; gap: 12px; align-items: flex-start; }
-  .rp-doc:not(.rp-paper) .rp-logos { height: 50px; padding: 6px 10px; gap: 9px; }
-  .rp-doc:not(.rp-paper) .rp-nc .rp-nc-word { display: none; }
-  .rp-doc:not(.rp-paper) .rp-salam { gap: 5px; }
-  .rp-doc:not(.rp-paper) .rp-salam-mark { height: 36px; }
-  .rp-doc:not(.rp-paper) .rp-salam-words { height: 25px; }
+  .rp-doc:not(.rp-paper) .rp-logos { height: 50px; padding: 6px 12px; }
   :root:root .rp-doc:not(.rp-paper) .rp-head h1 { font-size: 19px; }
   .rp-doc:not(.rp-paper) .rp-body { padding: 16px 16px 20px; }
   .rp-doc:not(.rp-paper) .rp-foot { padding: 10px 16px 14px; }

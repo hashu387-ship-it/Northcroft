@@ -3,7 +3,7 @@
 //     the team's and each person's (or one person's); members get their own.
 //   Last 7 days: written every evening at 9:35 pm (also at the top of Home).
 //   Weekly update: Sunday to Thursday, written Thursday at 5:45 pm; everyone is told.
-// Each opens as a report (Northcroft's colours, Northcroft and Salam logos) to print, download as a PDF or send.
+// Each opens as a report (Northcroft's colours and logo) to print, download as a PDF or send.
 import "@/styles/updates.css";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
