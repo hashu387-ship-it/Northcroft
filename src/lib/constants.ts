@@ -47,9 +47,11 @@ export const BOQ_STATUS_ORDER: BoqStatus[] = ["not_started", "measuring", "prici
 export const EVENT_KIND: Record<EventKind, { label: string; color: string }> = {
   site_visit: { label: "Site visit", color: "#FF9F0A" },
   meeting: { label: "Meeting", color: "#0A84FF" },
-  submission: { label: "Submission", color: "#BF5AF2" },
+  // Same orange as a submission's due date (it's the same thing); purple is kept for VO actions and
+  // teal for BOQs, so no colour on the calendar means two things.
+  submission: { label: "Submission", color: "#DC6B19" },
   leave: { label: "Leave", color: "#5B74A8" },
-  other: { label: "Other", color: "#30B0C7" },
+  other: { label: "Other", color: "#8E8E93" },
 };
 
 export const PROJECT_COLORS = ["#0A84FF", "#30D158", "#FF9F0A", "#BF5AF2", "#FF375F", "#5AC8FA", "#FFD60A", "#AC8E68", "#5E5CE6", "#64D2FF"];

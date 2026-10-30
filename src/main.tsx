@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/lib/auth";
 import { ConfirmProvider, ToastProvider } from "@/components/ui";
+import { startScrollHints } from "@/lib/scrollHints";
 import App from "./App";
 import "./styles/index.css";
 import "./styles/polish.css";
@@ -29,6 +30,8 @@ try {
   /* storage can be blocked; the light default still applies */
   document.documentElement.dataset.theme = "light";
 }
+
+startScrollHints();
 
 const queryClient = new QueryClient({
   defaultOptions: {

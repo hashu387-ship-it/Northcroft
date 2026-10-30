@@ -98,6 +98,9 @@
   padding: 0;
   transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
 }
+.cl-check { position: relative; }
+/* A tap anywhere in a 44 px square ticks it, though the circle stays small. */
+.cl-check::after { content: ""; position: absolute; inset: -10px; }
 .cl-check.on { background: var(--green); border-color: var(--green); }
 .cl-check svg { width: 14px; height: 14px; }
 .cl-check:disabled { cursor: default; opacity: 0.7; }

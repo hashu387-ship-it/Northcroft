@@ -16,7 +16,8 @@
   --text: #0f172a;
   /* Secondary text and hints are navy shades, never grey. */
   --text-2: #233a6b;
-  --text-3: #4a64a0;
+  /* Dark enough to read on every card colour, the pink side included (4.8:1 or better). */
+  --text-3: #3f578f;
   --separator: rgba(15, 23, 42, 0.09);
   --fill: rgba(15, 23, 42, 0.05);
   --fill-2: rgba(15, 23, 42, 0.09);
@@ -441,6 +442,9 @@ p {
 .topbar .title { flex: 1; display: flex; justify-content: center; align-items: center; min-width: 0; }
 .topbar .side { width: 72px; display: flex; gap: 6px; }
 .topbar .side.right { justify-content: flex-end; }
+/* The top bar's buttons take a tap about 44 px tall, a little wider than they look. */
+.topbar .side :is(a, button) { position: relative; }
+.topbar .side :is(a, button)::after { content: ""; position: absolute; inset: -5px -3px; }
 
 /* mobile tab bar */
 .tabbar {
@@ -765,6 +769,19 @@ p {
   scrollbar-width: none;
 }
 .segmented::-webkit-scrollbar { display: none; }
+/* When a row of tabs runs past the edge, that edge fades so it's clear there's more (scrollHints.ts). */
+:is(.segmented, .tabs)[data-more="right"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+:is(.segmented, .tabs)[data-more="left"] {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent);
+}
+:is(.segmented, .tabs)[data-more="left right"] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+}
 .segmented button {
   border: 0;
   background: transparent;

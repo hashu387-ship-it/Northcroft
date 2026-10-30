@@ -329,7 +329,8 @@ export default function Calendar() {
                 <span>
                   <i className="dot-swatch" style={{ background: BOQ_COLOR }} /> BOQ due
                 </span>
-                {(Object.keys(EVENT_KIND) as EventKind[]).map((k) => (
+                {/* A submission event shares the submissions' orange, so it's listed once above. */}
+                {(Object.keys(EVENT_KIND) as EventKind[]).filter((k) => k !== "submission").map((k) => (
                   <span key={k}>
                     <i className="dot-swatch" style={{ background: EVENT_KIND[k].color }} /> {EVENT_KIND[k].label}
                   </span>
