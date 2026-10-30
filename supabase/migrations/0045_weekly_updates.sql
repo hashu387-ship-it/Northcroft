@@ -15,18 +15,6 @@
 -- managers and seniors see everyone's and the team's.
 
 /* ---------------------------------------------------------------- the table */
--- An earlier draft of this file had a narrower table; it never held anything that matters.
-do $d$
-begin
-  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'weekly_updates')
-     and not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'weekly_updates' and column_name = 'kind') then
-    drop table public.weekly_updates cascade;
-  end if;
-end $d$;
-drop function if exists public.weekly_update_source(date);
-drop function if exists public.weekly_update_save(date, uuid, text, jsonb, jsonb, text, uuid);
-drop function if exists public.request_weekly_updates();
-
 create table if not exists public.weekly_updates (
   id uuid primary key default gen_random_uuid(),
   -- week: Sunday to Thursday, written Thursday 5:45 pm; rolling: the last 7 days, every evening;
@@ -58,7 +46,6 @@ create index if not exists weekly_updates_user_idx on public.weekly_updates (use
 create index if not exists weekly_updates_kind_idx on public.weekly_updates (kind, period_end desc);
 
 alter table public.weekly_updates enable row level security;
-drop policy if exists "see weekly updates" on public.weekly_updates;
 create policy "see weekly updates" on public.weekly_updates
   for select to authenticated using (public.is_member() and (user_id = auth.uid() or public.can_assign()));
 -- Only the Edge Function writes them (with the service role).
