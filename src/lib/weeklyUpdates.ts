@@ -61,19 +61,74 @@ export interface TeamFacts {
   line: string;
 }
 
-export interface PersonSummary {
-  summary: string;
-  projects: { project: string; summary: string }[];
-  other_work: string;
-  blockers: string;
+/** One line of a weekly update: the project and what was done. */
+export interface Line {
+  project: string;
+  text: string;
+}
+
+/** A person's week in sections (how it's written from 1 Nov 2026). */
+export interface SectionWords {
+  headline: string;
+  finished: Line[];
+  in_progress: Line[];
+  waiting: Line[];
+  next: Line[];
   /** Anything the person added when they checked it. */
   added?: string;
 }
 
-export interface TeamSummary {
+/** How a person's week was written before the sections (older weeks stay like this). */
+export interface OldWords {
+  summary: string;
+  projects: { project: string; summary: string }[];
+  other_work: string;
+  blockers: string;
+  added?: string;
+}
+
+export type PersonSummary = SectionWords | OldWords;
+
+/** Written in sections (rather than the older paragraphs)? */
+export function isSections(s: unknown): s is SectionWords {
+  return !!s && typeof s === "object" && ("headline" in s || "finished" in s);
+}
+
+/** The sections, in order, with their names. */
+export const SECTIONS = [
+  { key: "finished", label: "Finished" },
+  { key: "in_progress", label: "In progress" },
+  { key: "waiting", label: "Blocked or waiting" },
+  { key: "next", label: "Next week" },
+] as const;
+export type SectionKey = (typeof SECTIONS)[number]["key"];
+
+/** One project's block in the team's report. */
+export interface TeamProject {
+  project: string;
+  people: string[];
+  finished: string[];
+  in_progress: string[];
+  waiting: string[];
+  next: string[];
+}
+export interface TeamSections {
+  headline: string;
+  projects: TeamProject[];
+}
+/** The team's report as it was written before the sections. */
+export interface OldTeam {
   headline: string;
   projects: { project: string; summary: string }[];
   attention: string[];
+}
+export type TeamSummary = TeamSections | OldTeam;
+
+/** The team's report written by project with sections? */
+export function isTeamSections(s: unknown): s is TeamSections {
+  if (!s || typeof s !== "object" || "attention" in s) return false;
+  const ps = (s as { projects?: unknown }).projects;
+  return Array.isArray(ps) && ps.every((p) => p && typeof p === "object" && "finished" in p);
 }
 
 export type ReportKind = "week" | "rolling" | "custom";
@@ -296,19 +351,39 @@ export function useMyChecks(userId: string, enabled = true) {
   });
 }
 
-/** The words someone may change, tidied the way the database keeps them. */
-export function cleanWords(s: Partial<PersonSummary> | null | undefined): PersonSummary {
+const cut = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+/** One section's lines, tidied: empty lines dropped, a line with no project goes under General. */
+const cleanLines = (a: unknown): Line[] =>
+  (Array.isArray(a) ? a : [])
+    .filter((l): l is Line => !!l && typeof l === "object")
+    .map((l) => ({ project: cut(l.project, 200) || "General", text: cut(l.text, 400) }))
+    .filter((l) => l.text)
+    .slice(0, 40);
+
+/** The words someone may change, tidied the way the database keeps them (either layout). */
+export function cleanWords(s: Partial<SectionWords> | Partial<OldWords> | null | undefined): PersonSummary {
+  if (isSections(s)) {
+    return {
+      headline: cut(s.headline, 600),
+      finished: cleanLines(s.finished),
+      in_progress: cleanLines(s.in_progress),
+      waiting: cleanLines(s.waiting),
+      next: cleanLines(s.next),
+      added: cut(s.added, 3000),
+    };
+  }
+  const o = (s ?? {}) as Partial<OldWords>;
   return {
-    summary: (s?.summary ?? "").trim(),
-    projects: (s?.projects ?? []).map((p) => ({ project: (p.project ?? "").trim(), summary: (p.summary ?? "").trim() })).filter((p) => p.project),
-    other_work: (s?.other_work ?? "").trim(),
-    blockers: (s?.blockers ?? "").trim(),
-    added: (s?.added ?? "").trim(),
+    summary: (o.summary ?? "").trim(),
+    projects: (o.projects ?? []).map((p) => ({ project: (p.project ?? "").trim(), summary: (p.summary ?? "").trim() })).filter((p) => p.project),
+    other_work: (o.other_work ?? "").trim(),
+    blockers: (o.blockers ?? "").trim(),
+    added: (o.added ?? "").trim(),
   };
 }
 
 /** The same words (after tidying)? */
-export const sameWords = (a: Partial<PersonSummary> | null | undefined, b: Partial<PersonSummary> | null | undefined) =>
+export const sameWords = (a: Partial<SectionWords> | Partial<OldWords> | null | undefined, b: Partial<SectionWords> | Partial<OldWords> | null | undefined) =>
   JSON.stringify(cleanWords(a)) === JSON.stringify(cleanWords(b));
 
 /**

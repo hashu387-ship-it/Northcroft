@@ -317,3 +317,30 @@
 .wk-check p { margin-top: 2px; }
 .wk-check-line { margin: 0; font-size: 13px; color: var(--text-2); }
 .wk-check-line b { color: var(--text); }
+
+/* ---- the check page, in sections */
+.wc-sec-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.wc-n { font-size: 12px; font-weight: 700; color: var(--text-2); }
+.wc-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.wc-line { display: flex; flex-direction: column; gap: 4px; }
+.wc-line-top { display: flex; align-items: center; gap: 6px; }
+.wc-proj {
+  height: 28px;
+  max-width: calc(100% - 40px);
+  padding: 0 26px 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--separator);
+  background: var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23596d9c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  -webkit-appearance: none;
+  appearance: none;
+  text-overflow: ellipsis;
+}
+.wc-remove { margin-left: auto; }
+.wc-line .wc-text { min-height: 48px; }
+.wc-add { align-self: flex-start; }
+.wc-taskgroup { display: flex; flex-direction: column; gap: 6px; }
+.wc-taskgroup + .wc-taskgroup { margin-top: 4px; }

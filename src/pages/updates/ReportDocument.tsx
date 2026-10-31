@@ -11,9 +11,17 @@ import {
   dayLabel,
   dueLabel,
   hasFacts,
+  isSections,
+  isTeamSections,
+  SECTIONS,
   rangeLabel,
+  type OldTeam,
+  type OldWords,
   type PersonFacts,
   type PersonWeek,
+  type SectionWords,
+  type TeamFacts,
+  type TeamSections,
   type ReportKind,
   type TeamWeek,
 } from "@/lib/weeklyUpdates";
@@ -101,9 +109,9 @@ export function ReportDocument({
       </header>
       <div className="rp-rule" />
       <div className="rp-body">
-        {team && <TeamPart row={team} />}
+        {team && <TeamPart row={team} kind={kind} />}
         {people.map((p) => (
-          <PersonPart key={p.id} row={p} showName={!!team || people.length > 1} />
+          <PersonPart key={p.id} row={p} showName={!!team || people.length > 1} kind={kind} />
         ))}
         {!team && people.length === 0 && <p className="rp-state">Nothing has been written for these days yet.</p>}
       </div>
@@ -124,7 +132,7 @@ function StateNote({ status, error, empty }: { status: string; error: string | n
   return null;
 }
 
-function TeamPart({ row }: { row: TeamWeek }) {
+function TeamPart({ row, kind }: { row: TeamWeek; kind: ReportKind }) {
   const f = hasFacts(row.facts) ? row.facts : null;
   const s = row.status === "ready" || (row.status !== "empty" && row.summary) ? row.summary : null;
   return (
@@ -156,6 +164,21 @@ function TeamPart({ row }: { row: TeamWeek }) {
         </div>
       )}
       {s?.headline && <p className="rp-lead">{s.headline}</p>}
+      {s && isTeamSections(s) ? <TeamProjects s={s} f={f} kind={kind} /> : <OldTeamBody s={s as OldTeam | null} f={f} />}
+      {f && (f.no_updates.length > 0 || f.missing.length > 0) && (
+        <p className="rp-note">
+          {f.no_updates.length > 0 && `No daily updates: ${f.no_updates.join(", ")}. `}
+          {f.missing.map((m) => `${m.name} missed ${m.days.map((d) => dayLabel(d)).join(", ")}.`).join(" ")}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** The team's report as it was written before the sections (older weeks). */
+function OldTeamBody({ s, f }: { s: OldTeam | null; f: TeamFacts | null }) {
+  return (
+    <>
       {f && f.projects.length > 0 && (
         <div className="rp-block">
           <span className="rp-label">Projects</span>
@@ -186,13 +209,43 @@ function TeamPart({ row }: { row: TeamWeek }) {
           </ul>
         </div>
       )}
-      {f && (f.no_updates.length > 0 || f.missing.length > 0) && (
-        <p className="rp-note">
-          {f.no_updates.length > 0 && `No daily updates: ${f.no_updates.join(", ")}. `}
-          {f.missing.map((m) => `${m.name} missed ${m.days.map((d) => dayLabel(d)).join(", ")}.`).join(" ")}
-        </p>
-      )}
-    </section>
+    </>
+  );
+}
+
+/** "Next week" for the Thursday week, "Next" for other days. */
+const sectionLabel = (key: string, label: string, kind: ReportKind) => (key === "next" && kind !== "week" ? "Next" : label);
+
+/** The team's report by project: who worked on it, then finished, in progress, waiting and next. */
+function TeamProjects({ s, f, kind }: { s: TeamSections; f: TeamFacts | null; kind: ReportKind }) {
+  const counted = new Map((f?.projects ?? []).map((p) => [(p.project === "Other" ? "General" : p.project).toLowerCase(), p]));
+  return (
+    <div className="rp-pblocks">
+      {s.projects.map((p) => {
+        const c = counted.get(p.project.toLowerCase());
+        return (
+          <div className="rp-pblock" key={p.project}>
+            <h3>{p.project}</h3>
+            <span className="rp-project-meta">
+              {p.people.join(", ")}
+              {c ? ` · ${c.moved} of ${c.tasks} ${c.tasks === 1 ? "task" : "tasks"} moved on${c.handed_in ? `, ${c.handed_in} handed in` : ""}` : ""}
+            </span>
+            {SECTIONS.map(({ key, label }) =>
+              p[key].length ? (
+                <div className={`rp-sec rp-sec-${key}`} key={key}>
+                  <span className="rp-sec-label">{sectionLabel(key, label, kind)}</span>
+                  <ul className="rp-lines">
+                    {p[key].map((line, i) => (
+                      <li key={i}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null,
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -223,10 +276,9 @@ export function tasksByProject(f: PersonFacts) {
   return [...map.entries()].sort((a, b) => (a[0] === "Other" ? 1 : b[0] === "Other" ? -1 : a[0].localeCompare(b[0])));
 }
 
-function PersonPart({ row, showName }: { row: PersonWeek; showName: boolean }) {
+function PersonPart({ row, showName, kind }: { row: PersonWeek; showName: boolean; kind: ReportKind }) {
   const f = hasFacts(row.facts) ? (row.facts as PersonFacts) : null;
-  const s = row.summary;
-  const written = new Map((s?.projects ?? []).map((p) => [p.project.toLowerCase(), p.summary]));
+  const sectioned = isSections(row.summary);
   return (
     <section className="rp-section rp-person">
       {showName && (
@@ -255,50 +307,106 @@ function PersonPart({ row, showName }: { row: PersonWeek; showName: boolean }) {
       )}
       <StateNote status={row.status} error={row.error} empty="No daily updates in these days." />
       {row.kind === "week" && row.status === "ready" && <CheckLine row={row} name={f?.short_name} />}
+      {sectioned ? <PersonSections s={row.summary as SectionWords} f={f} kind={kind} /> : <OldPersonBody s={row.summary as OldWords | null} f={f} />}
+    </section>
+  );
+}
+
+/** A person's week in sections, each line with its project, then the tasks and their figures. */
+function PersonSections({ s, f, kind }: { s: SectionWords; f: PersonFacts | null; kind: ReportKind }) {
+  return (
+    <>
+      {s.headline && <p className="rp-lead">{s.headline}</p>}
+      {SECTIONS.map(({ key, label }) =>
+        s[key]?.length ? (
+          <div className={`rp-sec rp-sec-${key}`} key={key}>
+            <span className="rp-sec-label">{sectionLabel(key, label, kind)}</span>
+            <ul className="rp-lines">
+              {s[key].map((l, i) => (
+                <li key={i}>
+                  <span className="rp-proj">{l.project}</span> {l.text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null,
+      )}
+      {s.added && (
+        <div className="rp-block">
+          <span className="rp-label">Added by {f?.short_name ?? "them"}</span>
+          <p>{s.added}</p>
+        </div>
+      )}
+      {f && f.tasks.length > 0 && (
+        <div className="rp-block rp-taskfig">
+          <span className="rp-label">Tasks and progress</span>
+          {tasksByProject(f).map(([project, tasks]) => (
+            <div className="rp-project" key={project}>
+              <h3>{project}</h3>
+              <TaskTable tasks={tasks} />
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function TaskTable({ tasks }: { tasks: PersonFacts["tasks"] }) {
+  return (
+    <table className="rp-tasks">
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th className="num">Start</th>
+          <th className="num">End</th>
+          <th className="num rp-col-days">Days</th>
+        </tr>
+      </thead>
+      <tbody>
+        {tasks.map((t) => (
+          <tr key={t.task_id}>
+            <td>
+              <span className="rp-task-title">{t.title}</span>
+              {t.handed_in && <span className="rp-done"> · Handed in</span>}
+              {t.notes.length > 0 && (
+                <ul className="rp-task-notes">
+                  {t.notes.map((n) => (
+                    <li key={n.date + n.note}>
+                      {dayLabel(n.date)}: {n.note}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </td>
+            <td className="num">{t.start}%</td>
+            <td className="num">
+              <span className="rp-bar" aria-hidden>
+                <i style={{ width: `${Math.min(t.start, t.end)}%` }} />
+                <i className="gain" style={{ left: `${Math.min(t.start, t.end)}%`, width: `${Math.max(0, t.end - t.start)}%` }} />
+              </span>{" "}
+              <b>{t.end}%</b>
+            </td>
+            <td className="num rp-col-days">{t.days}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** A person's week as it was written before the sections (older weeks). */
+function OldPersonBody({ s, f }: { s: OldWords | null; f: PersonFacts | null }) {
+  const written = new Map((s?.projects ?? []).map((p) => [p.project.toLowerCase(), p.summary]));
+  return (
+    <>
       {s?.summary && <p className="rp-lead">{s.summary}</p>}
       {f &&
         tasksByProject(f).map(([project, tasks]) => (
           <div className="rp-project" key={project}>
             <h3>{project}</h3>
             {written.get(project.toLowerCase()) && <p>{written.get(project.toLowerCase())}</p>}
-            <table className="rp-tasks">
-              <thead>
-                <tr>
-                  <th>Task</th>
-                  <th className="num">Start</th>
-                  <th className="num">End</th>
-                  <th className="num rp-col-days">Days</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((t) => (
-                  <tr key={t.task_id}>
-                    <td>
-                      <span className="rp-task-title">{t.title}</span>
-                      {t.handed_in && <span className="rp-done"> · Handed in</span>}
-                      {t.notes.length > 0 && (
-                        <ul className="rp-task-notes">
-                          {t.notes.map((n) => (
-                            <li key={n.date + n.note}>
-                              {dayLabel(n.date)}: {n.note}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                    <td className="num">{t.start}%</td>
-                    <td className="num">
-                      <span className="rp-bar" aria-hidden>
-                        <i style={{ width: `${Math.min(t.start, t.end)}%` }} />
-                        <i className="gain" style={{ left: `${Math.min(t.start, t.end)}%`, width: `${Math.max(0, t.end - t.start)}%` }} />
-                      </span>{" "}
-                      <b>{t.end}%</b>
-                    </td>
-                    <td className="num rp-col-days">{t.days}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <TaskTable tasks={tasks} />
           </div>
         ))}
       {(s?.other_work || (f && f.other_work.length > 0)) && (
@@ -349,6 +457,6 @@ function PersonPart({ row, showName }: { row: PersonWeek; showName: boolean }) {
           </ul>
         </div>
       )}
-    </section>
+    </>
   );
 }
