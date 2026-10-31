@@ -325,11 +325,11 @@ First understand the work. The daily notes are written quickly: abbreviations, h
 
 Then sort it into sections. Each line is one piece of work, about 20 words at most. Start with the deliverable or reference, then what happened and where it stands, for example "EI-242 hardscaping take-off: quantities complete" or "VO-034 evaluation: rates done, letter next, 60%".
 - headline: one or two sentences on the main results of the period.
-- finished: work completed, submitted or handed in during these days. If the notes say a piece of work is done or submitted, it goes here.
+- finished: work completed, submitted or handed in during these days. If the notes say a piece of work is done or submitted, it goes here. Work handed in and waiting for review is finished: say "handed in for review". No due dates on finished work.
 - in_progress: work still under way at the end, with the counted % where there is one.
-- waiting: what is blocked, a question still waiting for an answer, or information waited for from someone; say who or what it's waiting on. Leave out blockers that were cleared, unless the delay still matters.
+- waiting: only what is blocked, a question still waiting for an answer, information waited for from someone, or a task put on hold; say who or what it's waiting on. Waiting for review is not waiting. Leave out blockers that were cleared, unless the delay still matters.
 - next: ${next}, taken from their open tasks (give due dates as "due Tue 3 Nov") and any next steps in the notes. Empty when there's nothing.
-Every line has a project. Use the task's project. When a task or a note has no project ("General") but the notes clearly name a project from the project list, use that project; otherwise "General".
+Every line has a project. Use the task's project. When a task or a note has no project ("General"), use the project from the known references list if the reference is there, or the project the notes clearly name. Never guess a project from the person's other work; when it isn't clear, use "General".
 Every piece of work appears once, in the one section that fits it best, including work that wasn't on a task. Don't drop any work that was reported. Don't repeat the daily update count or missed days; those are shown separately.
 Use the counted figures as they are given; don't work out your own.`;
 
@@ -361,7 +361,8 @@ const teamSystem = (what: string, next: string) => `You write the team's report 
 Organise it by project: one block per project, in the order given, with "General" last.
 - headline: two sentences on the main results across the team.
 - For each project: people (the short names of who worked on it), then finished, in_progress, waiting and next (${next}). Each line is about 20 words at most and starts with the person's short name, for example "Imthath: EI-242 submitted Wed 28 Oct". When two people worked on the same thing, write one line naming both.
-- Put a question still waiting for an answer, or anything a manager needs to decide or chase, under waiting, and say who it's waiting on.
+- Put a question still waiting for an answer, or anything a manager needs to decide or chase, under waiting, and say who it's waiting on. Work handed in and waiting for review goes under finished, not waiting.
+- The same reference always goes under the same project; use the known references list.
 Take each person's lines as they wrote them; some people checked their own update and changed it or added lines. Don't add work that isn't in their updates.
 Use the counted figures as they are given; don't work out your own.`;
 
@@ -393,6 +394,25 @@ const TEAM_SCHEMA = {
 /** "what comes next" for the Thursday week, or after the days picked. */
 const nextLabel = (job: Job) => (job.kind === "week" ? "what's planned for next week" : "what comes next");
 
+/** References (EI-242, VO-031...) on tasks that have a project, mapped to that project, from everyone's tasks. */
+function knownReferences(src: Source): string {
+  const re = /\b(EI|VO|BOQ|RFI|SI|CVI|PT)\s*[-#]?\s*(\d{1,4})\b/gi;
+  const map = new Map<string, Set<string>>();
+  const add = (title: string, project: string | null) => {
+    if (!project) return;
+    for (const m of title.matchAll(re)) {
+      const ref = `${m[1].toUpperCase()}-${m[2]}`;
+      map.set(ref, (map.get(ref) ?? new Set()).add(project));
+    }
+  };
+  for (const p of src.people) {
+    for (const u of p.updates) for (const i of u.items) add(`${i.title} ${i.note ?? ""}`, i.project);
+    for (const t of p.open_tasks ?? []) add(t.title, t.project);
+  }
+  const list = [...map.entries()].filter(([, ps]) => ps.size === 1).map(([ref, ps]) => `${ref}: ${[...ps][0]}`).sort();
+  return `Known references (from the team's tasks): ${list.join("; ") || "none"}`;
+}
+
 /** The team's projects as a line for the material. */
 function projectList(src: Source): string {
   const list = (src.projects ?? []).map((p) => `${p.name}${p.code ? ` (${p.code})` : ""}${p.client ? `, client ${p.client}` : ""}`);
@@ -405,6 +425,7 @@ function personMaterial(p: Person, f: PersonFacts, src: Source, corrections: unk
   lines.push(`Team member: ${p.name}${p.title ? ` (${p.title})` : ""}`);
   lines.push(`Days: ${fmtDay(src.start)} to ${fmtDay(src.end)}`);
   lines.push(projectList(src));
+  lines.push(knownReferences(src));
   if (p.projects.length) lines.push(`Projects they're on: ${p.projects.join(", ")}`);
   if (f.leave_days.length) lines.push(`On leave: ${f.leave_days.map(fmtDay).join(", ")}`);
   lines.push("", "Daily updates:");
@@ -457,6 +478,7 @@ function teamMaterial(src: Source, people: { facts: PersonFacts; summary: Person
   const lines: string[] = [];
   lines.push(`Days: ${fmtDay(src.start)} to ${fmtDay(src.end)}`);
   lines.push(projectList(src));
+  lines.push(knownReferences(src));
   lines.push(`Counted: ${t.people} people; ${t.sent_all} sent every daily update; ${t.moved} tasks moved on; ${t.handed_in} handed in for review.`);
   if (t.no_updates.length) lines.push(`No daily updates in these days: ${t.no_updates.join(", ")}`);
   for (const b of t.open_blockers) lines.push(`Blocker still open: ${b.name}: "${b.text}"`);
