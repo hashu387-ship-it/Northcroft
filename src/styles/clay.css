@@ -1,0 +1,164 @@
+/* Clay glass: the liquid glass with a soft clay feel. Panels stay see-through and blurred, but
+ * cards, buttons, tabs and the tab bar look gently puffed up: a soft light along the top edge, a
+ * soft shade inside the bottom edge and a soft shadow underneath. Buttons sink a little when
+ * pressed, and text boxes and tab tracks look pressed in. Northcroft navy, red and white.
+ * It's the light theme underneath (the page carries data-theme="light" too); this only adds the
+ * clay. Picked in Settings > Appearance, saved on the device. Loaded last so it wins. */
+
+:root[data-palette="clay"] {
+  --bg: #e8edf6;
+  /* A calmer background behind the glass: pale navy and a touch of Northcroft red. */
+  --blob-1: #c7d4ef;
+  --blob-2: #b5c7ec;
+  --blob-3: #dde5f4;
+  --blob-4: #f2cfd3;
+  --blob-5: #cbd8f1;
+  --blob-alpha: 0.7;
+
+  /* A little more body in the glass, so it reads as soft material. */
+  --glass: rgba(247, 249, 254, 0.58);
+  --glass-strong: rgba(248, 250, 255, 0.76);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.12) 38%, rgba(255, 255, 255, 0) 60%);
+
+  /* The clay: light on top, shade inside the bottom edge, a soft shadow underneath. */
+  --clay-hi: inset 0 2px 1px -1px rgba(255, 255, 255, 1), inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  --clay-lo: inset 0 -10px 18px -12px rgba(23, 45, 100, 0.22);
+  --clay-drop: 0 16px 32px -14px rgba(16, 34, 84, 0.3), 0 4px 10px -6px rgba(16, 34, 84, 0.14);
+  --clay-press: inset 0 3px 8px rgba(23, 45, 100, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.85);
+
+  /* Rounder corners, the way soft clay settles. */
+  --r-lg: 20px;
+  --r: 14px;
+  --r-sm: 11px;
+}
+
+/* ------------------------------------------------------------------ cards and panels */
+:root[data-palette="clay"] :is(.glass, .glass-strong):not(.sidebar):not(.topbar):not(.tabbar) {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--clay-hi), var(--clay-lo), var(--clay-drop);
+}
+:root[data-palette="clay"] .page-head,
+:root[data-palette="clay"] .home-banner {
+  box-shadow: inset 0 2px 1px -1px rgba(255, 255, 255, 0.35), inset 0 -14px 24px -16px rgba(0, 0, 0, 0.45), 0 18px 34px -14px rgba(1, 32, 97, 0.45);
+}
+/* Tappable cards sink into the page a little. */
+:root[data-palette="clay"] :is(a.glass.card, button.glass.card, .card.clickable):active {
+  box-shadow: var(--clay-press), 0 2px 6px -3px rgba(16, 34, 84, 0.2);
+}
+
+/* ------------------------------------------------------------------ the navy menu, top bar and tab bar */
+:root[data-palette="clay"] :is(.sidebar.glass, .topbar.glass, .tabbar.glass-strong) {
+  box-shadow: inset 0 2px 1px -1px rgba(255, 255, 255, 0.28), inset 0 -12px 22px -14px rgba(0, 0, 0, 0.5), 0 18px 36px -14px rgba(1, 20, 60, 0.5);
+}
+:root[data-palette="clay"] .tabbar.glass-strong { border-radius: 24px; }
+:root[data-palette="clay"] :is(.tabbar a.active, .sidebar .nav a.active) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.1));
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.34), inset 0 -5px 9px -5px rgba(0, 0, 0, 0.4), 0 6px 12px -4px rgba(0, 0, 0, 0.4);
+}
+:root[data-palette="clay"] .tabbar a { border-radius: 17px; }
+
+/* ------------------------------------------------------------------ buttons */
+:root[data-palette="clay"] .btn:where(:not(.ghost, .danger, .warn, .on-dark)) {
+  border-radius: 13px;
+  border-color: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(237, 242, 251, 0.84) 100%);
+  box-shadow: inset 0 2px 1px -1px #fff, inset 0 -4px 7px -3px rgba(23, 45, 100, 0.16), 0 8px 16px -8px rgba(16, 34, 84, 0.34), 0 1px 2px rgba(16, 34, 84, 0.08);
+}
+:root[data-palette="clay"] .btn:where(:not(.ghost, .danger, .warn, .on-dark)):hover {
+  background: linear-gradient(180deg, #fff 0%, rgba(243, 247, 254, 0.92) 100%);
+}
+/* Main buttons: soft red clay. */
+:root[data-palette="clay"] .btn:is(.primary, .brand) {
+  border-color: rgba(160, 20, 28, 0.2);
+  background: linear-gradient(180deg, #f66870 0%, #e8343e 55%, #cf2730 100%);
+  box-shadow: inset 0 2px 1px -1px rgba(255, 255, 255, 0.55), inset 0 -5px 9px -4px rgba(110, 8, 16, 0.42), 0 10px 20px -9px rgba(232, 52, 62, 0.6), 0 2px 4px rgba(110, 8, 16, 0.14);
+}
+:root[data-palette="clay"] .btn:is(.primary, .brand):hover { background: linear-gradient(180deg, #f8767d 0%, #ec3f48 55%, #d62c35 100%); }
+:root[data-palette="clay"] .btn.success {
+  background: linear-gradient(180deg, #48c968 0%, #28a745 55%, #208c3a 100%);
+  box-shadow: inset 0 2px 1px -1px rgba(255, 255, 255, 0.5), inset 0 -5px 9px -4px rgba(10, 70, 25, 0.4), 0 10px 20px -9px rgba(40, 167, 69, 0.55);
+}
+:root[data-palette="clay"] .btn:is(.danger, .warn) {
+  border-radius: 13px;
+  box-shadow: inset 0 2px 1px -1px rgba(255, 255, 255, 0.7), inset 0 -4px 7px -4px rgba(23, 45, 100, 0.14);
+}
+:root[data-palette="clay"] .btn.small { border-radius: 10px; }
+:root[data-palette="clay"] .btn.large { border-radius: 15px; }
+
+/* Pressed: the button sinks in instead of shrinking. */
+:root[data-palette="clay"] .btn:where(:not(.ghost, .on-dark)):active { transform: translateY(1px) scale(0.985); }
+:root[data-palette="clay"] .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)):active {
+  box-shadow: var(--clay-press), 0 1px 2px rgba(16, 34, 84, 0.08);
+}
+:root[data-palette="clay"] .btn:is(.primary, .brand, .success):active {
+  box-shadow: inset 0 3px 8px rgba(90, 6, 12, 0.42), inset 0 -1px 0 rgba(255, 255, 255, 0.2), 0 2px 6px -3px rgba(16, 34, 84, 0.3);
+}
+
+/* Round icon buttons (not the plain ones in the bars). */
+:root[data-palette="clay"] .icon-btn:not(.plain) {
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(236, 241, 250, 0.82));
+  box-shadow: inset 0 2px 1px -1px #fff, inset 0 -3px 6px -3px rgba(23, 45, 100, 0.18), 0 5px 10px -6px rgba(16, 34, 84, 0.32);
+}
+:root[data-palette="clay"] .page-head .icon-btn:not(.plain),
+:root[data-palette="clay"] .topbar .icon-btn:not(.plain) {
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.3), inset 0 -4px 7px -4px rgba(0, 0, 0, 0.35);
+}
+
+/* The round New task button on phones: red clay. */
+:root[data-palette="clay"] .fab {
+  border-radius: 20px;
+  background: linear-gradient(180deg, #f66870 0%, #e8343e 55%, #cf2730 100%);
+  box-shadow: inset 0 2px 1px -1px rgba(255, 255, 255, 0.55), inset 0 -7px 12px -6px rgba(110, 8, 16, 0.45), 0 14px 26px -10px rgba(232, 52, 62, 0.65), 0 3px 6px rgba(110, 8, 16, 0.16);
+}
+:root[data-palette="clay"] .fab:active { box-shadow: inset 0 4px 10px rgba(90, 6, 12, 0.45), 0 3px 8px -4px rgba(16, 34, 84, 0.3); }
+
+/* ------------------------------------------------------------------ tabs: a pressed-in track, a raised tab */
+:root[data-palette="clay"] :is(.segmented, .tabs) {
+  border-radius: 14px;
+  padding: 4px;
+  background: rgba(23, 45, 100, 0.07);
+  box-shadow: inset 0 2px 5px rgba(23, 45, 100, 0.13), inset 0 -1px 0 rgba(255, 255, 255, 0.85);
+}
+:root[data-palette="clay"] .segmented button,
+:root[data-palette="clay"] :is(.tabs a, .tabs button) { border-radius: 10px; }
+:root[data-palette="clay"] :is(.segmented button.active, .tabs a.active, .tabs button.active) {
+  background: linear-gradient(180deg, #fff 0%, #f1f5fc 100%);
+  box-shadow: inset 0 1.5px 0 #fff, inset 0 -3px 6px -3px rgba(23, 45, 100, 0.16), 0 5px 10px -5px rgba(16, 34, 84, 0.4);
+}
+
+/* ------------------------------------------------------------------ text boxes: pressed into the clay */
+:root[data-palette="clay"] :is(.input, .select, .textarea) {
+  border-radius: 12px;
+  border-color: rgba(255, 255, 255, 0.75);
+  background-color: rgba(250, 252, 255, 0.78);
+  box-shadow: inset 0 2px 5px rgba(23, 45, 100, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.9);
+}
+:root[data-palette="clay"] :is(.input, .select, .textarea):focus {
+  border-color: var(--accent);
+  box-shadow: inset 0 2px 5px rgba(23, 45, 100, 0.1), 0 0 0 4px var(--accent-soft);
+}
+
+/* ------------------------------------------------------------------ small coloured tiles and pills */
+:root[data-palette="clay"] :is(.sidebar .nav a .nav-ic, .tabbar a .tab-ic, .more-grid a .ic, .l7-ic, .check-row .check-ic, .stat .label svg) {
+  box-shadow: inset 0 1.5px 1px -0.5px rgba(255, 255, 255, 0.55), inset 0 -3px 5px -3px rgba(0, 0, 0, 0.3), 0 3px 6px -3px rgba(16, 34, 84, 0.35);
+}
+:root[data-palette="clay"] .pill { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 3px -2px rgba(23, 45, 100, 0.14); }
+
+/* ------------------------------------------------------------------ easier reading and less motion */
+/* Solid surfaces: the clay stays, the see-through goes. */
+:root[data-palette="clay"][data-solid="true"] :is(.glass, .glass-strong):not(.sidebar):not(.topbar):not(.tabbar) { background: var(--solid); }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-palette="clay"] .btn:active { transform: none; }
+}
+
+/* ------------------------------------------------------------------ the swatch in Settings > Appearance */
+.theme-swatch.clay { background: linear-gradient(135deg, #c7d4ef, #eef2fa 52%, #f2cfd3); }
+.theme-swatch.clay::after {
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff, #eef2fa);
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 2px 1px -1px #fff, inset 0 -4px 6px -3px rgba(23, 45, 100, 0.2), 0 6px 12px -6px rgba(16, 34, 84, 0.45);
+}

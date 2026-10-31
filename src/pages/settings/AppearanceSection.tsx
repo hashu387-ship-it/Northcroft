@@ -4,12 +4,12 @@ import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
-type Theme = "system" | "light" | "dark" | "purple";
+type Theme = "system" | "light" | "dark" | "purple" | "clay";
 
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "dark" || t === "system" || t === "purple" ? t : "light";
+    return t === "dark" || t === "system" || t === "purple" || t === "clay" ? t : "light";
   } catch {
     return "light";
   }
@@ -31,10 +31,11 @@ export function AppearanceSection() {
   function applyTheme(t: Theme) {
     setTheme(t);
     const root = document.documentElement;
-    // Purple glass is the dark theme with a purple palette over it.
-    if (t === "purple") root.dataset.palette = "purple";
+    // Purple glass is the dark theme with a purple palette over it; Clay glass is the light theme
+    // with soft clay over it.
+    if (t === "purple" || t === "clay") root.dataset.palette = t;
     else delete root.dataset.palette;
-    const base = t === "purple" ? "dark" : t;
+    const base = t === "purple" ? "dark" : t === "clay" ? "light" : t;
     try {
       if (base === "system") delete root.dataset.theme;
       else root.dataset.theme = base;
@@ -63,6 +64,7 @@ export function AppearanceSection() {
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
     { value: "purple", label: "Purple glass" },
+    { value: "clay", label: "Clay glass" },
     { value: "system", label: "Automatic" },
   ];
 
@@ -78,7 +80,8 @@ export function AppearanceSection() {
           ))}
         </div>
         <div className="muted small">
-          Light is the default. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Automatic follows your phone or
+          Light is the default. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass
+          but makes cards, buttons and tabs soft and puffy, like clay, and buttons sink a little when you press them. Automatic follows your phone or
           computer, switching to dark at night if you've set it up that way.
         </div>
       </Section>
