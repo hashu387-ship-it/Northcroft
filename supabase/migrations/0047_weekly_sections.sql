@@ -155,9 +155,9 @@ as $$
 $$;
 
 /* ---------------------------------------------------------------- writing a closed week again */
--- 'rewrite' writes the last closed week again for everyone who hasn't sent theirs back (used when
--- the way it's written changes); the others are as before.
-create or replace function public.request_weekly_updates(p_mode text default 'missing')
+-- Asks the weekly function to write the last closed week again for everyone who hasn't sent theirs
+-- back (used when the way it's written changes). Run by hand, not on a schedule.
+create or replace function public.request_weekly_rewrite()
 returns void
 language plpgsql
 security definer
@@ -166,11 +166,7 @@ as $$
 declare
   fn_url text;
   secret text;
-  mode text := case when p_mode in ('topup', 'rolling', 'rewrite') then p_mode else 'missing' end;
 begin
-  if mode = 'rolling' then
-    delete from public.weekly_updates where kind = 'rolling' and period_end < current_date - 14;
-  end if;
   select replace(decrypted_secret, '/send-push', '/weekly') into fn_url from vault.decrypted_secrets where name = 'push_function_url';
   select decrypted_secret into secret from vault.decrypted_secrets where name = 'push_webhook_secret';
   if fn_url is null or secret is null then
@@ -178,9 +174,9 @@ begin
   end if;
   perform net.http_post(
     url := fn_url,
-    body := jsonb_build_object('mode', mode),
+    body := jsonb_build_object('mode', 'rewrite'),
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', secret),
     timeout_milliseconds := 10000
   );
 end $$;
-revoke all on function public.request_weekly_updates(text) from public, anon, authenticated;
+revoke all on function public.request_weekly_rewrite() from public, anon, authenticated;
