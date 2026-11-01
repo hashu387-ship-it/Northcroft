@@ -570,6 +570,8 @@ interface Job {
   /** Only the team's (someone changed theirs when checking it). */
   teamOnly?: boolean;
   by: string | null;
+  /** Extra instructions from the manager (Hassan, the first checker, only) to steer the writing. */
+  prompt?: string | null;
 }
 
 async function save(job: Job, user: string | null, status: string, facts: unknown, summary: unknown, error: string | null, by: string | null) {
@@ -603,8 +605,19 @@ function what(job: Job): string {
   return `the days from ${fmtDay(job.start)} to ${fmtDay(job.end)}`;
 }
 
+/**
+ * The manager's own steer (Hassan only), added to the writer's instructions. Style and emphasis
+ * only: it never changes, adds or removes facts, and the writing rules above still hold.
+ */
+function managerSteer(prompt: string | null | undefined): string {
+  const p = (prompt ?? "").trim();
+  if (!p) return "";
+  return `\n\nExtra instructions from the manager for this write-up. Follow them for emphasis, wording, length, tone, ordering and what to highlight or keep brief. They do not change the facts: keep every name, task, reference, project, amount and percentage exactly as given, never invent anything, and keep all the writing rules above (reference format, the words to avoid, plain factual English, no headings or emoji). If an instruction would mean changing or inventing facts, keep the facts.\nManager's instructions: "${p}"`;
+}
+
 async function run(job: Job) {
   const opts = job;
+  const steer = managerSteer(job.prompt);
   const today = riyadhToday();
   const readAt = new Date(Date.now()).toISOString();
   const { data, error } = await admin.rpc("weekly_update_source", { p_start: job.start, p_end: job.end });
@@ -693,7 +706,7 @@ async function run(job: Job) {
       return;
     }
     try {
-      const s = await write<PersonSummary>(ai, personSystem(what(job), nextLabel(job)), PERSON_SCHEMA, personMaterial(p, f, src, rows.get(p.id)?.corrections), "medium");
+      const s = await write<PersonSummary>(ai, personSystem(what(job), nextLabel(job)) + steer, PERSON_SCHEMA, personMaterial(p, f, src, rows.get(p.id)?.corrections), "medium");
       await save(job, p.id, "ready", f, s, null, opts.by);
       written.set(p.id, s);
     } catch (e) {
@@ -715,7 +728,7 @@ async function run(job: Job) {
       await save(job, null, "failed", t, null, "The write-up isn't switched on yet.", opts.by);
     } else {
       try {
-        const s = await write<TeamSummary>(ai, teamSystem(what(job), nextLabel(job)), TEAM_SCHEMA, teamMaterial(src, all, t), "medium");
+        const s = await write<TeamSummary>(ai, teamSystem(what(job), nextLabel(job)) + steer, TEAM_SCHEMA, teamMaterial(src, all, t), "medium");
         await save(job, null, "ready", t, s, null, opts.by);
       } catch (e) {
         console.error("Writing the team's weekly update failed", e instanceof Error ? e.message : e);
@@ -780,6 +793,13 @@ Deno.serve(async (req) => {
     if (!me?.active) return json({ error: "Your account doesn't have access." }, 403);
     const manager = me.role === "manager" || me.can_assign;
 
+    // Only Hassan (the first checker) may steer the writing with a prompt; for anyone else it's ignored.
+    let prompt: string | null = null;
+    if (typeof body.prompt === "string" && body.prompt.trim()) {
+      const { data: s } = await admin.from("app_settings").select("first_checker_id").eq("id", 1).maybeSingle<{ first_checker_id: string | null }>();
+      if (s?.first_checker_id && s.first_checker_id === me.id) prompt = body.prompt.trim().slice(0, 2000);
+    }
+
     if (body.kind === "custom") {
       // Days someone picked: managers and seniors for the team or one person, members for themselves.
       if (!isDay(body.start) || !isDay(body.end)) return json({ error: "Pick a start and an end day." }, 400);
@@ -788,7 +808,7 @@ Deno.serve(async (req) => {
       if (end > today) return json({ error: "Pick days up to today." }, 400);
       if (daysBetween(start, end) > 61) return json({ error: "Pick up to 62 days at a time." }, 400);
       const onlyUser = manager ? (isId(body.user_id) ? body.user_id : null) : me.id;
-      job = { kind: "custom", start, end, mode: "all", onlyUser, team: manager && !onlyUser, by: me.id };
+      job = { kind: "custom", start, end, mode: "all", onlyUser, team: manager && !onlyUser, by: me.id, prompt };
     } else {
       if (!manager) return json({ error: "Only managers and seniors can write the weekly update again." }, 403);
       const week = weekToWrite(body.week_start);
@@ -800,6 +820,7 @@ Deno.serve(async (req) => {
         onlyUser: isId(body.user_id) ? body.user_id : null,
         team: true,
         by: me.id,
+        prompt,
       };
     }
 

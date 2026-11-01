@@ -8,7 +8,7 @@ import "@/styles/updates.css";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CalendarRange, ChevronLeft, ChevronRight, ClipboardCheck, FileText, RotateCcw, Sparkles } from "lucide-react";
-import { usePeople } from "@/lib/api";
+import { usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { sendsDailyUpdate, useMyDailyUpdates } from "@/lib/dailyUpdates";
 import { addDays, addMonths, dateOf, diffDays, dow, fmtDate, monthStart, todayISO } from "@/lib/time";
@@ -42,6 +42,9 @@ import { Empty, Field, Loading, Pill, PersonSelect, Sheet, Spinner, useConfirm, 
 export function Weekly() {
   const { canAssign } = useAuth();
   const me = useMe();
+  const settings = useSettings();
+  // Only Hassan (the first checker) gets the "how to write it" prompt box.
+  const boss = !!settings.data && me.id === settings.data.first_checker_id;
   const [generating, setGenerating] = useState(false);
   return (
     <div className="du-page stack" style={{ gap: 16 }}>
@@ -58,10 +61,10 @@ export function Weekly() {
           Generate update
         </button>
       </div>
-      <GenerateSheet open={generating} onClose={() => setGenerating(false)} manager={canAssign} />
+      <GenerateSheet open={generating} onClose={() => setGenerating(false)} manager={canAssign} boss={boss} />
 
       <LastSevenRow userId={me.id} team={canAssign} />
-      {canAssign ? <TeamWeekSection /> : <MyWeeksSection />}
+      {canAssign ? <TeamWeekSection boss={boss} /> : <MyWeeksSection />}
       <GeneratedList manager={canAssign} />
     </div>
   );
@@ -126,7 +129,7 @@ function quickPicks(today: string): QuickPick[] {
   ];
 }
 
-function GenerateSheet({ open, onClose, manager }: { open: boolean; onClose: () => void; manager: boolean }) {
+function GenerateSheet({ open, onClose, manager, boss }: { open: boolean; onClose: () => void; manager: boolean; boss: boolean }) {
   const today = todayISO();
   const people = usePeople();
   const toast = useToast();
@@ -135,6 +138,7 @@ function GenerateSheet({ open, onClose, manager }: { open: boolean; onClose: () 
   const [start, setStart] = useState(picks[0].start);
   const [end, setEnd] = useState(picks[0].end);
   const [who, setWho] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
   const team = useMemo(() => people.active.filter((p) => sendsDailyUpdate(p)), [people.active]);
 
@@ -145,7 +149,7 @@ function GenerateSheet({ open, onClose, manager }: { open: boolean; onClose: () 
     if (problem) return;
     setSending(true);
     try {
-      const r = await generateUpdate({ start, end, user_id: manager ? who : null });
+      const r = await generateUpdate({ start, end, user_id: manager ? who : null, prompt: boss ? prompt : undefined });
       onClose();
       navigate(reportLink("custom", r?.start ?? start, r?.end ?? end, manager ? who : null));
     } catch (e) {
@@ -200,6 +204,17 @@ function GenerateSheet({ open, onClose, manager }: { open: boolean; onClose: () 
             <PersonSelect value={who} onChange={setWho} people={team} placeholder="The whole team, and each person" />
           </Field>
         )}
+        {boss && (
+          <Field label="How to write it" hint="Optional. Tell Claude how you want this update written, what to focus on or keep short. It won't change the facts.">
+            <textarea
+              className="input"
+              rows={3}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="For example: keep it brief, lead with VO progress, group by project, plain and factual."
+            />
+          </Field>
+        )}
         <p className="small du-none" style={{ color: problem ? "var(--red)" : undefined }}>
           {problem ??
             `${rangeLabel(start, end, true)}: ${span + 1} ${span === 0 ? "day" : "days"}. It's written in a minute or two, and kept on this tab to open again.`}
@@ -242,7 +257,7 @@ function LastSevenRow({ userId, team }: { userId: string; team: boolean }) {
 
 /* ---------------------------------------------------------------- the Thursday week: managers and seniors */
 
-function TeamWeekSection() {
+function TeamWeekSection({ boss }: { boss: boolean }) {
   const me = useMe();
   const toast = useToast();
   const confirm = useConfirm();
@@ -253,6 +268,7 @@ function TeamWeekSection() {
   const over = weekIsOver(week);
   const q = useWeek(week);
   const [starting, setStarting] = useState(false);
+  const [writeOpen, setWriteOpen] = useState(false);
   const team: TeamWeek | null = q.data?.team ?? null;
   const people: PersonWeek[] = q.data?.people ?? [];
   const writing = [team, ...people].some((r) => r?.status === "pending");
@@ -270,23 +286,19 @@ function TeamWeekSection() {
     next.delete("team");
     setParams(next, { replace: true });
   };
-  const write = async () => {
-    if (
-      team?.status === "ready" &&
-      !(await confirm({
-        title: "Write the week again?",
-        message: sentBack.length
-          ? `Everyone's week and the team's are written again from the daily updates as they are now. ${
-              sentBack.length === 1 ? `${shortName(sentBack[0])} sent theirs back, so it stays as they sent it` : `${sentBack.length} people sent theirs back, so theirs stay as they sent them`
-            }. Nobody is told again.`
-          : "Everyone's week and the team's are written again from the daily updates as they are now. Nobody is told again.",
-        confirmLabel: "Write it again",
-      }))
-    )
-      return;
+  // When the week is already written, writing it again carries a warning.
+  const warnMessage =
+    team?.status === "ready"
+      ? sentBack.length
+        ? `Everyone's week and the team's are written again from the daily updates as they are now. ${
+            sentBack.length === 1 ? `${shortName(sentBack[0])} sent theirs back, so it stays as they sent it` : `${sentBack.length} people sent theirs back, so theirs stay as they sent them`
+          }. Nobody is told again.`
+        : "Everyone's week and the team's are written again from the daily updates as they are now. Nobody is told again."
+      : "";
+  const doWrite = async (prompt?: string) => {
     setStarting(true);
     try {
-      await makeWeeklyUpdate({ week_start: week });
+      await makeWeeklyUpdate({ week_start: week, prompt });
       toast("Writing it now. It shows here in a minute or two.", "info");
       window.setTimeout(() => q.refetch(), 2000);
     } catch (e) {
@@ -294,6 +306,15 @@ function TeamWeekSection() {
     } finally {
       setStarting(false);
     }
+  };
+  // Hassan gets the prompt sheet (where he can also say how to write it); others get a plain confirm.
+  const write = async () => {
+    if (boss) {
+      setWriteOpen(true);
+      return;
+    }
+    if (warnMessage && !(await confirm({ title: "Write the week again?", message: warnMessage, confirmLabel: "Write it again" }))) return;
+    await doWrite();
   };
 
   return (
@@ -317,6 +338,18 @@ function TeamWeekSection() {
         </button>
       </div>
       <CheckCard row={people.find((p) => p.user_id === me.id)} />
+      {boss && (
+        <WriteWeekSheet
+          open={writeOpen}
+          onClose={() => setWriteOpen(false)}
+          warn={warnMessage}
+          busy={starting}
+          onWrite={async (p) => {
+            await doWrite(p);
+            setWriteOpen(false);
+          }}
+        />
+      )}
       {q.isLoading ? (
         <Loading rows={2} />
       ) : !team && !people.length ? (
@@ -392,6 +425,53 @@ function TeamWeekSection() {
         </div>
       )}
     </div>
+  );
+}
+
+/** The prompt sheet Hassan sees when writing the Thursday week: an optional steer, plus the rewrite warning. */
+function WriteWeekSheet({
+  open,
+  onClose,
+  warn,
+  busy,
+  onWrite,
+}: {
+  open: boolean;
+  onClose: () => void;
+  warn: string;
+  busy: boolean;
+  onWrite: (prompt: string) => void | Promise<void>;
+}) {
+  const [prompt, setPrompt] = useState("");
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Write the week"
+      footer={
+        <>
+          <button className="btn" type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn primary" type="button" onClick={() => onWrite(prompt)} disabled={busy}>
+            {busy ? <Spinner size={14} /> : <RotateCcw />} {warn ? "Write it again" : "Write it"}
+          </button>
+        </>
+      }
+    >
+      <div className="stack" style={{ gap: 14 }}>
+        {warn && <p className="small du-none">{warn}</p>}
+        <Field label="How to write it" hint="Optional. Tell Claude how you want it written, what to focus on or keep short. It won't change the facts.">
+          <textarea
+            className="input"
+            rows={3}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="For example: keep it brief, lead with VO progress, group by project, plain and factual."
+          />
+        </Field>
+      </div>
+    </Sheet>
   );
 }
 

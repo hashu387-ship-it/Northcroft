@@ -287,16 +287,18 @@ async function invokeWeekly(body: Record<string, unknown>, fallback: string): Pr
  * Ask for the Thursday week to be written (again): everyone's, or one person's (and the team report
  * with it). Managers and seniors only. It answers straight away; the rows fill in over a minute or two.
  */
-export async function makeWeeklyUpdate(opts: { week_start: string; user_id?: string }): Promise<void> {
-  await invokeWeekly({ kind: "week", week_start: opts.week_start, user_id: opts.user_id, mode: "all" }, "The weekly update didn't start. Try again in a moment.");
+export async function makeWeeklyUpdate(opts: { week_start: string; user_id?: string; prompt?: string }): Promise<void> {
+  const prompt = opts.prompt?.trim() || undefined;
+  await invokeWeekly({ kind: "week", week_start: opts.week_start, user_id: opts.user_id, mode: "all", prompt }, "The weekly update didn't start. Try again in a moment.");
 }
 
 /**
  * Generate an update for days someone picks. Managers and seniors: the team's and everyone's, or one
  * person's (user_id). Members: always their own. Returns the days as the function took them.
  */
-export async function generateUpdate(opts: { start: string; end: string; user_id?: string | null }) {
-  return invokeWeekly({ kind: "custom", start: opts.start, end: opts.end, user_id: opts.user_id ?? undefined }, "The update didn't start. Try again in a moment.");
+export async function generateUpdate(opts: { start: string; end: string; user_id?: string | null; prompt?: string }) {
+  const prompt = opts.prompt?.trim() || undefined;
+  return invokeWeekly({ kind: "custom", start: opts.start, end: opts.end, user_id: opts.user_id ?? undefined, prompt }, "The update didn't start. Try again in a moment.");
 }
 
 /* ---------------------------------------------------------------- checking it and sending it back */
