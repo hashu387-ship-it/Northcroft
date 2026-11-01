@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { ChevronRight, Copy, KeyRound, RefreshCw, ShieldCheck, UserPlus, UserX, UserCheck } from "lucide-react";
+import { Check, ChevronRight, Copy, KeyRound, Link2, RefreshCw, Send, ShieldCheck, UserPlus, UserX, UserCheck } from "lucide-react";
 import { useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { randomPassword } from "@/lib/format";
-import { formatPhone, localDigits, normalizeSaudiMobile } from "@/lib/phone";
+import { formatPhone, localDigits, normalizeSaudiMobile, whatsappLink } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
 import { PhoneInput, WhatsAppButton, openPersonCard } from "@/components/People";
 import { Avatar, Field, Pill, PersonSelect, Sheet, Switch, useConfirm, useToast } from "@/components/ui";
@@ -183,6 +183,9 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
   const [resetOpen, setResetOpen] = useState(false);
   const [password, setPassword] = useState(randomPassword());
   const [newCreds, setNewCreds] = useState<string | null>(null);
+  const [signinLink, setSigninLink] = useState<string | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const isSelf = person.id === me.id;
   const isManagerRow = person.role === "manager";
@@ -224,6 +227,26 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
       setBusy(false);
     }
   }
+
+  async function makeSigninLink() {
+    setLinkBusy(true);
+    setCopied(false);
+    try {
+      const r = await adminCall<{ link: string }>({ action: "signin_link", user_id: person.id, to: "/updates?tab=week", origin: window.location.origin });
+      setSigninLink(r.link);
+      // Put it on the clipboard straight away, so it's ready to paste into a message.
+      if (await copyText(r.link)) {
+        setCopied(true);
+        toast("Sign-in link copied");
+      }
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setLinkBusy(false);
+    }
+  }
+
+  const linkMessage = (link: string) => `Hi ${person.short_name}, tap this to open your Northcroft weekly update. It signs you in, no password:\n${link}`;
 
   async function setActive(active: boolean) {
     const ok = await confirm(
@@ -445,6 +468,57 @@ function ManagePerson({ person, onClose }: { person: Profile; onClose: () => voi
               <button className="btn" style={{ alignSelf: "flex-start" }} onClick={() => setResetOpen(true)} type="button">
                 <KeyRound /> Reset password
               </button>
+            )}
+          </div>
+        )}
+
+        {!isSelf && (
+          <div className="stack" style={{ gap: 10 }}>
+            <b>One-tap sign-in link</b>
+            {signinLink ? (
+              <div className="stack" style={{ gap: 10 }}>
+                <div className="cred-box" style={{ wordBreak: "break-all" }}>
+                  <span className="small" style={{ fontFamily: "ui-monospace, Menlo, monospace" }}>{signinLink}</span>
+                </div>
+                <div className="row wrap" style={{ gap: 8 }}>
+                  <button
+                    className="btn small"
+                    type="button"
+                    onClick={async () => {
+                      const ok = await copyText(signinLink);
+                      setCopied(ok);
+                      toast(ok ? "Sign-in link copied" : "Couldn't copy, select and copy it", ok ? "success" : "error");
+                    }}
+                  >
+                    {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy link"}
+                  </button>
+                  {person.phone && (
+                    <a className="btn small" href={whatsappLink(person.phone, linkMessage(signinLink))} target="_blank" rel="noreferrer">
+                      <Send /> Send on WhatsApp
+                    </a>
+                  )}
+                  {typeof navigator !== "undefined" && "share" in navigator && (
+                    <button className="btn small" type="button" onClick={() => navigator.share({ text: linkMessage(signinLink) }).catch(() => {})}>
+                      <Send /> Share
+                    </button>
+                  )}
+                  <button className="btn small ghost" type="button" onClick={() => setSigninLink(null)}>
+                    Done
+                  </button>
+                </div>
+                <div className="muted small">
+                  Single-use, and it stops working after about an hour. {person.short_name} taps it, lands on the weekly update signed in, and stays signed in on that phone.
+                </div>
+              </div>
+            ) : (
+              <div className="stack" style={{ gap: 6 }}>
+                <button className="btn" style={{ alignSelf: "flex-start" }} onClick={makeSigninLink} disabled={linkBusy || !person.active} type="button">
+                  <Link2 /> {linkBusy ? "Making the link..." : "Make a sign-in link"}
+                </button>
+                <div className="muted small">
+                  A link that signs {person.short_name} into their own account with no password and opens the weekly update. Send it to them; it's single-use and expires.
+                </div>
+              </div>
             )}
           </div>
         )}

@@ -19,6 +19,24 @@ function json(body: unknown, status = 200) {
 
 const COLORS = ["#0A84FF", "#30D158", "#FF9F0A", "#BF5AF2", "#FF375F", "#5AC8FA", "#FFD60A", "#64D2FF", "#AC8E68"];
 
+// Where a sign-in link may send the person after they're in: always a page inside the app, never
+// another website (so a link can't be bent into sending the token somewhere else).
+const DEFAULT_TO = "/updates?tab=week";
+function safeToPath(v: unknown): string {
+  const s = typeof v === "string" ? v.trim() : "";
+  // Must be one internal path: starts with a single "/", and no scheme, host or backslash.
+  if (!/^\/(?!\/)[A-Za-z0-9/_\-.?=&%#]*$/.test(s)) return DEFAULT_TO;
+  return s;
+}
+// The sign-in link opens the app, and only the app, so the one-time token lands nowhere else.
+const ALLOWED_ORIGINS = ["https://northcroft.vercel.app"];
+function safeOrigin(v: unknown): string {
+  const s = typeof v === "string" ? v.trim().replace(/\/$/, "") : "";
+  if (ALLOWED_ORIGINS.includes(s)) return s;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(s)) return s; // only for local testing
+  return ALLOWED_ORIGINS[0];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -68,6 +86,33 @@ Deno.serve(async (req) => {
         });
         if (error) return json({ error: error.message }, 400);
         return json({ ok: true, id: data.user?.id });
+      }
+
+      case "signin_link": {
+        // A one-tap sign-in link for a teammate: single-use and expiring, it signs them into their
+        // own account and opens a page inside the app. The manager sends it on (WhatsApp, etc.).
+        const userId = String(body.user_id ?? "");
+        if (!userId) return json({ error: "Pick who the link is for" }, 400);
+        const { data: target } = await admin.from("profiles").select("short_name, active").eq("id", userId).maybeSingle();
+        if (!target) return json({ error: "That person isn't on the team" }, 404);
+        if (!target.active) return json({ error: "Their access is switched off. Restore it first." }, 400);
+        const { data: targetUser, error: lookupErr } = await admin.auth.admin.getUserById(userId);
+        const email = targetUser?.user?.email;
+        if (lookupErr || !email) return json({ error: "That account has no email to sign in with" }, 400);
+
+        const to = safeToPath(body.to);
+        const origin = safeOrigin(body.origin);
+        const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+        const hashed = link?.properties?.hashed_token;
+        if (linkErr || !hashed) return json({ error: linkErr?.message || "The link couldn't be made. Try again." }, 400);
+
+        const url = `${origin}/enter?token=${encodeURIComponent(hashed)}&to=${encodeURIComponent(to)}`;
+        // Keep a trail of who made a link for whom (never the token itself).
+        await admin.from("signin_links").insert({ actor_id: auth.user.id, target_id: userId, to_path: to }).then(
+          () => {},
+          () => {},
+        );
+        return json({ ok: true, link: url, name: target.short_name });
       }
 
       case "set_active": {

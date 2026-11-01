@@ -5,6 +5,8 @@ import { Splash } from "@/components/Splash";
 import AppShell from "@/layout/AppShell";
 import Login from "@/pages/Login";
 
+const Enter = lazy(() => import("@/pages/Enter"));
+
 const Home = lazy(() => import("@/pages/Home"));
 const MyTasks = lazy(() => import("@/pages/MyTasks"));
 const TaskDetail = lazy(() => import("@/pages/TaskDetail"));
@@ -40,6 +42,8 @@ export default function App() {
     <Suspense fallback={null}>
       <Routes>
         <Route path="/login" element={!loading && session ? <Navigate to="/" replace /> : <Login />} />
+        {/* A manager-made sign-in link lands here; it works signed out, so it sits outside the gate. */}
+        <Route path="/enter" element={<Enter />} />
         <Route element={<Gate />}>
           <Route index element={<Home />} />
           <Route path="my-tasks" element={<MyTasks />} />
