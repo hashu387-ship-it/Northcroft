@@ -57,6 +57,7 @@
     }
   },
   "shortcuts": [
+    { "name": "Weekly update", "short_name": "Weekly", "url": "/updates?tab=week", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "My tasks", "url": "/my-tasks", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Check in", "url": "/attendance", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Inbox", "url": "/inbox", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
