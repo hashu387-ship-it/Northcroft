@@ -44,7 +44,7 @@ export function AboutSection() {
       <Section title="About">
         <div className="setting-row">
           <div className="grow">
-            <b>Northcroft QS Workspace</b>
+            <b>Northcroft QS Team</b>
             <small>Version 1.0 · Times shown in Riyadh time</small>
           </div>
         </div>

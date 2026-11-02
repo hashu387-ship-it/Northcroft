@@ -1,7 +1,7 @@
 {
-  "name": "Northcroft QS Workspace",
-  "short_name": "Northcroft",
-  "description": "Projects, tasks, announcements and attendance for the Northcroft QS team.",
+  "name": "Northcroft QS Team",
+  "short_name": "QS Team",
+  "description": "Projects, tasks, announcements and attendance for the Northcroft QS Team.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",

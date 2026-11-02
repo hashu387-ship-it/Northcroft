@@ -85,7 +85,7 @@ export default function More() {
         <LogOut /> Sign out
       </button>
       <p className="faint tiny" style={{ textAlign: "center", marginTop: 14 }}>
-        Northcroft QS workspace
+        Northcroft QS Team
       </p>
     </div>
   );
