@@ -29,9 +29,9 @@ function safeToPath(v: unknown): string {
   return s;
 }
 // The sign-in link opens the app, and only the app, so the one-time token lands nowhere else.
-// The new address comes first (the old one was wrongly flagged by Google Safe Browsing on 1 Nov
-// 2026); the old address still works until the team has moved over.
-const ALLOWED_ORIGINS = ["https://northcroft-qs-team.vercel.app", "https://northcroft.vercel.app"];
+// Only the new address: the old one (northcroft.vercel.app) was wrongly flagged by Google Safe
+// Browsing on 1 Nov 2026, so a link made from there still opens the new address.
+const ALLOWED_ORIGINS = ["https://northcroft-qs-team.vercel.app"];
 function safeOrigin(v: unknown): string {
   const s = typeof v === "string" ? v.trim().replace(/\/$/, "") : "";
   if (ALLOWED_ORIGINS.includes(s)) return s;
