@@ -737,7 +737,7 @@ export interface Submission {
 }
 
 /* ---------------------------------------------------------------- registers (0049) */
-export type RegisterStatus = "open" | "in_progress" | "waiting" | "closed";
+export type RegisterStatus = "open" | "in_progress" | "prepared" | "submitted" | "waiting" | "on_hold" | "closed";
 
 /** A register in a project: EIs (in every project) or one the team added (RFIs, Claims...). */
 export interface RegisterCategory {
@@ -773,4 +773,19 @@ export interface RegisterItem {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** A sub task inside an EI or register item (0050): one person and a done tick. */
+export interface RegisterSubtask {
+  id: string;
+  item_id: string;
+  project_id: string;
+  title: string;
+  assignee_id: string | null;
+  done: boolean;
+  done_at: string | null;
+  done_by: string | null;
+  sort: number;
+  created_by: string | null;
+  created_at: string;
 }

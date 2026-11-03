@@ -6,31 +6,36 @@ import "@/styles/registers.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import clsx from "clsx";
-import { ClipboardList, FolderOpen, Paperclip, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, ClipboardList, FolderOpen, ListChecks, Paperclip, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useInvalidate, usePeople } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { isProjectLevelFile, isProjectLevelLink, useProjectFolders } from "@/lib/projectFolders";
 import {
+  FIRST_STATUSES,
   REGISTER_STATUS,
   REGISTER_STATUSES,
   addCategory,
   addItem,
+  addSubtask,
   categoryError,
   itemFolder,
   itemLabel,
   itemNoun,
   removeCategory,
   removeItem,
+  removeSubtask,
   renameCategory,
   sortItems,
   updateItem,
+  updateSubtask,
   useRegisterCategories,
   useRegisterItems,
+  useRegisterSubtasks,
   type ItemValues,
 } from "@/lib/registers";
 import { errorMessage } from "@/lib/supabase";
 import { fmtDate, todayISO } from "@/lib/time";
-import type { Profile, Project, RegisterCategory, RegisterItem, RegisterStatus } from "@/lib/types";
+import type { Profile, Project, RegisterCategory, RegisterItem, RegisterStatus, RegisterSubtask } from "@/lib/types";
 import { Attachments } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
 import { Empty, Field, Loading, PeopleSelect, PersonSelect, Pill, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
@@ -54,6 +59,7 @@ export function Registers({ project }: { project: Project }) {
   const confirm = useConfirm();
   const cats = useRegisterCategories(project.id);
   const items = useRegisterItems(project.id);
+  const subtasks = useRegisterSubtasks(project.id);
   const [params, setParams] = useSearchParams();
   const [view, setView] = useState<View>("open");
   const [q, setQ] = useState("");
@@ -86,7 +92,13 @@ export function Registers({ project }: { project: Project }) {
   }, [itemId, items.isLoading, items.data, openItem]);
 
   const inCat = useMemo(() => all.filter((i) => i.category_id === category?.id), [all, category?.id]);
-  const mine = (i: RegisterItem) => i.responsible_id === me.id || i.assignees.includes(me.id);
+  const subsOf = useMemo(() => {
+    const m = new Map<string, RegisterSubtask[]>();
+    for (const t of subtasks.data ?? []) m.set(t.item_id, [...(m.get(t.item_id) ?? []), t]);
+    return m;
+  }, [subtasks.data]);
+  const mine = (i: RegisterItem) =>
+    i.responsible_id === me.id || i.assignees.includes(me.id) || (subsOf.get(i.id) ?? []).some((t) => !t.done && t.assignee_id === me.id);
   const counts = {
     open: inCat.filter((i) => i.status !== "closed").length,
     mine: inCat.filter((i) => i.status !== "closed" && mine(i)).length,
@@ -100,11 +112,11 @@ export function Registers({ project }: { project: Project }) {
       if (view === "closed" && i.status !== "closed") return false;
       if (view === "mine" && (i.status === "closed" || !mine(i))) return false;
       if (!needle) return true;
-      return [i.ref, i.title, i.description, i.notes].some((t) => t?.toLowerCase().includes(needle));
+      return [i.ref, i.title, i.description, i.notes, ...(subsOf.get(i.id) ?? []).map((t) => t.title)].some((t) => t?.toLowerCase().includes(needle));
     });
     return sortItems(list);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inCat, view, q, me.id]);
+  }, [inCat, view, q, me.id, subsOf]);
 
   async function dropCategory(c: RegisterCategory) {
     const n = all.filter((i) => i.category_id === c.id).length;
@@ -228,7 +240,10 @@ export function Registers({ project }: { project: Project }) {
                   {shown.map((i) => (
                     <tr key={i.id} className={clsx("clickable", i.status === "closed" && "closed")} onClick={() => setParam({ item: i.id, new: null })}>
                       <td className="reg-ref">{i.ref ?? <span className="faint">None</span>}</td>
-                      <td className="reg-title">{i.title}</td>
+                      <td className="reg-title">
+                        {i.title}
+                        <SubCount list={subsOf.get(i.id)} />
+                      </td>
                       <td>
                         <Pill tone={REGISTER_STATUS[i.status].tone}>{REGISTER_STATUS[i.status].label}</Pill>
                       </td>
@@ -246,7 +261,13 @@ export function Registers({ project }: { project: Project }) {
           <div className="glass reg-cards hide-desktop">
             {shown.map((i) => {
               const who = people.get(i.responsible_id)?.short_name;
-              const meta = [who ? `Northcroft: ${who}` : null, names(i.assignees, people.byId) || null, i.due_on ? `Due ${fmtDate(i.due_on, { weekday: "short", day: "numeric", month: "short" })}` : null].filter(Boolean);
+              const subs = subsOf.get(i.id) ?? [];
+              const meta = [
+                who ? `Northcroft: ${who}` : null,
+                names(i.assignees, people.byId) || null,
+                subs.length ? `${subs.filter((t) => t.done).length}/${subs.length} sub tasks` : null,
+                i.due_on ? `Due ${fmtDate(i.due_on, { weekday: "short", day: "numeric", month: "short" })}` : null,
+              ].filter(Boolean);
               return (
                 <button key={i.id} type="button" className={clsx("reg-row", i.status === "closed" && "closed")} onClick={() => setParam({ item: i.id, new: null })}>
                   <span className="grow">
@@ -267,6 +288,9 @@ export function Registers({ project }: { project: Project }) {
         project={project}
         category={category}
         item={openItem}
+        subtasks={openItem ? subsOf.get(openItem.id) ?? [] : []}
+        // Sub tasks and the extra statuses need the 0050 database update; until it's in, they stay hidden.
+        upgraded={subtasks.isSuccess}
         onCreated={(i) => {
           setMade(i);
           setParam({ new: null, item: i.id }, true);
@@ -315,6 +339,8 @@ function ItemSheet({
   project,
   category,
   item,
+  subtasks,
+  upgraded,
   onCreated,
 }: {
   open: boolean;
@@ -322,6 +348,8 @@ function ItemSheet({
   project: Project;
   category: RegisterCategory;
   item: RegisterItem | null;
+  subtasks: RegisterSubtask[];
+  upgraded: boolean;
   onCreated: (i: RegisterItem) => void;
 }) {
   const me = useMe();
@@ -429,7 +457,7 @@ function ItemSheet({
           </Field>
           <Field label="Status">
             <select className="select" value={f.status} onChange={(e) => set("status", e.target.value as RegisterStatus)}>
-              {REGISTER_STATUSES.map((s) => (
+              {(upgraded ? REGISTER_STATUSES : REGISTER_STATUSES.filter((s) => FIRST_STATUSES.includes(s) || s === f.status)).map((s) => (
                 <option key={s} value={s}>
                   {REGISTER_STATUS[s].label}
                 </option>
@@ -460,6 +488,8 @@ function ItemSheet({
         </div>
         {problem && (f.title || f.due_on) && <p className="small" style={{ color: "var(--red)", margin: 0 }}>{problem}</p>}
 
+        {upgraded && <SubtaskList item={item} noun={noun} list={subtasks} />}
+
         <section className="reg-files">
           <h3 className="reg-h">
             <Paperclip /> Files and links
@@ -489,6 +519,132 @@ function ItemSheet({
         </section>
       </div>
     </Sheet>
+  );
+}
+
+/* ---------------------------------------------------------------- sub tasks */
+
+/** "1/2 sub tasks" under a title in the list. */
+function SubCount({ list }: { list: RegisterSubtask[] | undefined }) {
+  if (!list?.length) return null;
+  const done = list.filter((t) => t.done).length;
+  return (
+    <span className={clsx("reg-subcount", done === list.length && "all")}>
+      <ListChecks /> {done}/{list.length} sub tasks
+    </span>
+  );
+}
+
+function SubtaskList({ item, noun, list }: { item: RegisterItem | null; noun: string; list: RegisterSubtask[] }) {
+  const me = useMe();
+  const { canAssign } = useAuth();
+  const people = usePeople();
+  const toast = useToast();
+  const invalidate = useInvalidate();
+  const [title, setTitle] = useState("");
+  const [who, setWho] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTitle("");
+    setWho(null);
+  }, [item?.id]);
+
+  const run = async (key: string, fn: () => Promise<unknown>) => {
+    setBusy(key);
+    try {
+      await fn();
+      await invalidate("register_subtasks", "notifications");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const add = () => {
+    if (!item || !title.trim()) return;
+    const sort = list.reduce((m, t) => Math.max(m, t.sort), 0) + 1;
+    return run("add", async () => {
+      await addSubtask(item, title, who, me.id, sort);
+      setTitle("");
+      setWho(null);
+    });
+  };
+
+  const done = list.filter((t) => t.done).length;
+  return (
+    <section className="reg-subs">
+      <h3 className="reg-h">
+        <ListChecks /> Sub tasks
+        {list.length > 0 && (
+          <span className="muted small">
+            {done} of {list.length} done
+          </span>
+        )}
+      </h3>
+      {!item ? (
+        <p className="muted small">Add the {noun} first, then its sub tasks go here.</p>
+      ) : (
+        <>
+          {list.length > 0 && (
+            <ul className="reg-sublist">
+              {list.map((t) => {
+                const person = people.get(t.assignee_id)?.short_name;
+                const canRemove = canAssign || t.created_by === me.id;
+                return (
+                  <li key={t.id} className={clsx(t.done && "done")}>
+                    <button
+                      type="button"
+                      className={clsx("reg-tick", t.done && "on")}
+                      role="checkbox"
+                      aria-checked={t.done}
+                      aria-label={t.done ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`}
+                      disabled={busy === t.id}
+                      onClick={() => run(t.id, () => updateSubtask(t.id, { done: !t.done }))}
+                    >
+                      {t.done && <Check />}
+                    </button>
+                    <span className="grow">
+                      <span className="t">{t.title}</span>
+                      <span className="m">
+                        {person ?? "Nobody on it"}
+                        {t.done && t.done_by ? ` · done by ${people.get(t.done_by)?.short_name ?? "someone"}` : ""}
+                      </span>
+                    </span>
+                    {canRemove && (
+                      <button type="button" className="icon-btn small" aria-label={`Remove "${t.title}"`} disabled={busy === t.id} onClick={() => run(t.id, () => removeSubtask(t.id))}>
+                        <Trash2 />
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <div className="reg-subadd">
+            <input
+              className="input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  add();
+                }
+              }}
+              placeholder="Add a sub task, e.g. paint take-off from the shop drawing"
+              maxLength={300}
+              aria-label="New sub task"
+            />
+            <PersonSelect value={who} onChange={setWho} people={people.active} placeholder="Who's on it" aria-label="Who's on the sub task" />
+            <button type="button" className="btn small" onClick={add} disabled={!title.trim() || busy === "add"}>
+              <Plus /> Add
+            </button>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

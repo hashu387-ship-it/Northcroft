@@ -5,15 +5,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { unwrap } from "./api";
 import { supabase } from "./supabase";
-import type { RegisterCategory, RegisterItem, RegisterStatus } from "./types";
+import type { RegisterCategory, RegisterItem, RegisterStatus, RegisterSubtask } from "./types";
 
 export const REGISTER_STATUS: Record<RegisterStatus, { label: string; tone: string }> = {
   open: { label: "Open", tone: "blue" },
   in_progress: { label: "In progress", tone: "orange" },
-  waiting: { label: "Waiting", tone: "purple" },
+  prepared: { label: "Prepared", tone: "teal" },
+  submitted: { label: "Submitted", tone: "purple" },
+  waiting: { label: "Waiting", tone: "yellow" },
+  on_hold: { label: "On hold", tone: "red" },
   closed: { label: "Closed", tone: "green" },
 };
-export const REGISTER_STATUSES: RegisterStatus[] = ["open", "in_progress", "waiting", "closed"];
+export const REGISTER_STATUSES: RegisterStatus[] = ["open", "in_progress", "prepared", "submitted", "waiting", "on_hold", "closed"];
+/** The statuses from before the 0050 database update, offered until that update is in. */
+export const FIRST_STATUSES: RegisterStatus[] = ["open", "in_progress", "waiting", "closed"];
 
 /** A project's registers: EIs first, then the others in the order they were added. */
 export function useRegisterCategories(projectId: string | undefined) {
@@ -35,6 +40,38 @@ export function useRegisterItems(projectId: string | undefined) {
     queryFn: () =>
       unwrap<RegisterItem[]>(supabase.from("register_items").select("*").eq("project_id", projectId!).order("created_at", { ascending: false })),
   });
+}
+
+/** Every sub task in a project's registers, in the order they were added. */
+export function useRegisterSubtasks(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ["register_subtasks", projectId],
+    enabled: !!projectId,
+    queryFn: () =>
+      unwrap<RegisterSubtask[]>(
+        supabase.from("register_subtasks").select("*").eq("project_id", projectId!).order("sort").order("created_at"),
+      ),
+  });
+}
+
+export async function addSubtask(item: RegisterItem, title: string, assigneeId: string | null, meId: string, sort: number): Promise<RegisterSubtask> {
+  return unwrap<RegisterSubtask>(
+    supabase
+      .from("register_subtasks")
+      .insert({ item_id: item.id, project_id: item.project_id, title: title.trim(), assignee_id: assigneeId, created_by: meId, sort })
+      .select("*")
+      .single(),
+  );
+}
+
+export async function updateSubtask(id: string, v: Partial<Pick<RegisterSubtask, "title" | "assignee_id" | "done">>): Promise<void> {
+  const rows = await unwrap<{ id: string }[]>(supabase.from("register_subtasks").update(v).eq("id", id).select("id"));
+  if (!rows.length) throw new Error("That sub task is no longer there.");
+}
+
+export async function removeSubtask(id: string): Promise<void> {
+  const rows = await unwrap<{ id: string }[]>(supabase.from("register_subtasks").delete().eq("id", id).select("id"));
+  if (!rows.length) throw new Error("Only whoever added it, or a manager or senior, can remove it.");
 }
 
 /** What one item in a register is called: "EI" for EIs, "RFI" for RFIs, "Claim" for Claims. */

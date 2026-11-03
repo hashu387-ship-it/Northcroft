@@ -83,3 +83,22 @@
 .reg-h svg { width: 17px; height: 17px; color: var(--text-2); }
 .reg-folder { display: flex; align-items: center; gap: 6px; margin: 0; }
 .reg-folder svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* Sub tasks inside an item (0050) */
+.reg-subcount { display: flex; align-items: center; gap: 4px; margin-top: 3px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.reg-subcount svg { width: 13px; height: 13px; }
+.reg-subcount.all { color: var(--green); }
+.reg-subs { display: flex; flex-direction: column; gap: 10px; }
+.reg-subs .reg-h .muted { margin-left: 4px; font-weight: 500; }
+.reg-sublist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--separator); border-radius: 12px; overflow: hidden; }
+.reg-sublist li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; background: var(--solid); }
+.reg-sublist li + li { border-top: 1px solid var(--separator); }
+.reg-sublist .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.reg-sublist .t { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.reg-sublist .m { font-size: 12.5px; color: var(--text-2); }
+.reg-sublist li.done .t { color: var(--text-2); text-decoration: line-through; }
+.reg-tick { flex-shrink: 0; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--separator); background: var(--solid); color: #fff; cursor: pointer; padding: 0; }
+.reg-tick.on { border-color: var(--green); background: var(--green); }
+.reg-tick svg { width: 15px; height: 15px; }
+.reg-subadd { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 170px) auto; gap: 8px; align-items: center; }
+@media (max-width: 600px) { .reg-subadd { grid-template-columns: minmax(0, 1fr) auto; } .reg-subadd .input { grid-column: 1 / -1; } }
