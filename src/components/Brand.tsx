@@ -44,6 +44,27 @@ export function LogoMark({ size = 32, variant = "tile", style, className }: { si
   );
 }
 
+/**
+ * The Northcroft QS Team badge (navy circle with the wordmark, QS TEAM, the hard hat and the Riyadh
+ * skyline). Used for the app icon, the sign-in and start screens, the sidebar, the team chat and the
+ * weekly report. The small file is used at 80 px and under so lists stay light.
+ */
+export function TeamBadge({ size = 40, style, className }: { size?: number; style?: CSSProperties; className?: string }) {
+  const src = size > 80 ? "/brand/qs-team-badge-512.webp" : "/brand/qs-team-badge-160.webp";
+  return (
+    <img
+      src={src}
+      width={size}
+      height={size}
+      alt="Northcroft QS Team"
+      className={className ? `team-badge ${className}` : "team-badge"}
+      style={style}
+      decoding="async"
+      draggable={false}
+    />
+  );
+}
+
 /** The Northcroft wordmark. It uses the current text colour, so set `color` on it or a parent. */
 export function Wordmark({ height = 20, style, className }: { height?: number; style?: CSSProperties; className?: string }) {
   return (

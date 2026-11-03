@@ -6,7 +6,7 @@ import { initials } from "@/lib/format";
 import type { ChatItem } from "@/lib/chats";
 import type { Profile, Project } from "@/lib/types";
 import { Avatar } from "./ui";
-import { LogoMark } from "./Brand";
+import { TeamBadge } from "./Brand";
 
 function colorFor(id: string) {
   let h = 0;
@@ -15,7 +15,7 @@ function colorFor(id: string) {
 }
 
 export function ChatTile({ item, project, person, small }: { item: Pick<ChatItem, "kind" | "conversation_id" | "title">; project?: Project; person?: Profile; small?: boolean }) {
-  if (item.kind === "team") return <LogoMark variant="tile" size={small ? 38 : 46} className="chat-tile-logo" />;
+  if (item.kind === "team") return <TeamBadge size={small ? 38 : 46} className="chat-tile-logo" />;
   if (item.kind === "direct") return <Avatar person={person} size={small ? 38 : 46} />;
   if (item.kind === "project") {
     return (

@@ -41,6 +41,7 @@
 .rp-logos { flex: none; display: flex; align-items: center; gap: 12px; height: 58px; padding: 8px 14px; border-radius: 8px; background: #fff; }
 .rp-nc { display: flex; align-items: center; gap: 8px; color: var(--rp-primary); }
 .rp-nc svg { display: block; }
+.rp-nc img { display: block; flex-shrink: 0; border-radius: 50%; }
 .rp-head-text { min-width: 0; flex: 1 1 250px; }
 :root:root .rp-head h1 { color: #fff; font-size: 24px; line-height: 1.2; }
 .rp-period { font-weight: 600; font-size: 14px; margin-top: 2px; color: #fff; }

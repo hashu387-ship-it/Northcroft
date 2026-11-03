@@ -3,7 +3,7 @@
    - Each screen's data is kept per person: with no signal, screens show the last copy.
    - Photos, voice notes and files already opened are kept too.
    - "Share into the app" from other apps (Android and computers). */
-const SHELL_CACHE = "northcroft-shell-v2";
+const SHELL_CACHE = "northcroft-shell-v3";
 const ASSET_CACHE = "northcroft-assets-v1";
 const META_CACHE = "northcroft-meta";
 const PUBLIC_CACHE = "northcroft-public-v1";

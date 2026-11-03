@@ -6,7 +6,7 @@ import { useInvalidate } from "@/lib/api";
 import { localDigits, normalizeSaudiMobile } from "@/lib/phone";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { PhotoBackground } from "@/layout/AppShell";
-import { LogoMark } from "@/components/Brand";
+import { TeamBadge } from "@/components/Brand";
 import { PhoneInput } from "@/components/People";
 import { Avatar, Spinner, useToast } from "@/components/ui";
 
@@ -68,7 +68,7 @@ export default function ProfileSetup() {
       <div className="auth-wrap">
         <form className="auth-card glass-strong" onSubmit={submit}>
           <div className="auth-brand">
-            <LogoMark variant="tile" size={56} className="logo-tile" />
+            <TeamBadge size={92} className="logo-badge" />
           </div>
           <h1>Finish your profile, {me.short_name}</h1>
           <p className="lead">Your photo shows on tasks, chats and notifications. Your mobile lets the team reach you on WhatsApp.</p>

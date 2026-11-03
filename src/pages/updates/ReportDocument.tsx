@@ -3,7 +3,7 @@
 // part first when there is one, then each person: what they did, each project with every task's %
 // at the start and end, other work and blockers.
 import { Fragment, type CSSProperties } from "react";
-import { LogoMark, Wordmark } from "@/components/Brand";
+import { TeamBadge, Wordmark } from "@/components/Brand";
 import { REPORT_BRAND } from "@/lib/reportBrand";
 import { dateOf } from "@/lib/time";
 import {
@@ -86,7 +86,7 @@ export function ReportDocument({
       <header className="rp-head">
         <div className="rp-logos">
           <span className="rp-nc">
-            <LogoMark variant="color" size={38} />
+            <TeamBadge size={54} />
             <Wordmark height={17} className="rp-nc-word" />
           </span>
         </div>

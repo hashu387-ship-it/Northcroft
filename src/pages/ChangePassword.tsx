@@ -3,7 +3,7 @@ import { KeyRound } from "lucide-react";
 import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { PhotoBackground } from "@/layout/AppShell";
-import { LogoMark } from "@/components/Brand";
+import { TeamBadge } from "@/components/Brand";
 import { useToast } from "@/components/ui";
 
 /** Change your own password. Shown full screen on first sign-in, and inside Settings later. */
@@ -68,7 +68,7 @@ export default function ChangePassword({ forced = false, onDone }: { forced?: bo
       <div className="auth-wrap">
         <div className="auth-card glass-strong">
           <div className="auth-brand">
-            <LogoMark variant="tile" size={68} className="logo-tile" />
+            <TeamBadge size={108} className="logo-badge" />
           </div>
           <h1>Welcome, {me.short_name}</h1>
           <p className="lead">You signed in with a temporary password. Choose your own to continue.</p>

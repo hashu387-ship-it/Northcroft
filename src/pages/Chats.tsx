@@ -47,7 +47,7 @@ import { PageHead } from "@/components/PageHead";
 import { CommentThread, chatKeyOf, type Scope } from "@/components/CommentThread";
 import { Avatar, AvatarStack, Empty, Field, Loading, Pill, Sheet, useConfirm, useToast } from "@/components/ui";
 import { openPersonCard } from "@/components/People";
-import { LogoMark } from "@/components/Brand";
+import { TeamBadge } from "@/components/Brand";
 import { ChatTile } from "@/components/ChatTile";
 import { SwipeRow } from "@/components/Swipe";
 
@@ -240,7 +240,7 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
     scope = { kind: "team" };
     head = (
       <>
-        <LogoMark variant="tile" size={38} />
+        <TeamBadge size={38} />
         <span className="grow">
           <b>Team chat</b>
           <TypingOr chat="team" fallback={`Everyone · ${people.active.length} people`} />

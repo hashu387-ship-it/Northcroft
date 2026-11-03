@@ -34,7 +34,7 @@ import { supabase } from "@/lib/supabase";
 import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
 import ProfileSetup from "@/pages/ProfileSetup";
-import { LogoMark, Wordmark } from "@/components/Brand";
+import { TeamBadge, Wordmark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CelebrationHost } from "@/components/Celebration";
 import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
@@ -254,7 +254,7 @@ export default function AppShell() {
 
       <aside className="sidebar glass">
         <Link to="/" className="brand" style={{ color: "inherit" }} aria-label="Northcroft home">
-          <LogoMark variant="tile" size={38} className="brand-tile" />
+          <TeamBadge size={40} className="brand-tile" />
           <span>
             <span className="brand-word">
               <Wordmark height={16} />
@@ -291,7 +291,7 @@ export default function AppShell() {
         <div className="side">
           {isRoot ? (
             <Link to="/" aria-label="Northcroft home" style={{ lineHeight: 0 }}>
-              <LogoMark variant="tile" size={32} />
+              <TeamBadge size={34} />
             </Link>
           ) : (
             <button className="icon-btn plain" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))} aria-label="Back">

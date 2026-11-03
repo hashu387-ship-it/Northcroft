@@ -9,7 +9,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CircleAlert } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { PhotoBackground } from "@/layout/AppShell";
-import { LogoMark, Wordmark } from "@/components/Brand";
+import { TeamBadge } from "@/components/Brand";
 import { Spinner } from "@/components/ui";
 
 /** Only ever send someone to a page inside the app. */
@@ -58,10 +58,8 @@ export default function Enter() {
       <div className="auth-wrap">
         <div className="auth-card glass-strong" style={{ textAlign: "center" }}>
           <div className="auth-brand">
-            <LogoMark variant="tile" size={68} className="logo-tile" />
-            <h1 className="brand-word">
-              <Wordmark height={30} />
-            </h1>
+            <TeamBadge size={132} className="logo-badge" />
+            <h1 className="sr-only">Northcroft QS Team</h1>
           </div>
           {failed ? (
             <div className="stack" style={{ gap: 14, alignItems: "center" }}>

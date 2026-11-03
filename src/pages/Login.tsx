@@ -4,7 +4,7 @@ import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { errorMessage } from "@/lib/supabase";
 import { PhotoBackground } from "@/layout/AppShell";
-import { LogoMark, Wordmark } from "@/components/Brand";
+import { TeamBadge } from "@/components/Brand";
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -36,10 +36,8 @@ export default function Login() {
       <div className="auth-wrap">
         <form className="auth-card glass-strong" onSubmit={submit}>
           <div className="auth-brand">
-            <LogoMark variant="tile" size={68} className="logo-tile" />
-            <h1 className="brand-word">
-              <Wordmark height={30} />
-            </h1>
+            <TeamBadge size={132} className="logo-badge" />
+            <h1 className="sr-only">Northcroft QS Team</h1>
             <p className="lead">QS team workspace</p>
           </div>
           <div className="stack" style={{ gap: 14 }}>
