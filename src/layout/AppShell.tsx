@@ -259,7 +259,7 @@ export default function AppShell() {
             <span className="brand-word">
               <Wordmark height={16} />
             </span>
-            <small>QS workspace</small>
+            <small>QS Team</small>
           </span>
         </Link>
         <button type="button" className="nav-search" onClick={openSearch} aria-label="Search">

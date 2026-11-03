@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useParams } from "react-router-dom";
-import { Building2, CalendarRange, ChevronLeft, FileClock, FileDiff, FolderOpen, History, Layers, LayoutDashboard, MapPin, MessagesSquare, Pencil, SearchX, SquareCheckBig, Wallet } from "lucide-react";
+import { Building2, CalendarRange, ChevronLeft, ClipboardList, FileClock, FileDiff, FolderOpen, History, Layers, LayoutDashboard, MapPin, MessagesSquare, Pencil, SearchX, SquareCheckBig, Wallet } from "lucide-react";
 import { useProjectMap, useTasks } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { sar } from "@/lib/format";
@@ -14,6 +14,7 @@ import { Overview } from "./project/Overview";
 import { ProjectFiles } from "./project/ProjectFiles";
 import { ProjectForm } from "./project/ProjectForm";
 import { ProjectTasks } from "./project/ProjectTasks";
+import { Registers } from "./project/Registers";
 import { Variations } from "./project/Variations";
 import { ProjectSubmissions } from "./Submissions";
 import { useActivity } from "./project/api";
@@ -23,6 +24,7 @@ const TABS = [
   { key: "", label: "Overview", icon: LayoutDashboard },
   { key: "tasks", label: "Tasks", icon: SquareCheckBig },
   { key: "variations", label: "Variations", icon: FileDiff },
+  { key: "registers", label: "EIs & registers", icon: ClipboardList },
   { key: "submissions", label: "Submissions", icon: FileClock },
   { key: "boq", label: "BOQ", icon: Layers },
   { key: "chat", label: "Chat", icon: MessagesSquare },
@@ -126,6 +128,7 @@ export default function ProjectDetail() {
       {tab === "" && <Overview project={project} />}
       {tab === "tasks" && <ProjectTasks project={project} />}
       {tab === "variations" && <Variations project={project} />}
+      {tab === "registers" && <Registers project={project} />}
       {tab === "submissions" && <ProjectSubmissions project={project} />}
       {tab === "boq" && <Boq project={project} />}
       {tab === "chat" && (

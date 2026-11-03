@@ -1,0 +1,85 @@
+/* EIs and registers in a project (src/pages/project/Registers.tsx) */
+.reg-cats {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.reg-cats::-webkit-scrollbar { display: none; }
+.reg-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--separator);
+  background: var(--solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.reg-cat:hover { background: var(--fill); }
+.reg-cat.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.reg-cat .n {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  font-size: 11.5px;
+  text-align: center;
+}
+.reg-cat.on .n { background: var(--accent); color: #fff; }
+.reg-cat.add { border-style: dashed; color: var(--text-2); }
+.reg-cat.add svg { width: 15px; height: 15px; }
+
+.reg-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 180px;
+  flex: 0 1 260px;
+}
+.reg-search > svg { position: absolute; left: 10px; width: 16px; height: 16px; color: var(--text-2); pointer-events: none; }
+.reg-search .input { padding-left: 32px; padding-right: 32px; }
+.reg-search .icon-btn { position: absolute; right: 4px; }
+
+.reg-table { padding: 0; overflow: hidden; }
+.reg-table .table { min-width: 860px; }
+.reg-table .reg-ref { font-weight: 650; white-space: nowrap; }
+.reg-table .reg-title { min-width: 220px; max-width: 360px; }
+.reg-table tr.closed td { color: var(--text-2); }
+.reg-late { color: var(--red) !important; font-weight: 600; }
+
+.reg-cards { padding: 4px; display: flex; flex-direction: column; }
+.reg-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.reg-row + .reg-row { border-top: 1px solid var(--separator); border-radius: 0; }
+.reg-row:hover { background: var(--fill); }
+.reg-row .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.reg-row .t { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reg-row .m { font-size: 12.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reg-row.closed .t { color: var(--text-2); }
+
+.reg-files { display: flex; flex-direction: column; gap: 10px; }
+.reg-h { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; }
+.reg-h svg { width: 17px; height: 17px; color: var(--text-2); }
+.reg-folder { display: flex; align-items: center; gap: 6px; margin: 0; }
+.reg-folder svg { width: 15px; height: 15px; flex-shrink: 0; }

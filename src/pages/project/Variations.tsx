@@ -12,7 +12,7 @@ import { errorMessage, supabase } from "@/lib/supabase";
 import { dateOf, dueState, fmtDate, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Project, Submission, Variation, VoStatus } from "@/lib/types";
 import { SubmissionRow, SubmissionSheet } from "@/components/Submission";
-import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, PriorityFlag, PriorityPicker, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, PersonSelect, Pill, PriorityFlag, PriorityPicker, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
 import { VO_APPROVED, VO_PENDING, dueInline, nextVoNumber, useVariations, voTotals } from "./api";
 import { ownersOf } from "@/lib/people";
 import { VoLogFields, mergeRounds, voLogForm, voLogLine, voLogRow, type VoLogForm } from "./VoLog";
@@ -149,6 +149,7 @@ export function Variations({ project }: { project: Project }) {
                     <th className="r">Approved</th>
                     <th>Next action</th>
                     <th>Owner</th>
+                    <th>Northcroft responsible</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -184,6 +185,7 @@ export function Variations({ project }: { project: Project }) {
                             <Avatar person={people.get(v.owner_id)} size={26} />
                           )}
                         </td>
+                        <td className="nowrap">{people.get(v.responsible_id)?.short_name ?? <span className="faint">Not set</span>}</td>
                       </tr>
                     );
                   })}
@@ -197,7 +199,7 @@ export function Variations({ project }: { project: Project }) {
                     <td className="r money" title="Submitted value of pending VOs">{num(submittedPending)}</td>
                     <td className="r money" title="Assessed value of pending VOs">{num(assessedPending)}</td>
                     <td className="r money">{num(approvedTotal)}</td>
-                    <td colSpan={2} className="muted small">
+                    <td colSpan={3} className="muted small">
                       {project.contract_value ? `${pct((approvedTotal / project.contract_value) * 100)} of contract approved` : ""}
                     </td>
                   </tr>
@@ -224,6 +226,7 @@ export function Variations({ project }: { project: Project }) {
                   </div>
                   <div style={{ fontWeight: 550 }}>{v.title}</div>
                   {voLogLine(v) && <div className="faint small">{voLogLine(v)}</div>}
+                  {people.get(v.responsible_id) && <div className="muted small">Northcroft responsible: {people.get(v.responsible_id)?.short_name}</div>}
                   <div className="vals">
                     <span>Submitted<b>{sar(v.submitted_value, { compact: true })}</b></span>
                     <span>Assessed<b>{sar(v.assessed_value, { compact: true })}</b></span>
@@ -287,6 +290,7 @@ export function VoSheet({
     approved_date: "",
     response_due: "",
     owners: [] as string[],
+    responsible_id: null as string | null,
     notes: "",
   });
   const [log, setLog] = useState<VoLogForm>(() => voLogForm(null));
@@ -313,6 +317,7 @@ export function VoSheet({
       approved_date: vo?.approved_date ?? "",
       response_due: vo?.response_due ?? "",
       owners: vo ? ownersOf(vo) : [me.id],
+      responsible_id: vo?.responsible_id ?? null,
       notes: vo?.notes ?? "",
     });
   }, [open, vo?.id]);
@@ -351,6 +356,7 @@ export function VoSheet({
       approved_date: f.approved_date || (VO_APPROVED.includes(f.status) ? todayISO() : null),
       response_due: f.response_due || null,
       owners: f.owners,
+      responsible_id: f.responsible_id,
       notes: f.notes.trim() || null,
       ...voLogRow(log),
     };
@@ -433,6 +439,9 @@ export function VoSheet({
         </Field>
         <Field label="Owners on our team" className="full" group hint="Everyone here gets this VO's updates and reminders">
           <PeopleSelect value={f.owners} onChange={(v) => set("owners", v)} people={people.active} empty="Nobody yet" />
+        </Field>
+        <Field label="Northcroft responsible" className="full" hint="The one person at Northcroft who answers for this VO. They're told when it's given to them.">
+          <PersonSelect value={f.responsible_id} onChange={(v) => set("responsible_id", v)} people={people.active} placeholder="Not set yet" />
         </Field>
         <Field label="Submitted value (SAR)" hint="Contractor's quotation">
           <input className="input" inputMode="decimal" value={f.submitted_value} onChange={(e) => set("submitted_value", e.target.value)} placeholder="0" />

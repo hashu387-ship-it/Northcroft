@@ -6,7 +6,6 @@ import {
   CalendarDays,
   CircleCheck,
   ClipboardList,
-  FileText,
   Inbox,
   Layers,
   LogIn,
@@ -35,7 +34,7 @@ import { Avatar, CountUp, Empty, Fab, Loading, Pill, PriorityFlag, useToast } fr
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useSignoff, waitingOn } from "@/lib/signoff";
-import { BOQ_STATUS, EVENT_KIND, VO_STATUS } from "@/lib/constants";
+import { BOQ_STATUS, EVENT_KIND } from "@/lib/constants";
 import { errorMessage } from "@/lib/supabase";
 import {
   addDays,
@@ -62,7 +61,6 @@ import {
   useAttendanceOn,
   useBoqAlerts,
   useEventsBetween,
-  useVoAlerts,
 } from "./home/data";
 
 export default function Home() {
@@ -563,12 +561,11 @@ function dueText(date: string | null) {
 function QsAlertsCard() {
   const people = usePeople();
   const projects = useProjectMap();
-  const vos = useVoAlerts(2);
   const boqs = useBoqAlerts(5);
-  const voList = vos.data ?? [];
   const boqList = boqs.data ?? [];
   const today = todayISO();
 
+  // VOs are no longer listed here: they're in each project's Variations and in the VO log.
   return (
     <div className="glass card">
       <div className="card-head">
@@ -576,37 +573,15 @@ function QsAlertsCard() {
           <TriangleAlert /> QS alerts
         </h2>
         <div className="row" style={{ gap: 6 }}>
-          {voList.length > 0 && <Pill tone="purple">{voList.length} VO</Pill>}
           {boqList.length > 0 && <Pill tone="teal">{boqList.length} BOQ</Pill>}
         </div>
       </div>
-      {vos.isLoading || boqs.isLoading ? (
+      {boqs.isLoading ? (
         <Loading />
-      ) : voList.length + boqList.length === 0 ? (
-        <Empty icon={<CircleCheck />} title="Nothing urgent on VOs or BOQs" />
+      ) : boqList.length === 0 ? (
+        <Empty icon={<CircleCheck />} title="Nothing urgent on BOQs" />
       ) : (
         <div className="list">
-          {voList.slice(0, 6).map((v) => {
-            const late = v.response_due! < today;
-            return (
-              <Link key={v.id} to={`/projects/${v.project_id}/variations?vo=${v.id}`} className="alert-row">
-                <span className="tag" style={{ background: late ? "var(--red-soft)" : "var(--purple-soft)", color: late ? "var(--red)" : "var(--purple)" }}>
-                  <FileText />
-                </span>
-                <span className="grow">
-                  <span className="title" style={{ display: "block" }}>
-                    {v.vo_number} {v.title}
-                  </span>
-                  <span className="meta" style={{ display: "block" }}>
-                    {projects.get(v.project_id)?.name ?? "Project"} · {VO_STATUS[v.status].label}
-                    {ownersOf(v).length ? ` · ${nameList(ownersOf(v).map((id) => people.get(id)?.short_name ?? "someone"))}` : ""}
-                  </span>
-                </span>
-                <PriorityFlag priority={v.priority ?? "normal"} size="small" />
-                <Pill tone={late ? "red" : "orange"}>{dueText(v.response_due)}</Pill>
-              </Link>
-            );
-          })}
           {boqList.slice(0, 6).map((b) => {
             const late = b.due_date! < today;
             return (

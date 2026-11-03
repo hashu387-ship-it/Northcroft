@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FileDown, FileDiff, Paperclip, Search, X } from "lucide-react";
 import clsx from "clsx";
-import { useProjectMap } from "@/lib/api";
+import { usePeople, useProjectMap } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { VO_STATUS } from "@/lib/constants";
 import { num, plural, sar } from "@/lib/format";
@@ -44,6 +44,7 @@ export default function VoLogPage() {
   const { canAssign } = useAuth();
   const toast = useToast();
   const projects = useProjectMap();
+  const people = usePeople();
   const { data: vos = [], isLoading } = useVariations();
   const counts = useVoFileCounts();
   const subs = useSubmissions();
@@ -113,7 +114,7 @@ export default function VoLogPage() {
   async function download() {
     setBusy(true);
     try {
-      const blob = await buildVoLogWorkbook(shown, projects.byId, counts.data ?? new Map());
+      const blob = await buildVoLogWorkbook(shown, projects.byId, counts.data ?? new Map(), new Map(people.all.map((p) => [p.id, p.short_name])));
       saveBlob(blob, voLogFileName());
       toast(`VO log downloaded, ${plural(shown.length, "VO")}`);
     } catch (e) {
@@ -206,6 +207,7 @@ export default function VoLogPage() {
                     <th className="c-ref">Reference</th>
                     <th>Project</th>
                     <th>Subject</th>
+                    <th>Northcroft responsible</th>
                     <th>Scope</th>
                     <th>Instruction</th>
                     <th>Contractual submission</th>
@@ -244,6 +246,7 @@ export default function VoLogPage() {
                             {v.title}
                           </div>
                         </td>
+                        <td className="nowrap">{people.get(v.responsible_id)?.short_name ?? <span className="faint">–</span>}</td>
                         <td className="c-mid">{v.scope || "–"}</td>
                         <td className="nowrap">{dateOrDash(v.instruction_date)}</td>
                         <td className="nowrap">{dateOrDash(v.contract_due)}</td>
@@ -308,7 +311,7 @@ export default function VoLogPage() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={13}>Total amount, {plural(shown.length, "VO")}</td>
+                    <td colSpan={14}>Total amount, {plural(shown.length, "VO")}</td>
                     <td className="r money">{num(totals.amount)}</td>
                     <td colSpan={4} />
                   </tr>

@@ -90,6 +90,7 @@ const TYPE_META: Record<string, { icon: LucideIcon; color: string; label: string
   boq_due: { icon: Layers, color: "#FF3B30", label: "BOQ" },
   submission: { icon: FileClock, color: "#DC6B19", label: "Submission" },
   submission_due: { icon: FileClock, color: "#FF3B30", label: "Submission due" },
+  register: { icon: ClipboardList, color: "#0A84FF", label: "EIs and registers" },
   checkin_reminder: { icon: LogIn, color: "#0A84FF", label: "Check in" },
   checkout_reminder: { icon: LogOut, color: "#FF9F0A", label: "Check out" },
   leave_request: { icon: TreePalm, color: "#BF5AF2", label: "Leave to approve" },

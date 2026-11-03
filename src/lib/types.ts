@@ -378,6 +378,8 @@ export interface Variation {
   /** The first owner (kept for older screens); `owners` is the full list. */
   owner_id: string | null;
   owners: string[];
+  /** Northcroft responsible (0049). */
+  responsible_id?: string | null;
   notes: string | null;
   /* From the VO log (0027): the log's own reference and status, scope, key dates, QS remarks,
      and each submission with ECJV's response. */
@@ -731,5 +733,44 @@ export interface Submission {
   created_by: string | null;
   created_at: string;
   updated_by: string | null;
+  updated_at: string;
+}
+
+/* ---------------------------------------------------------------- registers (0049) */
+export type RegisterStatus = "open" | "in_progress" | "waiting" | "closed";
+
+/** A register in a project: EIs (in every project) or one the team added (RFIs, Claims...). */
+export interface RegisterCategory {
+  id: string;
+  project_id: string;
+  name: string;
+  /** What its references usually start with ("EI", "RFI"). */
+  prefix: string | null;
+  /** EIs: can't be renamed or removed. */
+  builtin: boolean;
+  sort: number;
+  folder_id: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+/** One EI (or item in another register): its files are in its own folder in the project's Files. */
+export interface RegisterItem {
+  id: string;
+  project_id: string;
+  category_id: string;
+  ref: string | null;
+  title: string;
+  description: string | null;
+  status: RegisterStatus;
+  received_on: string | null;
+  due_on: string | null;
+  /** Northcroft responsible. */
+  responsible_id: string | null;
+  assignees: string[];
+  notes: string | null;
+  folder_id: string | null;
+  created_by: string | null;
+  created_at: string;
   updated_at: string;
 }
