@@ -1,0 +1,123 @@
+/* QS Team glass: the look of the Northcroft QS Team badge across the whole app. Deep navy, an
+ * electric blue glow like the badge's ring, silver-white text, Northcroft red for the small
+ * accents, frosted liquid glass panels, and the Riyadh skyline with its cranes faint along the
+ * bottom. It's the dark theme underneath (the page carries data-theme="dark" too), so every
+ * dark-mode rule still applies; this swaps the colours and adds the glow and the skyline.
+ * It's the default look; others can be picked in Settings > Appearance. Loaded last so it wins. */
+:root[data-palette="qs"] {
+  --bg: #020a1d;
+  /* The drifting background colours: navy with electric blue light, like the badge. */
+  --blob-1: #0a2766;
+  --blob-2: #0b3a92;
+  --blob-3: #041540;
+  --blob-4: #0d4bb0;
+  --blob-5: #061d4c;
+  --blob-alpha: 0.55;
+  --brand: #6fb1ff;
+  --brand-ink: #a9d1ff;
+  --brand-soft: rgba(61, 139, 255, 0.16);
+  --nav-active: linear-gradient(135deg, #0f4fd1, #2f8bff);
+  --accent: #4d9dff;
+  --accent-soft: rgba(77, 157, 255, 0.2);
+  --text: #f2f6fd;
+  --text-2: #c5d3ee;
+  --text-3: #93a6cc;
+  --separator: rgba(122, 170, 255, 0.16);
+  --fill: rgba(77, 157, 255, 0.1);
+  --fill-2: rgba(77, 157, 255, 0.18);
+  --glass: rgba(8, 26, 66, 0.42);
+  --glass-strong: rgba(6, 20, 54, 0.68);
+  --glass-border: rgba(140, 190, 255, 0.18);
+  --glass-edge: rgba(200, 225, 255, 0.24);
+  --glass-shade: rgba(61, 139, 255, 0.06);
+  --glass-shadow: 0 14px 40px rgba(0, 4, 18, 0.6), 0 2px 8px rgba(4, 20, 70, 0.4);
+  --solid: #07163a;
+  --solid-2: #0b1f4c;
+  --solid-border: rgba(140, 190, 255, 0.12);
+  --glow: 0 0 0 1px rgba(110, 175, 255, 0.36), 0 10px 32px rgba(30, 109, 255, 0.38);
+  --nc-red: #ee2a32;
+  background: radial-gradient(110% 70% at 50% 0%, #0b2a6e 0%, transparent 62%), linear-gradient(180deg, #03102e 0%, #020a1d 60%, #01071a 100%);
+  background-attachment: fixed;
+}
+
+/* The Riyadh skyline, tower and cranes, faint along the bottom behind everything. */
+:root[data-palette="qs"] .wallpaper::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: min(34vh, 300px);
+  background: url("/brand/skyline.svg") center bottom / cover no-repeat;
+  opacity: 0.3;
+  -webkit-mask-image: linear-gradient(to top, #000 35%, transparent);
+  mask-image: linear-gradient(to top, #000 35%, transparent);
+}
+/* The light glow on the horizon, like the badge, and a soft shine up top. */
+:root[data-palette="qs"] .wallpaper::after {
+  background: radial-gradient(70% 18% at 50% 100%, rgba(47, 139, 255, 0.32), transparent 70%),
+    linear-gradient(180deg, rgba(120, 170, 255, 0.08), rgba(255, 255, 255, 0) 40%);
+}
+
+/* The selected menu item: an electric blue pill with a thin Northcroft red line. */
+:root[data-palette="qs"] .nav a.active {
+  background: var(--nav-active);
+  box-shadow: 0 6px 20px rgba(30, 109, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 3px 0 0 var(--nc-red);
+}
+:root[data-palette="qs"] .tabbar a.active { color: #fff; background: rgba(47, 139, 255, 0.24); box-shadow: 0 0 18px rgba(47, 139, 255, 0.4); }
+
+/* Frosted panels with the badge's glowing blue rim. */
+:root[data-palette="qs"] .sidebar,
+:root[data-palette="qs"] .tabbar {
+  border: 1px solid rgba(110, 175, 255, 0.22);
+  box-shadow: 0 0 0 1px rgba(47, 139, 255, 0.12), 0 0 28px rgba(30, 109, 255, 0.18), 0 18px 50px rgba(0, 4, 18, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+:root[data-palette="qs"] .topbar {
+  border-bottom: 1px solid rgba(110, 175, 255, 0.2);
+  box-shadow: 0 8px 30px rgba(0, 4, 18, 0.5), 0 1px 0 rgba(47, 139, 255, 0.18);
+}
+
+/* The team badge glows a little, like on the sign-in screen. */
+:root[data-palette="qs"] .team-badge { box-shadow: 0 0 0 1px rgba(110, 175, 255, 0.35), 0 0 16px rgba(30, 109, 255, 0.35); }
+
+/* Glow on hover: menu items, cards and buttons (only where there's a mouse). */
+@media (hover: hover) {
+  :root[data-palette="qs"] .nav a:not(.active):hover {
+    background: rgba(47, 139, 255, 0.14);
+    box-shadow: 0 0 0 1px rgba(110, 175, 255, 0.22), 0 0 22px rgba(30, 109, 255, 0.28);
+  }
+  :root[data-palette="qs"] .glass.card {
+    transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
+  }
+  :root[data-palette="qs"] a.glass.card:hover,
+  :root[data-palette="qs"] button.glass.card:hover,
+  :root[data-palette="qs"] .card.clickable:hover {
+    box-shadow: var(--glow);
+    transform: translateY(-1px);
+  }
+  :root[data-palette="qs"] .btn:not(:disabled):hover {
+    box-shadow: 0 0 0 1px rgba(110, 175, 255, 0.3), 0 6px 20px rgba(30, 109, 255, 0.32);
+  }
+}
+:root[data-palette="qs"] .btn.primary {
+  background: linear-gradient(135deg, #0f4fd1, #2f8bff);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* With Solid surfaces on, the panels are solid navy instead of see-through. */
+:root[data-palette="qs"][data-solid="true"] .glass,
+:root[data-palette="qs"][data-solid="true"] .glass-strong { background: var(--solid); }
+:root[data-palette="qs"][data-solid="true"] .wallpaper::before { display: none; }
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-palette="qs"] .wallpaper::before { display: none; }
+}
+
+/* The swatch in Settings > Appearance: navy, blue glow and a red line. */
+.theme-swatch.qs { background: radial-gradient(80% 60% at 50% 100%, #2f8bff, transparent 70%), linear-gradient(160deg, #03102e, #0b2a6e 60%, #020a1d); }
+.theme-swatch.qs::after {
+  background: rgba(8, 26, 66, 0.55);
+  border-color: rgba(140, 190, 255, 0.35);
+  box-shadow: 0 0 14px rgba(47, 139, 255, 0.6), inset 0 -2px 0 #ee2a32;
+}

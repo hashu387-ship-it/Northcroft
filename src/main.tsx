@@ -14,23 +14,32 @@ import "./styles/menu.css";
 import "./styles/purple.css";
 import "./styles/feel.css";
 import "./styles/clay.css";
+import "./styles/qs.css";
 
-// Appearance preferences are per device. Light is the default; Dark, Purple glass or Automatic
-// (follow the phone) only when someone chooses it in Settings > Appearance. Purple glass is the
-// dark theme with a purple palette on top (data-palette="purple"); Clay glass is the light theme
-// with soft clay on top (data-palette="clay").
+// Appearance preferences are per device. QS Team glass (the badge look: dark navy, blue glow,
+// the skyline) is the default; Light, Dark, Purple glass, Clay glass or Automatic (follow the
+// phone) only when someone chooses it in Settings > Appearance. QS Team glass and Purple glass
+// are the dark theme with a palette on top (data-palette="qs" / "purple"); Clay glass is the
+// light theme with soft clay on top (data-palette="clay").
+// When QS Team glass came in (Nov 2026) every device switched to it once ("nc-look-qs"); after
+// that, whatever someone picks in Settings stays.
 // Glass is the default for everyone. Solid surfaces only come on when switched on again in
 // Settings > Appearance; the old setting ("nc-solid") is cleared so every phone starts on glass.
 try {
-  const theme = localStorage.getItem("nc-theme");
-  if (theme === "dark" || theme === "purple") document.documentElement.dataset.theme = "dark";
+  if (!localStorage.getItem("nc-look-qs")) {
+    localStorage.setItem("nc-theme", "qs");
+    localStorage.setItem("nc-look-qs", "1");
+  }
+  const theme = localStorage.getItem("nc-theme") || "qs";
+  if (theme === "dark" || theme === "purple" || theme === "qs") document.documentElement.dataset.theme = "dark";
   else if (theme !== "system") document.documentElement.dataset.theme = "light";
-  if (theme === "purple" || theme === "clay") document.documentElement.dataset.palette = theme;
+  if (theme === "purple" || theme === "clay" || theme === "qs") document.documentElement.dataset.palette = theme;
   localStorage.removeItem("nc-solid");
   if (localStorage.getItem("nc-solid-v2") === "true") document.documentElement.dataset.solid = "true";
 } catch {
-  /* storage can be blocked; the light default still applies */
-  document.documentElement.dataset.theme = "light";
+  /* storage can be blocked; the QS Team glass default still applies */
+  document.documentElement.dataset.theme = "dark";
+  document.documentElement.dataset.palette = "qs";
 }
 
 startScrollHints();

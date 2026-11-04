@@ -4,14 +4,14 @@ import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
-type Theme = "system" | "light" | "dark" | "purple" | "clay";
+type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs";
 
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "dark" || t === "system" || t === "purple" || t === "clay" ? t : "light";
+    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" ? t : "qs";
   } catch {
-    return "light";
+    return "qs";
   }
 }
 
@@ -31,17 +31,15 @@ export function AppearanceSection() {
   function applyTheme(t: Theme) {
     setTheme(t);
     const root = document.documentElement;
-    // Purple glass is the dark theme with a purple palette over it; Clay glass is the light theme
-    // with soft clay over it.
-    if (t === "purple" || t === "clay") root.dataset.palette = t;
+    // QS Team glass and Purple glass are the dark theme with a palette over it; Clay glass is the
+    // light theme with soft clay over it.
+    if (t === "purple" || t === "clay" || t === "qs") root.dataset.palette = t;
     else delete root.dataset.palette;
-    const base = t === "purple" ? "dark" : t === "clay" ? "light" : t;
+    const base = t === "purple" || t === "qs" ? "dark" : t === "clay" ? "light" : t;
     try {
       if (base === "system") delete root.dataset.theme;
       else root.dataset.theme = base;
-      // Light is the default, so only Dark and Automatic need remembering.
-      if (t === "light") localStorage.removeItem("nc-theme");
-      else localStorage.setItem("nc-theme", t);
+      localStorage.setItem("nc-theme", t);
     } catch {
       if (base !== "system") root.dataset.theme = base;
     }
@@ -61,6 +59,7 @@ export function AppearanceSection() {
   }
 
   const options: { value: Theme; label: string }[] = [
+    { value: "qs", label: "QS Team glass" },
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
     { value: "purple", label: "Purple glass" },
@@ -80,7 +79,8 @@ export function AppearanceSection() {
           ))}
         </div>
         <div className="muted small">
-          Light is the default. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass
+          QS Team glass is the default: the look of the team badge, with deep navy, a blue glow, frosted glass and the Riyadh skyline along the
+          bottom. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass
           but makes cards, buttons and tabs soft and puffy, like clay, and buttons sink a little when you press them. Automatic follows your phone or
           computer, switching to dark at night if you've set it up that way.
         </div>
