@@ -42,11 +42,14 @@ export default function Login() {
           </div>
           <div className="stack" style={{ gap: 14 }}>
             <label className="field">
-              <span>Work email</span>
+              <span>Work email or username</span>
               <input
                 className="input"
-                type="email"
+                type="text"
                 autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
