@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileSpreadsheet, FileText, Folder, Image as ImageIcon, Link2, Mic, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
+import { FileSpreadsheet, FileText, Folder, FolderUp, Image as ImageIcon, Link2, Mic, Paperclip, Plus, Repeat, Trash2, X } from "lucide-react";
 import { useInvalidate, usePeople, useProjects, useSettings } from "@/lib/api";
 import { useProjectTeams } from "@/lib/projectTeam";
 import { useApprover } from "@/lib/taskApproval";
@@ -8,6 +8,7 @@ import { useAuth, useMe } from "@/lib/auth";
 import { STORAGE_MAX_BYTES, isImage, uploadFile } from "@/lib/files";
 import { addDriveLinks, checkDriveLink, looksLikeDriveLink, type LinkInfo } from "@/lib/drivelinks";
 import { DropZone } from "./DropZone";
+import { canPickFolder, relPath, withoutJunk } from "@/lib/folderUpload";
 import { checkOtherLink, linkMeta, normalizeUrl } from "@/lib/links";
 import { useSignoff } from "@/lib/signoff";
 import { canRecord, uploadVoice, useRecorder, voiceLabel, type Recording } from "@/lib/voice";
@@ -91,6 +92,8 @@ export function TaskForm({
   const [files, setFiles] = useState<File[]>([]);
   const [uploadNote, setUploadNote] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const folderInput = useRef<HTMLInputElement | null>(null);
+  const folderPick = canPickFolder();
   const driveOn = !!useSettings().data?.drive_connected_at;
   // Links checked in the form (Google Drive, OneDrive or any web link); saved on the task once it exists.
   const [links, setLinks] = useState<(LinkInfo & { url: string })[]>([]);
@@ -222,7 +225,12 @@ export function TaskForm({
 
   function pickFiles(list: FileList | File[] | null) {
     if (!list?.length) return;
-    const picked = Array.from(list);
+    // A whole folder: every file inside, each named with its place in the folder
+    // ("Drawings/A-101.pdf"), so they show grouped under the folder on the task.
+    const picked = withoutJunk(Array.from(list)).map((f) => {
+      const p = relPath(f);
+      return p ? new File([f], p.slice(-240), { type: f.type, lastModified: f.lastModified }) : f;
+    });
     // Without Google Drive, the app's own storage takes files up to 50 MB.
     const tooBig = driveOn ? [] : picked.filter((f) => f.size > STORAGE_MAX_BYTES);
     if (tooBig.length) {
@@ -231,6 +239,7 @@ export function TaskForm({
     const ok = picked.filter((f) => !tooBig.includes(f));
     setFiles((xs) => [...xs, ...ok.filter((f) => !xs.some((x) => x.name === f.name && x.size === f.size))]);
     if (fileInput.current) fileInput.current.value = "";
+    if (folderInput.current) folderInput.current.value = "";
   }
 
   /** Upload the picked files one by one. Returns the names that didn't make it, and why. */
@@ -619,6 +628,11 @@ export function TaskForm({
                 <button className="btn small" type="button" onClick={() => fileInput.current?.click()} disabled={saving}>
                   <Paperclip /> {files.length ? "Add more files" : "Add files"}
                 </button>
+                {folderPick && (
+                  <button className="btn small" type="button" onClick={() => folderInput.current?.click()} disabled={saving}>
+                    <FolderUp /> Add folder
+                  </button>
+                )}
                 {linkUrl === null && (
                   <button className="btn small" type="button" onClick={() => setLinkUrl("")} disabled={saving}>
                     <Link2 /> Add link
@@ -626,6 +640,19 @@ export function TaskForm({
                 )}
               </div>
               <input ref={fileInput} type="file" multiple hidden aria-label="Choose files" onChange={(e) => pickFiles(e.target.files)} />
+              {folderPick && (
+                <input
+                  ref={(el) => {
+                    folderInput.current = el;
+                    el?.setAttribute("webkitdirectory", "");
+                  }}
+                  type="file"
+                  multiple
+                  hidden
+                  aria-label="Choose a folder"
+                  onChange={(e) => pickFiles(e.target.files)}
+                />
+              )}
             </DropZone>
           </Field>
         )}

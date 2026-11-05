@@ -1,8 +1,10 @@
 // Drag files from the computer onto anything that takes attachments. While files are dragged over
 // it, the area lights up with "Drop to attach"; dropping hands the files over like the file picker.
+// A dropped folder hands over every file inside it, each knowing its place in the folder.
 import { useRef, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { Upload } from "lucide-react";
+import { takeDrop } from "@/lib/folderUpload";
 
 /** True when what's being dragged includes files (not text or a link from the page). */
 export function dragHasFiles(e: { dataTransfer: DataTransfer | null }) {
@@ -53,8 +55,11 @@ export function DropZone({
         e.stopPropagation();
         depth.current = 0;
         setOver(false);
-        const files = Array.from(e.dataTransfer.files ?? []).filter((f) => f.size > 0 || f.type);
-        if (files.length) onFiles(files);
+        // Single files as they are, and everything inside a dropped folder (with its folder path).
+        const read = takeDrop(e.dataTransfer);
+        void read().then((files) => {
+          if (files.length) onFiles(files);
+        });
       }}
     >
       {children}

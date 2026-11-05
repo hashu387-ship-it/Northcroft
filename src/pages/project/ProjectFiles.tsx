@@ -6,7 +6,7 @@
 //     chat, each saying where it came from.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronRight, Folder, FolderMinus, FolderOpen, FolderPlus, Layers, Link2, Pencil, Upload } from "lucide-react";
+import { ChevronRight, Folder, FolderMinus, FolderOpen, FolderPlus, FolderUp, Layers, Link2, Pencil, Upload } from "lucide-react";
 import clsx from "clsx";
 import { usePeople, useSettings, useTasks, useInvalidate } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
@@ -28,6 +28,7 @@ import type { Attachment, Project, ProjectFolder } from "@/lib/types";
 import { Attachments, useAttachmentList } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
 import { DropZone } from "@/components/DropZone";
+import { canPickFolder } from "@/lib/folderUpload";
 import { Empty, Field, Sheet, useConfirm, useToast } from "@/components/ui";
 import { useVariations } from "./api";
 import { useSubmissions } from "@/lib/submissions";
@@ -122,6 +123,8 @@ export function ProjectFiles({ project }: { project: Project }) {
   const uploadRef = useRef<((files: File[]) => void) | null>(null);
   const addLinkRef = useRef<(() => void) | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const folderInput = useRef<HTMLInputElement | null>(null);
+  const folderPick = canPickFolder();
   const [naming, setNaming] = useState<{ mode: "new" } | { mode: "rename"; folder: ProjectFolder } | null>(null);
   const [moving, setMoving] = useState<Moving | null>(null);
 
@@ -205,6 +208,11 @@ export function ProjectFiles({ project }: { project: Project }) {
           <button className="btn small" type="button" onClick={() => fileInput.current?.click()}>
             <Upload /> Add files
           </button>
+          {folderPick && (
+            <button className="btn small" type="button" onClick={() => folderInput.current?.click()}>
+              <FolderUp /> Add folder
+            </button>
+          )}
           <button className="btn small" type="button" onClick={() => addLinkRef.current?.()}>
             <Link2 /> Add link
           </button>
@@ -220,10 +228,28 @@ export function ProjectFiles({ project }: { project: Project }) {
               if (list.length) uploadRef.current?.(list);
             }}
           />
+          {folderPick && (
+            <input
+              ref={(el) => {
+                folderInput.current = el;
+                el?.setAttribute("webkitdirectory", "");
+              }}
+              type="file"
+              multiple
+              hidden
+              aria-label="Choose a folder"
+              onChange={(e) => {
+                // The folder and everything in it go into the folder you're in, as real folders.
+                const list = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                if (list.length) uploadRef.current?.(list);
+              }}
+            />
+          )}
         </div>
         <span className="faint tiny">
           Contracts, drawings, specs, quotations: anything for the whole project. {driveOn ? "Files are saved to the team's Google Drive." : "Up to 50 MB each."}{" "}
-          On a computer you can drop files here.
+          On a computer you can drop files or whole folders here.
         </span>
 
         {current && (

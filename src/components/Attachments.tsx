@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DraftingCompass, FileSpreadsheet, FileText, Film, FolderInput, HardDrive, Image as ImageIcon, Paperclip, Presentation, Repeat, Trash2, Upload } from "lucide-react";
+import { ChevronRight, DraftingCompass, FileSpreadsheet, FileText, Film, Folder, FolderInput, FolderOpen, FolderUp, HardDrive, Image as ImageIcon, Paperclip, Presentation, Repeat, Trash2, Upload } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { deleteAttachment, isDrawing, isImage, isOnDrive, previewUrls, uploadFile } from "@/lib/files";
@@ -12,6 +12,8 @@ import type { Attachment } from "@/lib/types";
 import { Empty, Loading, useConfirm, useToast } from "./ui";
 import { useOpenFile } from "./useOpenFile";
 import { DropZone } from "./DropZone";
+import { canPickFolder, folderParts, relPath, withoutJunk } from "@/lib/folderUpload";
+import { createFolder } from "@/lib/projectFolders";
 import { AskPreviewWhenSeen, DocIcon, docTag, kindClass, PlayBadge, usePreviewUpdates } from "./FilePreview";
 
 function FileIcon({ a }: { a: Attachment }) {
@@ -20,6 +22,31 @@ function FileIcon({ a }: { a: Attachment }) {
   if (/\.(pptx?|pptm|ppsx?|odp)$/i.test(a.name)) return <Presentation />;
   if (isVideo(a)) return <Film />;
   return <FileText />;
+}
+
+/** A file's own name, without the folder it was added in ("Drawings/A-101.pdf" is "A-101.pdf"). */
+export const baseName = (name: string) => name.split("/").filter(Boolean).pop() || name;
+
+/** Files added as a folder keep their folder path in their name; this groups them back into folders. */
+type FileTree = { folders: Map<string, FileTree>; files: Attachment[]; count: number };
+function buildTree(rows: Attachment[]): FileTree {
+  const root: FileTree = { folders: new Map(), files: [], count: 0 };
+  for (const a of rows) {
+    const parts = a.name.split("/").filter(Boolean);
+    let node = root;
+    node.count++;
+    for (const part of parts.slice(0, -1)) {
+      let next = node.folders.get(part);
+      if (!next) {
+        next = { folders: new Map(), files: [], count: 0 };
+        node.folders.set(part, next);
+      }
+      next.count++;
+      node = next;
+    }
+    node.files.push(a);
+  }
+  return root;
 }
 
 export interface AttachmentsWhere {
@@ -145,6 +172,10 @@ export function Attachments({
   const confirm = useConfirm();
   const invalidate = useInvalidate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement | null>(null);
+  const folderPick = canPickFolder();
+  // Folders (added as a folder) that are open in the list.
+  const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
   // "Uploading plans.pdf to Google Drive, 40%" while a big file goes up.
   const [progress, setProgress] = useState<string | null>(null);
@@ -153,12 +184,46 @@ export function Attachments({
   const q = useAttachmentList({ taskId, projectId, repeatOf, variationId, voRound, voSide, knownRounds, announcementId, leaveId, submissionId });
   usePreviewUpdates();
 
+  // In a project's Files (or an EI's folder) an added folder becomes real folders there, reusing a
+  // folder that already has the same name. Path inside the added folder → folder id.
+  async function folderFor(parts: string[], made: Map<string, string | null>): Promise<string | null> {
+    let parent = projectFolderId ?? null;
+    let key = "";
+    for (const raw of parts) {
+      const name = raw.slice(0, 120);
+      key += `/${name}`;
+      if (made.has(key)) {
+        parent = made.get(key) ?? null;
+        continue;
+      }
+      let q = supabase.from("project_folders").select("id").eq("project_id", projectId!).eq("name", name).is("removed_at", null);
+      q = parent ? q.eq("parent_id", parent) : q.is("parent_id", null);
+      const found = await unwrap<{ id: string }[]>(q.limit(1));
+      const id = found[0]?.id ?? (await createFolder(projectId!, parent, name, me.id)).id;
+      made.set(key, id);
+      parent = id;
+    }
+    return parent;
+  }
+
   async function onFiles(list: FileList | File[] | null) {
     if (!list?.length || busy) return;
+    const all = withoutJunk(Array.from(list));
+    if (!all.length) return;
     setBusy(true);
+    // Anywhere else, files from a folder keep their folder path in their name and show grouped
+    // under the folder.
+    const realFolders = projectFolderId !== undefined && !!projectId;
+    const made = new Map<string, string | null>();
     try {
-      for (const f of Array.from(list)) {
-        setProgress(`Uploading ${f.name}...`);
+      for (const [n, raw] of all.entries()) {
+        const parts = folderParts(raw);
+        let f = raw;
+        let folderId = projectFolderId ?? null;
+        if (parts.length && realFolders) folderId = await folderFor(parts, made);
+        else if (parts.length) f = new File([raw], relPath(raw).slice(-240), { type: raw.type, lastModified: raw.lastModified });
+        const label = all.length > 1 ? `${raw.name} (${n + 1} of ${all.length})` : raw.name;
+        setProgress(`Uploading ${label}...`);
         await uploadFile(f, {
           taskId: taskId ?? null,
           projectId: projectId ?? null,
@@ -167,20 +232,22 @@ export function Attachments({
           voSide: voRound ? voSide ?? "sent" : null,
           announcementId: announcementId ?? null,
           leaveId: leaveId ?? null,
-          projectFolderId: projectFolderId ?? null,
+          projectFolderId: folderId,
           submissionId: submissionId ?? null,
           userId: me.id,
-          onProgress: (x) => setProgress(`Saving ${f.name} to Google Drive, ${Math.round(x * 100)}%`),
+          onProgress: (x) => setProgress(`Saving ${label} to Google Drive, ${Math.round(x * 100)}%`),
         });
       }
-      toast(list.length === 1 ? "File added" : `${list.length} files added`);
-      invalidate("attachments");
+      toast(all.length === 1 ? "File added" : `${all.length} files added`);
+      if (made.size) invalidate("attachments", "project_folders");
+      else invalidate("attachments");
     } catch (e) {
       toast(errorMessage(e), "error");
     } finally {
       setBusy(false);
       setProgress(null);
       if (inputRef.current) inputRef.current.value = "";
+      if (folderRef.current) folderRef.current.value = "";
     }
   }
 
@@ -216,6 +283,131 @@ export function Attachments({
   if (filter) rows = rows.filter(filter);
   if (sortByName) rows = [...rows].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
   if (hideWhenEmpty && (!canUpload || !toolbar) && rows.length === 0 && !progress) return null;
+
+  // One small row per file: a little preview on the left (the photo, or a PDF's first page, a
+  // drawing, a sheet...), its name and details, and the tools. Tap it to open it full size.
+  function fileRow(a: Attachment, depth: number) {
+    const from = fromLabel?.(a) ?? null;
+    const photo = isImage(a) ? q.data?.urls[a.path] : undefined;
+    const docKind = previewKind(a);
+    const docPic = docKind ? q.data?.urls[a.path] : undefined;
+    const making = !!docKind && !docPic && previewPending(a.id);
+    const pic = photo ?? docPic;
+    const openIt = () => open(a, isImage(a) ? rows.filter(isImage) : undefined);
+    return (
+      <div key={a.id} className="file" style={depth ? { paddingLeft: 10 + depth * 18 } : undefined}>
+        <button onClick={openIt} className="file-main" type="button" title={a.name}>
+          <span className={`file-thumb ${docKind ? kindClass(docKind) : ""}${pic && !photo ? " doc" : ""}${making ? " making" : ""}`}>
+            {pic ? <img src={pic} alt="" loading="lazy" decoding="async" /> : docKind ? <DocIcon kind={docKind} /> : isImage(a) ? <ImageIcon /> : <FileIcon a={a} />}
+            {pic && docKind === "video" && <PlayBadge />}
+            {docKind && pic && <span className={`doc-tag ${kindClass(docKind)}`}>{docTag(a, docKind)}</span>}
+          </span>
+          <span className="file-text">
+            <span className="file-name">{baseName(a.name)}</span>
+            <span className="file-meta">
+              {isOnDrive(a) && (
+                <>
+                  <span className="drive-tag">
+                    <HardDrive size={11} /> Drive
+                  </span>
+                  {" · "}
+                </>
+              )}
+              {from ? (
+                <>
+                  <span className="drive-tag repeat-tag">{from}</span>
+                  {" · "}
+                </>
+              ) : (
+                <>
+                  {!announcementId && a.announcement_id && (
+                    <>
+                      <span className="drive-tag repeat-tag" title="On an announcement">
+                        Announcement
+                      </span>
+                      {" · "}
+                    </>
+                  )}
+                  {!variationId && a.variation_id && (
+                    <>
+                      <span className="drive-tag repeat-tag" title="On a variation">
+                        VO
+                      </span>
+                      {" · "}
+                    </>
+                  )}
+                </>
+              )}
+              {!a.task_id && a.recurring_id && (
+                <>
+                  <span className="drive-tag repeat-tag" title="Comes with every copy of this repeating task">
+                    <Repeat size={11} /> Every repeat
+                  </span>
+                  {" · "}
+                </>
+              )}
+              {making ? "Making a preview · " : ""}
+              {a.version > 1 ? `Version ${a.version} · ` : ""}
+              {a.size != null ? `${fileSize(a.size)} · ` : ""}
+              {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
+            </span>
+          </span>
+        </button>
+        {onMove && (
+          <button className="icon-btn small plain" onClick={() => onMove(a)} aria-label={`Move ${baseName(a.name)}`} title="Move to a folder" type="button">
+            <FolderInput />
+          </button>
+        )}
+        {(a.uploaded_by === me.id || canAssign) && (
+          <button className="icon-btn small plain" onClick={() => remove(a)} aria-label={`Delete ${baseName(a.name)}`} title="Delete" type="button">
+            <Trash2 />
+          </button>
+        )}
+        {needsPreview(a) && <AskPreviewWhenSeen a={a} />}
+      </div>
+    );
+  }
+
+  // A folder that was added as a folder: its name and how many files, tap to open or close it.
+  function renderTree(node: FileTree, depth: number, key: string): ReactNode[] {
+    const out: ReactNode[] = [];
+    const names = [...node.folders.keys()].sort((x, y) => x.localeCompare(y, undefined, { numeric: true, sensitivity: "base" }));
+    for (const name of names) {
+      const child = node.folders.get(name)!;
+      const k = `${key}/${name}`;
+      const isOpen = openFolders.has(k);
+      out.push(
+        <div key={`folder:${k}`} className="file folder-row" style={depth ? { paddingLeft: 10 + depth * 18 } : undefined}>
+          <button
+            className="file-main"
+            type="button"
+            aria-expanded={isOpen}
+            onClick={() =>
+              setOpenFolders((s) => {
+                const next = new Set(s);
+                if (next.has(k)) next.delete(k);
+                else next.add(k);
+                return next;
+              })
+            }
+          >
+            <span className="file-thumb folder">{isOpen ? <FolderOpen /> : <Folder />}</span>
+            <span className="file-text">
+              <span className="file-name">{name}</span>
+              <span className="file-meta">
+                Folder · {child.count} {child.count === 1 ? "file" : "files"}
+              </span>
+            </span>
+            <ChevronRight className={isOpen ? "folder-chev open" : "folder-chev"} />
+          </button>
+        </div>,
+      );
+      if (isOpen) out.push(...renderTree(child, depth + 1, k));
+    }
+    for (const a of node.files) out.push(fileRow(a, depth));
+    return out;
+  }
+
   return (
     <DropZone className="stack" onFiles={(fs) => void onFiles(fs)} disabled={!canUpload || busy || !!uploadRef}>
       {canUpload && toolbar && (
@@ -223,12 +415,30 @@ export function Attachments({
           <button className="btn small" onClick={() => inputRef.current?.click()} disabled={busy} type="button">
             <Upload /> {busy ? "Uploading..." : "Add files"}
           </button>
+          {folderPick && (
+            <button className="btn small" onClick={() => folderRef.current?.click()} disabled={busy} type="button">
+              <FolderUp /> Add folder
+            </button>
+          )}
           {(!compact || progress) && (
             <span className="faint tiny">
               {progress ?? (driveOn ? "Drawings, BOQs, PDFs, photos. Saved to the team's Google Drive." : "Drawings, BOQs, PDFs, photos. Up to 50 MB each.")}
             </span>
           )}
           <input ref={inputRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} aria-label="Choose files" />
+          {folderPick && (
+            <input
+              ref={(el) => {
+                folderRef.current = el;
+                el?.setAttribute("webkitdirectory", "");
+              }}
+              type="file"
+              multiple
+              hidden
+              onChange={(e) => onFiles(e.target.files)}
+              aria-label="Choose a folder"
+            />
+          )}
         </div>
       )}
       {!toolbar && progress && <span className="faint tiny upload-progress">{progress}</span>}
@@ -237,134 +447,7 @@ export function Attachments({
       ) : rows.length === 0 ? (
         hideWhenEmpty ? null : compact ? <span className="faint tiny">{emptyText}</span> : <Empty icon={<Paperclip />} title={emptyText} />
       ) : (
-        <div className={compact ? "files compact" : "files"}>
-          {rows.map((a) => {
-            const from = fromLabel?.(a) ?? null;
-            const photo = isImage(a) ? q.data?.urls[a.path] : undefined;
-            // A PDF, drawing, spreadsheet, Word or PowerPoint file or video shows big too: its preview
-            // picture, or a placeholder while it's made.
-            const docKind = previewKind(a);
-            const docPic = docKind ? q.data?.urls[a.path] : undefined;
-            const making = !!docKind && !docPic && previewPending(a.id);
-            const openIt = () => open(a, isImage(a) ? rows.filter(isImage) : undefined);
-            const text = (
-              <span className="file-text">
-                <span className="file-name">{a.name}</span>
-                <span className="file-meta">
-                  {isOnDrive(a) && (
-                    <>
-                      <span className="drive-tag">
-                        <HardDrive size={11} /> Drive
-                      </span>
-                      {" · "}
-                    </>
-                  )}
-                  {from ? (
-                    <>
-                      <span className="drive-tag repeat-tag">{from}</span>
-                      {" · "}
-                    </>
-                  ) : (
-                    <>
-                      {!announcementId && a.announcement_id && (
-                        <>
-                          <span className="drive-tag repeat-tag" title="On an announcement">
-                            Announcement
-                          </span>
-                          {" · "}
-                        </>
-                      )}
-                      {!variationId && a.variation_id && (
-                        <>
-                          <span className="drive-tag repeat-tag" title="On a variation">
-                            VO
-                          </span>
-                          {" · "}
-                        </>
-                      )}
-                    </>
-                  )}
-                  {!a.task_id && a.recurring_id && (
-                    <>
-                      <span className="drive-tag repeat-tag" title="Comes with every copy of this repeating task">
-                        <Repeat size={11} /> Every repeat
-                      </span>
-                      {" · "}
-                    </>
-                  )}
-                  {a.version > 1 ? `Version ${a.version} · ` : ""}
-                  {a.size != null ? `${fileSize(a.size)} · ` : ""}
-                  {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
-                </span>
-              </span>
-            );
-            const tools = (
-              <>
-                {onMove && (
-                  <button className="icon-btn small plain" onClick={() => onMove(a)} aria-label={`Move ${a.name}`} title="Move to a folder" type="button">
-                    <FolderInput />
-                  </button>
-                )}
-                {(a.uploaded_by === me.id || canAssign) && (
-                  <button className="icon-btn small plain" onClick={() => remove(a)} aria-label={`Delete ${a.name}`} title="Delete" type="button">
-                    <Trash2 />
-                  </button>
-                )}
-              </>
-            );
-            // A photo shows big, full width, with its name and details underneath. Tap it to open
-            // it full screen (swipe through the others, mark it up).
-            if (photo) {
-              return (
-                <div key={a.id} className="file photo">
-                  <button onClick={openIt} className="photo-view" type="button" aria-label={`Open ${a.name}`}>
-                    <img src={photo} alt="" loading="lazy" decoding="async" />
-                  </button>
-                  <div className="photo-foot">
-                    <button onClick={openIt} className="file-main" type="button">
-                      {text}
-                    </button>
-                    {tools}
-                  </div>
-                </div>
-              );
-            }
-            if (docPic || making) {
-              return (
-                <div key={a.id} className="file photo">
-                  <button onClick={openIt} className={`photo-view doc ${kindClass(docKind)}`} type="button" aria-label={`Open ${a.name}`}>
-                    {docPic ? (
-                      <img src={docPic} alt="" loading="lazy" decoding="async" />
-                    ) : (
-                      <span className="doc-making">
-                        <DocIcon kind={docKind} />
-                        Making a preview...
-                      </span>
-                    )}
-                    {docPic && docKind === "video" && <PlayBadge />}
-                    <span className={`doc-tag ${kindClass(docKind)}`}>{docTag(a, docKind)}</span>
-                  </button>
-                  <div className="photo-foot">
-                    <button onClick={openIt} className="file-main" type="button">
-                      {text}
-                    </button>
-                    {tools}
-                  </div>
-                </div>
-              );
-            }
-            return (
-              <div key={a.id} className="file">
-                <button onClick={openIt} className="file-main" type="button">
-                  <span className="icon">{isImage(a) ? <ImageIcon /> : <FileIcon a={a} />}</span>
-                  {text}
-                </button>
-                {tools}
-                {needsPreview(a) && <AskPreviewWhenSeen a={a} />}
-              </div>
-            );
-          })}
-        </div>
+        <div className={compact ? "files compact" : "files"}>{renderTree(buildTree(rows), 0, "")}</div>
       )}
     </DropZone>
   );

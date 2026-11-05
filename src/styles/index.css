@@ -1368,6 +1368,35 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .file-main:hover .file-name { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
 .file-meta { font-size: 12px; line-height: 1.35; color: var(--text-2); }
 .files > .file .icon-btn { flex: none; }
+/* The small preview on the left of each file: the photo, a PDF's first page, a drawing or a sheet,
+   or the file's icon while there's no picture yet. Tap the row to see it full size. */
+.file-thumb {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--fill);
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+.file-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.file-thumb.doc { background: #fff; }
+.file-thumb.doc img { object-fit: cover; object-position: top center; }
+.file-thumb > svg { width: 20px; height: 20px; }
+.file-thumb.making > svg { animation: thumb-pulse 1.4s ease-in-out infinite; }
+@keyframes thumb-pulse { 50% { opacity: 0.4; } }
+.file-thumb .doc-tag { top: auto; bottom: 2px; left: 2px; padding: 0 4px; border-radius: 4px; font-size: 8.5px; line-height: 1.5; letter-spacing: 0.02em; }
+.file-thumb .doc-play { transform: scale(0.55); }
+/* A folder that was added as a folder: opens and closes in place. */
+.file.folder-row .file-thumb.folder { background: rgba(255, 159, 10, 0.16); color: #f59e0b; box-shadow: none; }
+.file.folder-row .file-thumb.folder > svg { width: 22px; height: 22px; }
+.folder-chev { flex: none; width: 18px; height: 18px; margin-left: auto; color: var(--text-2); transition: transform 0.2s var(--ease); }
+.folder-chev.open { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .file-thumb.making > svg { animation: none; } .folder-chev { transition: none; } }
 .file {
   display: flex;
   align-items: center;
