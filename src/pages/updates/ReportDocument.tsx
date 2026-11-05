@@ -86,7 +86,7 @@ export function ReportDocument({
       <header className="rp-head">
         <div className="rp-logos">
           <span className="rp-nc">
-            <QsLogo size={84} />
+            <QsLogo size={84} print />
           </span>
         </div>
         <div className="rp-head-text">

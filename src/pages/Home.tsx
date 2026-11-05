@@ -63,6 +63,7 @@ import {
   useBoqAlerts,
   useEventsBetween,
 } from "./home/data";
+import { QsLogo } from "@/components/Brand";
 
 export default function Home() {
   const me = useMe();
@@ -110,6 +111,7 @@ export default function Home() {
       <section className="home-banner" aria-label="Today">
         <div className="hb-photo" aria-hidden />
         <div className="hb-shade" aria-hidden />
+        <QsLogo size={150} className="hb-logo" />
         <div className="hb-body">
           <span className="hb-eyebrow">
             <i className="hb-bar" /> {fmtLongDate(today)}

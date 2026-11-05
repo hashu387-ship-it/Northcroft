@@ -34,7 +34,7 @@ import { supabase } from "@/lib/supabase";
 import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
 import ProfileSetup from "@/pages/ProfileSetup";
-import { QsLogo, QsMark, Wordmark } from "@/components/Brand";
+import { QsLogo, QsMark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CelebrationHost } from "@/components/Celebration";
 import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
@@ -293,8 +293,8 @@ export default function AppShell() {
             </button>
           )}
         </div>
-        <div className="title brand-word">
-          <Wordmark height={15} />
+        <div className="title">
+          <QsLogo size={46} className="top-logo" />
         </div>
         <div className="side right">
           <button type="button" className="icon-btn plain" onClick={openSearch} aria-label="Search">

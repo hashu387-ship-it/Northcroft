@@ -1585,6 +1585,19 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 /* The side menu: the full logo across the top instead of a small tile and the wordmark. */
 .sidebar .brand { justify-content: center; padding: 0 4px 12px; }
 .sidebar .brand .side-logo img { width: 100%; max-width: 212px; }
+/* The phone top bar: the full logo in the middle, small. The bar is dark in every look, so no plate. */
+.topbar .qs-logo,
+.home-banner .qs-logo { background: transparent; padding: 0; }
+.topbar .top-logo img { width: auto; height: 46px; }
+/* Home banner: the full logo on the right, over the tower photo, wherever there's room beside the
+   greeting (on phones it's in the top bar instead). */
+.home-banner { container-type: inline-size; }
+.home-banner .hb-logo { position: absolute; right: 26px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.home-banner .hb-logo img { width: auto; height: clamp(110px, 14cqw, 150px); }
+@container (max-width: 939px) { .home-banner .hb-logo { display: none; } }
+/* More and Settings > About: the logo on its own. */
+.logo-card { display: flex; justify-content: center; padding: 18px 16px; margin-bottom: 14px; }
+.about-logo { display: flex; justify-content: center; padding: 2px 0 6px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .brand-word { color: #012061; line-height: 0; margin: 4px 0 0; }
 :root[data-theme="dark"] .brand-word { color: #fff; }

@@ -44,17 +44,24 @@ export function LogoMark({ size = 32, variant = "tile", style, className }: { si
   );
 }
 
+const LOGO = "/brand/northcroft-qs-team-logo-";
+/** The full logo comes in three widths; the browser picks the smallest that is sharp on the screen. */
+const LOGO_SRCSET = `${LOGO}900.webp 900w, ${LOGO}1320.webp 1320w, ${LOGO}1774.webp 1774w`;
+
 /**
  * The full Northcroft QS Team logo: the Northcroft wordmark, MIDDLE EAST & AFRICA, QS TEAM and the
- * building with its crane, in white on its own soft dark glow. Used where it's at least 80 px tall:
- * sign-in, the start screen, the top of the side menu and the weekly report. `size` is its height.
- * On light looks it sits on a black glass plate so the white lettering always shows.
+ * building with its crane, in white on its own soft dark glow. Used on sign-in, the start screen, the
+ * top of the side menu, the Home banner, the phone top bar, More, About and the weekly report.
+ * `size` is its height. On light looks it sits on a black glass plate so the white lettering always
+ * shows. `print` always uses the largest file, for the report's printout and PDF.
  */
-export function QsLogo({ size = 120, style, className }: { size?: number; style?: CSSProperties; className?: string }) {
+export function QsLogo({ size = 120, print, style, className }: { size?: number; print?: boolean; style?: CSSProperties; className?: string }) {
   return (
     <span className={className ? `qs-logo ${className}` : "qs-logo"} style={style}>
       <img
-        src="/brand/northcroft-qs-team-logo-900.webp"
+        src={print ? `${LOGO}1774.webp` : `${LOGO}900.webp`}
+        srcSet={print ? undefined : LOGO_SRCSET}
+        sizes={print ? undefined : `${size * 2}px`}
         width={size * 2}
         height={size}
         alt="Northcroft Middle East & Africa QS Team"

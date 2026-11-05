@@ -10,6 +10,7 @@ import { needsMyAck, useAnnouncementsWithAcks } from "./home/data";
 import { showsManagerLabel } from "@/lib/people";
 import { MENU_COLOR, tileStyle } from "@/lib/menu";
 import { useSubmissionsDue } from "@/lib/submissions";
+import { QsLogo } from "@/components/Brand";
 
 interface Tile {
   to: string;
@@ -56,6 +57,9 @@ export default function More() {
   return (
     <div className="page">
       <PageHead title="More" />
+      <div className="glass logo-card">
+        <QsLogo size={120} />
+      </div>
       <Link to="/settings" className="glass me-card">
         <Avatar person={me} size={52} />
         <span className="grow">
