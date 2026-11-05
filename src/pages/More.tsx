@@ -8,7 +8,7 @@ import { signOutWarning } from "@/lib/outbox";
 import { sendsDailyUpdate } from "@/lib/dailyUpdates";
 import { needsMyAck, useAnnouncementsWithAcks } from "./home/data";
 import { showsManagerLabel } from "@/lib/people";
-import { MENU_COLOR, tileBackground } from "@/lib/menu";
+import { MENU_COLOR, tileStyle } from "@/lib/menu";
 import { useSubmissionsDue } from "@/lib/submissions";
 
 interface Tile {
@@ -72,7 +72,7 @@ export default function More() {
       <div className="more-grid">
         {tiles.map((t) => (
           <Link key={t.to} to={t.to} className="glass">
-            <span className="ic" style={{ background: tileBackground(t.color) }}>
+            <span className="ic" style={tileStyle(t.color)}>
               <t.icon />
             </span>
             <span>{t.label}</span>

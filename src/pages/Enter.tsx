@@ -9,7 +9,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CircleAlert } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { PhotoBackground } from "@/layout/AppShell";
-import { TeamBadge } from "@/components/Brand";
+import { QsLogo } from "@/components/Brand";
 import { Spinner } from "@/components/ui";
 
 /** Only ever send someone to a page inside the app. */
@@ -58,7 +58,7 @@ export default function Enter() {
       <div className="auth-wrap">
         <div className="auth-card glass-strong" style={{ textAlign: "center" }}>
           <div className="auth-brand">
-            <TeamBadge size={132} className="logo-badge" />
+            <QsLogo size={150} className="auth-logo" />
             <h1 className="sr-only">Northcroft QS Team</h1>
           </div>
           {failed ? (

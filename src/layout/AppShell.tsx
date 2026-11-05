@@ -25,7 +25,7 @@ import { useChats } from "@/lib/chats";
 import { useAuth, useMe } from "@/lib/auth";
 import { useRealtime } from "@/lib/realtime";
 import { useSubmissionsDue } from "@/lib/submissions";
-import { MENU_COLOR, tileBackground } from "@/lib/menu";
+import { MENU_COLOR, tileStyle } from "@/lib/menu";
 import { useOnlineTracking } from "@/lib/online";
 import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/push";
 import { useAppUpdates } from "@/lib/updates";
@@ -34,7 +34,7 @@ import { supabase } from "@/lib/supabase";
 import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
 import ProfileSetup from "@/pages/ProfileSetup";
-import { TeamBadge, Wordmark } from "@/components/Brand";
+import { QsLogo, QsMark, Wordmark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CelebrationHost } from "@/components/Celebration";
 import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
@@ -235,7 +235,7 @@ export default function AppShell() {
       end={n.end}
       className={({ isActive }) => (isActive || (n.to === "/chats" && /^\/chats?(\/|$)/.test(location.pathname)) ? "active" : "")}
     >
-      <span className="nav-ic" style={{ background: tileBackground(n.color) }}>
+      <span className="nav-ic" style={tileStyle(n.color)}>
         <n.icon />
       </span>
       {n.label}
@@ -243,7 +243,7 @@ export default function AppShell() {
     </NavLink>
   );
   const tabIcon = (Icon: typeof House, color: string) => (
-    <span className="tab-ic" style={{ background: tileBackground(color) }}>
+    <span className="tab-ic" style={tileStyle(color)}>
       <Icon />
     </span>
   );
@@ -254,13 +254,7 @@ export default function AppShell() {
 
       <aside className="sidebar glass">
         <Link to="/" className="brand" style={{ color: "inherit" }} aria-label="Northcroft home">
-          <TeamBadge size={40} className="brand-tile" />
-          <span>
-            <span className="brand-word">
-              <Wordmark height={16} />
-            </span>
-            <small>QS Team</small>
-          </span>
+          <QsLogo size={104} className="side-logo" />
         </Link>
         <button type="button" className="nav-search" onClick={openSearch} aria-label="Search">
           <Search />
@@ -291,7 +285,7 @@ export default function AppShell() {
         <div className="side">
           {isRoot ? (
             <Link to="/" aria-label="Northcroft home" style={{ lineHeight: 0 }}>
-              <TeamBadge size={34} />
+              <QsMark size={34} />
             </Link>
           ) : (
             <button className="icon-btn plain" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))} aria-label="Back">

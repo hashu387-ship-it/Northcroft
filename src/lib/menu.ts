@@ -23,3 +23,9 @@ export type MenuColor = keyof typeof MENU_COLOR;
 export function tileBackground(color: string): string {
   return `linear-gradient(145deg, ${color}, color-mix(in srgb, ${color} 70%, #000))`;
 }
+
+/** Style for a menu tile: the coloured background, and the colour itself as --tile so a look can
+ *  draw the tile differently (Onyx shows a dark raised tile with the icon in the colour). */
+export function tileStyle(color: string): Record<string, string> {
+  return { background: tileBackground(color), "--tile": color };
+}

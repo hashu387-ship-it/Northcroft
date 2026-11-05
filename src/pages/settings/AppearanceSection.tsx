@@ -4,14 +4,14 @@ import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
-type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs";
+type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx";
 
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" ? t : "qs";
+    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" ? t : "onyx";
   } catch {
-    return "qs";
+    return "onyx";
   }
 }
 
@@ -31,11 +31,11 @@ export function AppearanceSection() {
   function applyTheme(t: Theme) {
     setTheme(t);
     const root = document.documentElement;
-    // QS Team glass and Purple glass are the dark theme with a palette over it; Clay glass is the
-    // light theme with soft clay over it.
-    if (t === "purple" || t === "clay" || t === "qs") root.dataset.palette = t;
+    // Onyx, QS Team glass and Purple glass are the dark theme with a palette over it; Clay glass is
+    // the light theme with soft clay over it.
+    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx") root.dataset.palette = t;
     else delete root.dataset.palette;
-    const base = t === "purple" || t === "qs" ? "dark" : t === "clay" ? "light" : t;
+    const base = t === "purple" || t === "qs" || t === "onyx" ? "dark" : t === "clay" ? "light" : t;
     try {
       if (base === "system") delete root.dataset.theme;
       else root.dataset.theme = base;
@@ -59,6 +59,7 @@ export function AppearanceSection() {
   }
 
   const options: { value: Theme; label: string }[] = [
+    { value: "onyx", label: "Onyx" },
     { value: "qs", label: "QS Team glass" },
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
@@ -79,7 +80,8 @@ export function AppearanceSection() {
           ))}
         </div>
         <div className="muted small">
-          QS Team glass is the default: the look of the team badge, with deep navy, a blue glow, frosted glass and the Riyadh skyline along the
+          Onyx is the default: the black of the Northcroft QS Team logo, with film grain, a soft red glow, smoked glass, white serif
+          headings and buttons that stand out and press in. QS Team glass is deep navy with a blue glow and the Riyadh skyline along the
           bottom. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass
           but makes cards, buttons and tabs soft and puffy, like clay, and buttons sink a little when you press them. Automatic follows your phone or
           computer, switching to dark at night if you've set it up that way.

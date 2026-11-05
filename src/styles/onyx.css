@@ -1,0 +1,530 @@
+/* Onyx: the Northcroft QS Team design system's own look, and the app's default.
+ * The black of the Northcroft artwork with film grain, a soft red glow from the top right corner
+ * (the leaf of the logo), a faint streak of light and the Riyadh skyline barely there along the
+ * bottom. Panels are smoked glass with a bright top edge and a warm red catch at the bottom.
+ * Buttons, tabs and icon tiles are moulded out of the surface: raised at rest, pressed in when
+ * held. The main button is white. Headings are a white serif close to the Northcroft wordmark
+ * (Cormorant Garamond); everything people read and type stays in Inter.
+ * It's the dark theme underneath (the page carries data-theme="dark" too), so every dark-mode
+ * rule still applies; this swaps the colours and adds the world and the moulding.
+ * Picked in Settings > Appearance, saved on the device. Loaded last so it wins. */
+
+/* ------------------------------------------------------------------ fonts (from the design system) */
+@font-face {
+  font-family: "Cormorant Garamond Variable";
+  src: url("/fonts/cormorant-garamond-latin-wght-normal.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter Variable";
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+/* The Saudi riyal sign, for wherever an amount shows it. */
+@font-face {
+  font-family: "Saudi Riyal";
+  src: url("/fonts/saudi-riyal-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Saudi Riyal";
+  src: url("/fonts/saudi-riyal-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* ------------------------------------------------------------------ tokens */
+:root[data-palette="onyx"] {
+  --font: "Inter Variable", "Inter", "Saudi Riyal", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-display: "Cormorant Garamond Variable", "Cormorant Garamond", "Saudi Riyal", Georgia, "Times New Roman", serif;
+
+  --bg: #060607;
+  --blob-alpha: 1;
+
+  --text: #f7f7f6;
+  --text-2: #c6c6c9;
+  --text-3: #ababb0;
+  --silver: #b4b4b9;
+  --separator: rgba(255, 255, 255, 0.1);
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-2: rgba(255, 255, 255, 0.1);
+
+  /* Smoked glass: clear (35%) for cards and bars, denser (62%) where figures are read closely. */
+  --glass: rgba(24, 24, 27, 0.35);
+  --glass-strong: rgba(20, 20, 23, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-edge: rgba(255, 255, 255, 0.35);
+  --glass-shade: rgba(255, 255, 255, 0.07);
+  --glass-rim: inset 1px 0 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.07), inset 0 -14px 28px -18px rgba(253, 0, 2, 0.09);
+  --glass-shadow: 0 18px 48px -12px rgba(0, 0, 0, 0.9), 0 4px 14px rgba(0, 0, 0, 0.6);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 34%);
+  --glass-blur: blur(14px) saturate(150%);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.35), var(--glass-rim);
+  --solid: #17171a;
+  --solid-2: #1f1f23;
+  --solid-border: rgba(255, 255, 255, 0.1);
+
+  /* The moulding: lit top left, shaded bottom right. */
+  --neu-surface: #17171a;
+  --neu-hi: #1f1f23;
+  --neu-lo: #111113;
+  --neu-face: linear-gradient(145deg, var(--neu-hi), var(--neu-lo));
+  --neu-raised: -6px -6px 14px rgba(255, 255, 255, 0.16), 8px 8px 20px #000, inset 1px 1px 0 rgba(255, 255, 255, 0.18), inset -1px -1px 0 rgba(0, 0, 0, 0.6);
+  --neu-raised-sm: -3px -3px 8px rgba(255, 255, 255, 0.14), 5px 5px 12px rgba(0, 0, 0, 0.95), inset 1px 1px 0 rgba(255, 255, 255, 0.18), inset -1px -1px 0 rgba(0, 0, 0, 0.5);
+  --neu-raised-xs: -2px -2px 5px rgba(255, 255, 255, 0.1), 3px 3px 8px rgba(0, 0, 0, 0.9), inset 1px 1px 0 rgba(255, 255, 255, 0.16), inset -1px -1px 0 rgba(0, 0, 0, 0.45);
+  --neu-pressed: inset 5px 5px 12px rgba(0, 0, 0, 0.95), inset -4px -4px 10px rgba(255, 255, 255, 0.12), 0 1px 0 rgba(255, 255, 255, 0.1);
+  --neu-pressed-sm: inset 3px 3px 7px rgba(0, 0, 0, 0.9), inset -2px -2px 6px rgba(255, 255, 255, 0.11);
+  --glow-primary: 0 8px 24px -8px rgba(255, 255, 255, 0.4);
+  --glow-rim: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 0 24px rgba(255, 255, 255, 0.15);
+  --focus-ring: 0 0 0 2px #060607, 0 0 0 4px #f5f5f4;
+  --field-edge: #8e8e95;
+
+  /* White is the main colour: the main button, links, the current tab. */
+  --brand: #f5f5f4;
+  --brand-ink: #f7f7f6;
+  --brand-soft: rgba(255, 255, 255, 0.08);
+  --nav-active: var(--neu-face);
+  --accent: #f2f2f0;
+  --accent-soft: rgba(255, 255, 255, 0.12);
+  --on-accent: #0a0a0b;
+
+  /* Status colours, softened for black. */
+  --green: #45dcc8;
+  --green-soft: rgba(69, 220, 200, 0.14);
+  --teal: #9dbcf2;
+  --teal-soft: rgba(157, 188, 242, 0.14);
+  --yellow: #f8c565;
+  --yellow-soft: rgba(248, 197, 101, 0.14);
+  --orange: #ffb36b;
+  --orange-soft: rgba(255, 179, 107, 0.15);
+  --red: #ff8f80;
+  --red-soft: rgba(255, 143, 128, 0.15);
+  --purple: #c9b6f2;
+  --purple-soft: rgba(201, 182, 242, 0.15);
+  --gray: #ababb0;
+  /* Northcroft signal red: the rule under titles, counts, the leaf glow. */
+  --brand-red: #fd0002;
+  --brand-red-2: #c40002;
+  --brand-red-soft: rgba(253, 0, 2, 0.16);
+
+  /* The menu, top bar, tab bar and page headers were navy in the other looks; here they're black. */
+  --navy-glass: rgba(20, 20, 23, 0.62);
+  --navy-solid: #0d0d0f;
+  --on-navy: #f7f7f6;
+  --on-navy-2: #c6c6c9;
+  --on-navy-3: #ababb0;
+  --on-navy-fill: rgba(255, 255, 255, 0.06);
+  --on-navy-active: rgba(255, 255, 255, 0.1);
+
+  /* Soft, continuous corners: capsules for what you press, generous corners for surfaces. */
+  --r-xl: 28px;
+  --r-lg: 20px;
+  --r: 14px;
+  --r-sm: 10px;
+
+  background: #060607;
+}
+
+/* ------------------------------------------------------------------ the world behind everything */
+/* The five drifting colour blobs become the layers of the Northcroft artwork, so no markup changes:
+   b1 the red glow from the leaf corner, b2 the streak of light, b3 the light along the horizon,
+   b4 the film grain, b5 the hairline the skyline stands on; ::after is the skyline itself. */
+:root[data-palette="onyx"] .wallpaper {
+  background:
+    radial-gradient(120% 120% at 50% 35%, transparent 55%, #000 100%),
+    radial-gradient(90% 60% at 50% -15%, #1b1b1e 0%, transparent 62%),
+    #060607;
+}
+:root[data-palette="onyx"] .wallpaper .blob {
+  inset: auto;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  filter: none;
+  opacity: 1;
+  animation: none;
+  will-change: auto;
+  transform: none;
+}
+:root[data-palette="onyx"] .wallpaper .b1 {
+  right: -14%;
+  top: -22%;
+  width: max(62vw, 460px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(253, 0, 2, 0.14), transparent);
+}
+:root[data-palette="onyx"] .wallpaper .b2 {
+  top: 0;
+  bottom: 0;
+  left: 47%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.1) 16%, rgba(255, 255, 255, 0.1) 80%, transparent 100%);
+  box-shadow: 0 0 24px 3px rgba(255, 255, 255, 0.1);
+}
+:root[data-palette="onyx"] .wallpaper .b3 {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 45%;
+  opacity: 0.8;
+  background: radial-gradient(70% 90% at 50% 100%, #202024 0%, transparent 70%);
+}
+:root[data-palette="onyx"] .wallpaper .b5 {
+  left: 6%;
+  right: 6%;
+  bottom: 0;
+  height: 1px;
+  z-index: 2;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+:root[data-palette="onyx"] .wallpaper .b4 {
+  inset: 0;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.09);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.5 0 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 180px 180px;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.5 0 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-size: 180px 180px;
+}
+:root[data-palette="onyx"] .wallpaper::before { content: none; }
+:root[data-palette="onyx"] .wallpaper::after {
+  inset: auto 0 0 0;
+  height: min(38vh, 300px);
+  z-index: 1;
+  opacity: 0.75;
+  background: url("/brand/onyx-skyline.svg") center bottom / max(100%, 980px) auto no-repeat;
+}
+
+/* ------------------------------------------------------------------ smoked glass */
+:root[data-palette="onyx"] :is(.glass, .glass-strong) {
+  border-color: var(--glass-border);
+}
+/* The liquid edge: bright at the top left, the red of the leaf caught at the bottom right. */
+:root[data-palette="onyx"] :is(.glass, .glass-strong)::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.5) 0%, transparent 30%, transparent 70%, rgba(253, 0, 2, 0.2) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+:root[data-palette="onyx"] .glass-strong {
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+:root[data-palette="onyx"][data-solid="true"] :is(.glass, .glass-strong) { background: var(--solid); }
+
+/* The menu, the phone top bar and the tab bar: black smoked glass instead of navy. */
+:root[data-palette="onyx"] :is(.sidebar.glass, .topbar.glass, .tabbar.glass-strong) {
+  color: var(--text);
+  background-color: var(--navy-glass);
+  background-image: var(--glass-sheen);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+}
+:root[data-palette="onyx"] .topbar.glass::after { content: none; }
+:root[data-palette="onyx"][data-solid="true"] :is(.sidebar.glass, .topbar.glass, .tabbar.glass-strong) { background: var(--navy-solid); }
+
+/* Section labels in the menu: small capitals, widely spaced, like MIDDLE EAST & AFRICA. */
+:root[data-palette="onyx"] .sidebar .nav-label { color: var(--silver); font-weight: 500; letter-spacing: 0.22em; font-size: 10.5px; }
+:root[data-palette="onyx"] .sidebar .nav a { color: var(--text-2); border-radius: 10px; }
+:root[data-palette="onyx"] .sidebar .nav a:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+/* The current page: raised out of the menu, with its icon lit. */
+:root[data-palette="onyx"] .sidebar .nav a.active {
+  color: var(--text);
+  background: var(--neu-face);
+  box-shadow: var(--neu-raised-xs);
+}
+:root[data-palette="onyx"] .sidebar .sidebar-user { background: var(--neu-surface); box-shadow: var(--neu-pressed-sm); color: var(--text); }
+
+/* Menu icon tiles: dark raised tiles with the icon in its own colour (a little lighter so it reads). */
+:root[data-palette="onyx"] :is(.sidebar .nav a .nav-ic, .tabbar a .tab-ic, .more-grid a .ic) {
+  background: var(--neu-face) !important;
+  box-shadow: var(--neu-raised-xs);
+}
+:root[data-palette="onyx"] :is(.sidebar .nav a .nav-ic, .tabbar a .tab-ic, .more-grid a .ic) svg {
+  color: color-mix(in srgb, var(--tile, #f5f5f4) 72%, #fff) !important;
+}
+:root[data-palette="onyx"] .sidebar .nav a.active .nav-ic { box-shadow: var(--neu-raised-xs), var(--glow-rim); }
+
+:root[data-palette="onyx"] .tabbar a { color: var(--text-2); }
+:root[data-palette="onyx"] .tabbar a.active { color: var(--text); background: var(--neu-surface); box-shadow: var(--neu-pressed-sm); }
+:root[data-palette="onyx"] .tabbar a.active .tab-ic { box-shadow: var(--neu-raised-xs), var(--glow-rim); }
+:root[data-palette="onyx"] .tabbar .dot { border-color: #0d0d0f; }
+
+/* ------------------------------------------------------------------ page headers and the Home banner */
+/* The tower photo stays, in black and white and dimmed, behind smoked glass, with the red rule. */
+:root[data-palette="onyx"] :is(.page-head, .home-banner) {
+  background: #0d0d0f;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+:root[data-palette="onyx"] .page-head::before,
+:root[data-palette="onyx"] .home-banner .hb-photo { filter: grayscale(1) brightness(0.62) contrast(1.12); }
+:root[data-palette="onyx"] .page-head::after {
+  background:
+    linear-gradient(90deg, rgba(6, 6, 7, 0.97) 0%, rgba(6, 6, 7, 0.88) 40%, rgba(6, 6, 7, 0.5) 72%, rgba(6, 6, 7, 0.2) 100%),
+    radial-gradient(60% 120% at 100% 0%, rgba(253, 0, 2, 0.12), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 45%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+:root[data-palette="onyx"] .home-banner .hb-shade {
+  background:
+    linear-gradient(90deg, rgba(6, 6, 7, 0.96) 0%, rgba(6, 6, 7, 0.84) 34%, rgba(6, 6, 7, 0.32) 66%, rgba(6, 6, 7, 0.06) 100%),
+    radial-gradient(50% 110% at 100% 0%, rgba(253, 0, 2, 0.14), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%);
+}
+:root[data-palette="onyx"] .home-banner::after { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05); }
+:root[data-palette="onyx"] .hb-eyebrow { color: var(--silver); font-weight: 500; letter-spacing: 0.22em; }
+@media (max-width: 899px) {
+  :root[data-palette="onyx"] .page-head::after {
+    background:
+      linear-gradient(90deg, rgba(6, 6, 7, 0.96) 0%, rgba(6, 6, 7, 0.8) 58%, rgba(6, 6, 7, 0.42) 100%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 45%);
+  }
+}
+
+/* ------------------------------------------------------------------ headings and figures */
+/* White serif headings, close to the Northcroft wordmark. The serif has small lowercase letters, so
+   it's sized by the height of its lowercase (font-size-adjust) to read as large as the text around it. */
+:root:root[data-palette="onyx"] :is(h1, h2, h3),
+:root:root[data-palette="onyx"] :is(.td-title, .pc-name, .celebrate-headline) {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  font-size-adjust: 0.45;
+  color: var(--text);
+}
+:root:root[data-palette="onyx"] .page-head h1 { font-size: 31px; line-height: 1.1; }
+:root:root[data-palette="onyx"] .home-banner h1 { font-size: 35px; line-height: 1.06; }
+:root:root[data-palette="onyx"] .card-head :is(h2, h3) { font-size: 18px; }
+:root:root[data-palette="onyx"] .sheet-head h2 { font-size: 20px; }
+:root:root[data-palette="onyx"] .project-hero h1 { font-size: 28px; }
+:root:root[data-palette="onyx"] .td-title { font-size: 26px; line-height: 1.18; }
+:root:root[data-palette="onyx"] .pc-name { font-size: 23px; }
+:root:root[data-palette="onyx"] .celebrate-headline { font-size: 31px; }
+@media (max-width: 899px) {
+  :root:root[data-palette="onyx"] .page-head h1 { font-size: 27px; }
+  :root:root[data-palette="onyx"] .home-banner h1 { font-size: 29px; }
+  :root:root[data-palette="onyx"] .project-hero h1 { font-size: 24px; }
+  :root:root[data-palette="onyx"] .td-title { font-size: 23px; }
+}
+/* Coloured card titles keep their small icon in colour; the words stay white. */
+:root:root[data-palette="onyx"] .card-head :is(h2, h3)[class*="tone-"] { color: var(--text); }
+/* Figures are never in the serif: Inter with even-width digits. */
+:root:root[data-palette="onyx"] :is(.stat .value, .leave-balance .value, .clock, .break-timer .big, .du-stat b) {
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ buttons: moulded, raised, pressed in */
+:root[data-palette="onyx"] .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)) {
+  border-radius: 999px;
+  border-color: transparent;
+  color: var(--text);
+  background: var(--neu-face);
+  box-shadow: var(--neu-raised-sm);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-palette="onyx"] .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)):hover { background: var(--neu-face); filter: brightness(1.15); }
+:root[data-palette="onyx"] .btn:where(:not(.ghost, .on-dark)):active { transform: scale(0.97); filter: none; }
+:root[data-palette="onyx"] .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)):active {
+  background: var(--neu-surface);
+  box-shadow: var(--neu-pressed-sm);
+}
+/* The main button: white, lit from the top left, with a soft white glow beneath. */
+:root[data-palette="onyx"] .btn:is(.primary, .brand) {
+  border-radius: 999px;
+  border-color: transparent;
+  color: var(--on-accent);
+  text-shadow: none;
+  background: linear-gradient(145deg, #fff 0%, #f2f2f0 55%, #d4d4d6 100%);
+  box-shadow: var(--neu-raised-sm), var(--glow-primary);
+}
+:root[data-palette="onyx"] .btn:is(.primary, .brand):hover { background: linear-gradient(145deg, #fff 0%, #f2f2f0 55%, #d4d4d6 100%); filter: brightness(1.05); }
+:root[data-palette="onyx"] .btn:is(.primary, .brand):active { background: #d4d4d6; box-shadow: var(--neu-pressed-sm); }
+:root[data-palette="onyx"] .btn.success {
+  border-radius: 999px;
+  border-color: transparent;
+  color: #04211d;
+  background: linear-gradient(145deg, #74e8d9 0%, #45dcc8 55%, #2fb8a6 100%);
+  box-shadow: var(--neu-raised-sm), 0 8px 22px -10px rgba(69, 220, 200, 0.55);
+}
+:root[data-palette="onyx"] .btn.success:active { box-shadow: var(--neu-pressed-sm); }
+:root[data-palette="onyx"] .btn:is(.danger, .warn) {
+  border-radius: 999px;
+  border-color: transparent;
+  box-shadow: var(--neu-raised-sm);
+}
+:root[data-palette="onyx"] .btn.danger { color: var(--red); background: linear-gradient(var(--red-soft), var(--red-soft)), var(--neu-face); }
+:root[data-palette="onyx"] .btn.warn { color: var(--orange); background: linear-gradient(var(--orange-soft), var(--orange-soft)), var(--neu-face); }
+:root[data-palette="onyx"] .btn:is(.danger, .warn):active { box-shadow: var(--neu-pressed-sm); }
+:root[data-palette="onyx"] .btn.ghost { color: var(--text-2); border-radius: 999px; }
+:root[data-palette="onyx"] .btn.ghost:hover { color: var(--text); background: var(--neu-surface); box-shadow: var(--neu-pressed-sm); }
+:root[data-palette="onyx"] .btn.small { box-shadow: var(--neu-raised-xs); }
+:root[data-palette="onyx"] .btn:is(.primary, .brand).small { box-shadow: var(--neu-raised-xs), var(--glow-primary); }
+:root[data-palette="onyx"] .btn.large { box-shadow: var(--neu-raised), var(--glow-primary); }
+:root[data-palette="onyx"] .btn.large:where(:not(.primary, .brand, .success)) { box-shadow: var(--neu-raised); }
+:root[data-palette="onyx"] .btn:focus-visible { outline: none; box-shadow: var(--neu-raised-sm), var(--focus-ring); }
+/* Buttons sitting on a page header's photo: the same moulding. */
+:root[data-palette="onyx"] .page-head .btn:not(.primary):not(.brand):not(.danger) {
+  color: var(--text);
+  background: var(--neu-face);
+  border-color: transparent;
+  box-shadow: var(--neu-raised-sm);
+}
+:root[data-palette="onyx"] .page-head .btn:not(.primary):not(.brand):not(.danger):hover { background: var(--neu-face); filter: brightness(1.15); }
+
+/* Round icon buttons (not the plain ones in the bars). */
+:root[data-palette="onyx"] .icon-btn:not(.plain) {
+  border-radius: 50%;
+  border-color: transparent;
+  color: var(--text);
+  background: var(--neu-face);
+  box-shadow: var(--neu-raised-xs);
+}
+:root[data-palette="onyx"] .icon-btn:not(.plain):hover { filter: brightness(1.15); }
+:root[data-palette="onyx"] .icon-btn:not(.plain):active { background: var(--neu-surface); box-shadow: var(--neu-pressed-sm); filter: none; }
+:root[data-palette="onyx"] :is(.page-head, .topbar) .icon-btn:not(.plain) { background: var(--neu-face); color: var(--text); }
+:root[data-palette="onyx"] .topbar .icon-btn.plain:hover { background: rgba(255, 255, 255, 0.06); }
+
+/* The New task button on phones: the white main button. */
+:root[data-palette="onyx"] .fab {
+  border-radius: 50%;
+  color: var(--on-accent);
+  background: linear-gradient(145deg, #fff 0%, #f2f2f0 55%, #d4d4d6 100%);
+  box-shadow: var(--neu-raised), var(--glow-primary);
+}
+:root[data-palette="onyx"] .fab:active { background: #d4d4d6; box-shadow: var(--neu-pressed-sm); }
+
+/* ------------------------------------------------------------------ tabs: a pressed-in track, a raised tab */
+:root[data-palette="onyx"] :is(.segmented, .tabs) {
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-pressed-sm);
+}
+:root[data-palette="onyx"] :is(.segmented button, .tabs a, .tabs button) { border-radius: 999px; color: var(--text-2); }
+:root[data-palette="onyx"] :is(.segmented button.active, .tabs a.active, .tabs button.active) {
+  color: var(--text);
+  background: var(--neu-face);
+  box-shadow: var(--neu-raised-xs);
+}
+
+/* ------------------------------------------------------------------ text boxes: pressed wells */
+:root[data-palette="onyx"] :is(.input, .select, .textarea) {
+  border-radius: 14px;
+  border: 1px solid var(--field-edge);
+  background-color: var(--neu-surface);
+  color: var(--text);
+  box-shadow: var(--neu-pressed-sm);
+}
+:root[data-palette="onyx"] :is(.input, .select, .textarea):hover { border-color: var(--text-3); }
+:root[data-palette="onyx"] :is(.input, .select, .textarea):focus {
+  border-color: #f5f5f4;
+  box-shadow: var(--neu-pressed-sm), var(--focus-ring);
+}
+:root[data-palette="onyx"] :is(.input, .textarea)::placeholder { color: var(--text-3); opacity: 1; }
+:root[data-palette="onyx"] .select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23c6c6c9' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+:root[data-palette="onyx"] .switch .track { background: var(--neu-surface); box-shadow: var(--neu-pressed-sm); }
+:root[data-palette="onyx"] .switch .track::after { background: linear-gradient(145deg, #fff, #d4d4d6); box-shadow: var(--neu-raised-xs); }
+:root[data-palette="onyx"] .switch input:checked + .track { background: var(--green); box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.35); }
+
+/* ------------------------------------------------------------------ small things on the white main colour */
+/* Anything that sits on the main colour gets dark text instead of white. */
+:root[data-palette="onyx"] :is(.check-row .check-ic, .day-chips button.on, .reg-cat.on .n, .photo-picker .photo-badge) { color: var(--on-accent); }
+:root[data-palette="onyx"] .msg.mine .bubble .mention { color: var(--on-accent); }
+:root[data-palette="onyx"] .msg.mine .bubble { box-shadow: var(--neu-raised-xs); }
+:root[data-palette="onyx"] .pill { border-radius: 999px; }
+:root[data-palette="onyx"] .sheet-backdrop { background: rgba(0, 0, 0, 0.62); }
+:root[data-palette="onyx"] .sheet { box-shadow: var(--glass-highlight), 0 32px 80px -16px rgba(0, 0, 0, 0.95), 0 8px 24px rgba(0, 0, 0, 0.7); }
+:root[data-palette="onyx"] ::selection { background: rgba(255, 255, 255, 0.22); }
+:root[data-palette="onyx"] :focus-visible { outline-color: rgba(245, 245, 244, 0.7); }
+/* The square mark glows softly, like the badge in the design system. */
+:root[data-palette="onyx"] .qs-mark { box-shadow: var(--neu-raised-xs), var(--glow-rim); }
+
+/* ------------------------------------------------------------------ sign-in and set-up screens */
+/* The black world with the skyline instead of the tower photo. */
+:root[data-palette="onyx"] .auth-photo {
+  background:
+    radial-gradient(62% 62% at 96% 0%, rgba(253, 0, 2, 0.14), transparent 70%),
+    radial-gradient(120% 120% at 50% 35%, transparent 55%, #000 100%),
+    radial-gradient(90% 60% at 50% -15%, #1b1b1e 0%, transparent 62%),
+    #060607;
+}
+:root[data-palette="onyx"] .auth-photo .img { display: none; }
+:root[data-palette="onyx"] .auth-photo .shade {
+  inset: auto 0 0 0;
+  height: min(40vh, 320px);
+  background:
+    url("/brand/onyx-skyline.svg") center bottom / max(100%, 980px) auto no-repeat,
+    radial-gradient(70% 90% at 50% 100%, rgba(32, 32, 36, 0.8) 0%, transparent 70%);
+}
+:root[data-palette="onyx"] .auth-photo::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 47%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.1) 16%, rgba(255, 255, 255, 0.1) 80%, transparent 100%);
+  box-shadow: 0 0 24px 3px rgba(255, 255, 255, 0.1);
+}
+:root[data-palette="onyx"] .auth-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.09);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.5 0 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 180px 180px;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.5 0 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-size: 180px 180px;
+}
+:root[data-palette="onyx"] .auth-card { border-radius: 28px; }
+:root[data-palette="onyx"] .auth-card p.lead { color: var(--silver); font-size: 11px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
+
+/* ------------------------------------------------------------------ easier reading and less motion */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-palette="onyx"] .wallpaper .b4,
+  :root[data-palette="onyx"] .auth-photo::after { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-palette="onyx"] :is(.btn, .fab):active { transform: none; }
+}
+
+/* ------------------------------------------------------------------ the swatch in Settings > Appearance */
+.theme-swatch.onyx {
+  background:
+    radial-gradient(70% 70% at 100% 0%, rgba(253, 0, 2, 0.35), transparent 70%),
+    radial-gradient(90% 60% at 50% -15%, #1b1b1e 0%, transparent 62%),
+    #060607;
+}
+.theme-swatch.onyx::after {
+  border-radius: 999px;
+  background: linear-gradient(145deg, #1f1f23, #111113);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: -2px -2px 5px rgba(255, 255, 255, 0.12), 3px 3px 8px rgba(0, 0, 0, 0.9), inset 1px 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+/* The weekly report keeps its own fonts and colours; only make sure the heading sizing above doesn't
+   reach into it. */
+:root:root[data-palette="onyx"] .rp-doc :is(h1, h2, h3) { font-size-adjust: none; }

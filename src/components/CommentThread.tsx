@@ -1214,7 +1214,7 @@ function Composer({
                 <Mic />
               </button>
             ) : (
-              <button className="icon-btn" style={{ background: "var(--accent)", color: "#fff" }} type="button" onClick={send} disabled={sending} aria-label="Send">
+              <button className="icon-btn" style={{ background: "var(--accent)", color: "var(--on-accent, #fff)" }} type="button" onClick={send} disabled={sending} aria-label="Send">
                 <SendHorizontal />
               </button>
             )}

@@ -45,19 +45,39 @@ export function LogoMark({ size = 32, variant = "tile", style, className }: { si
 }
 
 /**
- * The Northcroft QS Team badge (navy circle with the wordmark, QS TEAM, the hard hat and the Riyadh
- * skyline). Used for the app icon, the sign-in and start screens, the sidebar, the team chat and the
- * weekly report. The small file is used at 80 px and under so lists stay light.
+ * The full Northcroft QS Team logo: the Northcroft wordmark, MIDDLE EAST & AFRICA, QS TEAM and the
+ * building with its crane, in white on its own soft dark glow. Used where it's at least 80 px tall:
+ * sign-in, the start screen, the top of the side menu and the weekly report. `size` is its height.
+ * On light looks it sits on a black glass plate so the white lettering always shows.
  */
-export function TeamBadge({ size = 40, style, className }: { size?: number; style?: CSSProperties; className?: string }) {
-  const src = size > 80 ? "/brand/qs-team-badge-512.webp" : "/brand/qs-team-badge-160.webp";
+export function QsLogo({ size = 120, style, className }: { size?: number; style?: CSSProperties; className?: string }) {
+  return (
+    <span className={className ? `qs-logo ${className}` : "qs-logo"} style={style}>
+      <img
+        src="/brand/northcroft-qs-team-logo-900.webp"
+        width={size * 2}
+        height={size}
+        alt="Northcroft Middle East & Africa QS Team"
+        decoding="async"
+        draggable={false}
+      />
+    </span>
+  );
+}
+
+/**
+ * The square QS Team mark: the building, crane and red sweep on black. Used where the full logo
+ * would be too small to read: the phone header, team chat, the app icon. `size` is its side.
+ */
+export function QsMark({ size = 40, style, className }: { size?: number; style?: CSSProperties; className?: string }) {
+  const src = size > 80 ? "/brand/qs-team-mark-512.webp" : "/brand/qs-team-mark-160.webp";
   return (
     <img
       src={src}
       width={size}
       height={size}
       alt="Northcroft QS Team"
-      className={className ? `team-badge ${className}` : "team-badge"}
+      className={className ? `qs-mark ${className}` : "qs-mark"}
       style={style}
       decoding="async"
       draggable={false}

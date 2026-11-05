@@ -77,8 +77,8 @@
   box-shadow: 0 8px 30px rgba(0, 4, 18, 0.5), 0 1px 0 rgba(47, 139, 255, 0.18);
 }
 
-/* The team badge glows a little, like on the sign-in screen. */
-:root[data-palette="qs"] .team-badge { box-shadow: 0 0 0 1px rgba(110, 175, 255, 0.35), 0 0 16px rgba(30, 109, 255, 0.35); }
+/* The square mark glows a little blue in this look. */
+:root[data-palette="qs"] .qs-mark { box-shadow: 0 0 0 1px rgba(110, 175, 255, 0.35), 0 0 16px rgba(30, 109, 255, 0.35); }
 
 /* Glow on hover: menu items, cards and buttons (only where there's a mouse). */
 @media (hover: hover) {
