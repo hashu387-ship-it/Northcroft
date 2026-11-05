@@ -23,6 +23,7 @@ import { TaskRow } from "@/components/TaskRow";
 import { OngoingTasksCard } from "@/components/TeamTasks";
 import { useApprover, useTaskRequests } from "@/lib/taskApproval";
 import { OnlineCard } from "@/components/OnlineCard";
+import { MyEisCard } from "@/components/MyEisCard";
 import { SubmissionsHomeCard } from "@/components/Submission";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
@@ -183,6 +184,7 @@ export default function Home() {
           {!me.attendance_exempt && <CheckInCard />}
           <MyUpdateHomeCard />
           <TaskOkCard openTasks={teamOpen} />
+          <MyEisCard />
           {!givesOnly && <FocusCard tasks={myOpen} loading={mine.isLoading} />}
           {canAssign && <ReviewCard tasks={toReview} loading={allOpen.isLoading} finalOk={signoff.on && signoff.final?.id === me.id} />}
           {canAssign && <LeaveToApproveCard />}

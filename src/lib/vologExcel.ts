@@ -28,14 +28,13 @@ const asDate = (iso: string | null | undefined): Date | null => {
   return new Date(Date.UTC(y, m - 1, d));
 };
 
-function columns(maxRounds: number, withProject: boolean, projects: Map<string, Project>, files: Map<string, number>, names: Map<string, string>): Col[] {
+function columns(maxRounds: number, withProject: boolean, projects: Map<string, Project>, files: Map<string, number>): Col[] {
   const cols: Col[] = [{ header: "Sr No.", kind: "number", width: 7, value: (_v, i) => i + 1 }];
   if (withProject) cols.push({ header: "Project", kind: "text", width: 22, value: (v) => projects.get(v.project_id)?.name ?? "" });
   cols.push(
     { header: "Reference No.", kind: "text", width: 18, value: (v) => voRef(v) },
     { header: "VO No. in the app", kind: "text", width: 14, value: (v) => v.vo_number },
     { header: "Subject", kind: "long", width: 46, value: (v) => v.title },
-    { header: "Northcroft Responsible", kind: "text", width: 18, value: (v) => (v.responsible_id ? names.get(v.responsible_id) ?? null : null) },
     { header: "Scope", kind: "long", width: 22, value: (v) => v.scope ?? null },
     { header: "EI/Instruction Date", kind: "date", width: 14, value: (v) => asDate(v.instruction_date) },
     { header: "Contractual Submission Date (35 Days)", kind: "date", width: 16, value: (v) => asDate(v.contract_due) },
@@ -68,9 +67,9 @@ const NAVY = "FF0B1D46";
 const HEAD_FILL = "FFDCE4F2";
 const BORDER = { style: "thin" as const, color: { argb: "FFB8C2D6" } };
 
-function addSheet(wb: Workbook, name: string, title: string, rows: Variation[], withProject: boolean, projects: Map<string, Project>, files: Map<string, number>, names: Map<string, string>) {
+function addSheet(wb: Workbook, name: string, title: string, rows: Variation[], withProject: boolean, projects: Map<string, Project>, files: Map<string, number>) {
   const maxRounds = Math.max(1, ...rows.map((v) => (v.submissions ?? []).length));
-  const cols = columns(maxRounds, withProject, projects, files, names);
+  const cols = columns(maxRounds, withProject, projects, files);
   const ws: Worksheet = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 5 }], pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
   ws.columns = cols.map((c) => ({ width: c.width }));
   const last = cols.length;
@@ -135,8 +134,7 @@ function sheetName(name: string, used: Set<string>) {
 }
 
 /** Builds the workbook for these VOs (already filtered and in order). */
-/** `names`: each person's short name, for the Northcroft Responsible column. */
-export async function buildVoLogWorkbook(rows: Variation[], projects: Map<string, Project>, files: Map<string, number>, names: Map<string, string> = new Map()): Promise<Blob> {
+export async function buildVoLogWorkbook(rows: Variation[], projects: Map<string, Project>, files: Map<string, number>): Promise<Blob> {
   const mod = await import("exceljs");
   const ExcelJS = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
   const wb = new ExcelJS.Workbook();
@@ -145,13 +143,13 @@ export async function buildVoLogWorkbook(rows: Variation[], projects: Map<string
   const used = new Set<string>();
   const byProject = new Map<string, Variation[]>();
   for (const v of rows) byProject.set(v.project_id, [...(byProject.get(v.project_id) ?? []), v]);
-  if (byProject.size > 1) addSheet(wb, sheetName("All projects", used), "All projects", rows, true, projects, files, names);
+  if (byProject.size > 1) addSheet(wb, sheetName("All projects", used), "All projects", rows, true, projects, files);
   const ordered = [...byProject.entries()].sort((a, b) => (projects.get(a[0])?.name ?? "").localeCompare(projects.get(b[0])?.name ?? ""));
   for (const [pid, list] of ordered) {
     const p = projects.get(pid);
-    addSheet(wb, sheetName(p?.name ?? "Project", used), p?.name ?? "Project", list, false, projects, files, names);
+    addSheet(wb, sheetName(p?.name ?? "Project", used), p?.name ?? "Project", list, false, projects, files);
   }
-  if (!rows.length) addSheet(wb, "VO log", "VO log", [], true, projects, files, names);
+  if (!rows.length) addSheet(wb, "VO log", "VO log", [], true, projects, files);
   const buf = await wb.xlsx.writeBuffer();
   return new Blob([buf], { type: XLSX_MIME });
 }
