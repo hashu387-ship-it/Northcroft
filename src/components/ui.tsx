@@ -237,9 +237,9 @@ export function DueLabel({ date, done }: { date: string | null; done?: boolean }
 }
 
 export function ProjectTag({ project }: { project?: Project | null }) {
-  if (!project) return <span className="faint">General</span>;
+  if (!project) return <span className="faint ptag">General</span>;
   return (
-    <span className="row" style={{ gap: 6, minWidth: 0 }}>
+    <span className="row ptag" style={{ gap: 6, minWidth: 0 }}>
       <i className="dot-swatch" style={{ background: project.color }} />
       <span className="ellipsis">{project.name}</span>
     </span>
