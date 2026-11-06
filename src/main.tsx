@@ -17,12 +17,13 @@ import "./styles/clay.css";
 import "./styles/qs.css";
 import "./styles/onyx.css";
 
-// Appearance preferences are per device. Onyx (the design system's look: the black of the logo
-// artwork, grain, a red glow, smoked glass, serif headings, raised buttons) is the default; QS
+// Appearance preferences are per device. Onyx (the design system's look: soft charcoal clay, the
+// Northcroft world with grain, a red glow and the skyline, serif headings, puffy clay buttons and
+// thick clay rows in every table) is the default; Pearl (the same clay in warm light grey), QS
 // Team glass, Light, Dark, Purple glass, Clay glass or Automatic (follow the phone) only when
 // someone chooses it in Settings > Appearance. Onyx, QS Team glass and Purple glass are the dark
-// theme with a palette on top (data-palette="onyx" / "qs" / "purple"); Clay glass is the light
-// theme with soft clay on top (data-palette="clay").
+// theme with a palette on top (data-palette="onyx" / "qs" / "purple"); Pearl and Clay glass are
+// the light theme with a palette on top (data-palette="pearl" / "clay").
 // When Onyx came in (Nov 2026) every device switched to it once ("nc-look-onyx"); after that,
 // whatever someone picks in Settings stays.
 // Glass is the default for everyone. Solid surfaces only come on when switched on again in
@@ -35,7 +36,7 @@ try {
   const theme = localStorage.getItem("nc-theme") || "onyx";
   if (theme === "dark" || theme === "purple" || theme === "qs" || theme === "onyx") document.documentElement.dataset.theme = "dark";
   else if (theme !== "system") document.documentElement.dataset.theme = "light";
-  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx") document.documentElement.dataset.palette = theme;
+  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx" || theme === "pearl") document.documentElement.dataset.palette = theme;
   localStorage.removeItem("nc-solid");
   if (localStorage.getItem("nc-solid-v2") === "true") document.documentElement.dataset.solid = "true";
 } catch {

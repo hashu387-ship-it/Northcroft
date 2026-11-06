@@ -4,12 +4,12 @@ import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
-type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx";
+type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx" | "pearl";
 
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" ? t : "onyx";
+    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" || t === "pearl" ? t : "onyx";
   } catch {
     return "onyx";
   }
@@ -31,11 +31,11 @@ export function AppearanceSection() {
   function applyTheme(t: Theme) {
     setTheme(t);
     const root = document.documentElement;
-    // Onyx, QS Team glass and Purple glass are the dark theme with a palette over it; Clay glass is
-    // the light theme with soft clay over it.
-    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx") root.dataset.palette = t;
+    // Onyx, QS Team glass and Purple glass are the dark theme with a palette over it; Pearl and Clay
+    // glass are the light theme with a palette over it.
+    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx" || t === "pearl") root.dataset.palette = t;
     else delete root.dataset.palette;
-    const base = t === "purple" || t === "qs" || t === "onyx" ? "dark" : t === "clay" ? "light" : t;
+    const base = t === "purple" || t === "qs" || t === "onyx" ? "dark" : t === "clay" || t === "pearl" ? "light" : t;
     try {
       if (base === "system") delete root.dataset.theme;
       else root.dataset.theme = base;
@@ -60,6 +60,7 @@ export function AppearanceSection() {
 
   const options: { value: Theme; label: string }[] = [
     { value: "onyx", label: "Onyx" },
+    { value: "pearl", label: "Pearl" },
     { value: "qs", label: "QS Team glass" },
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
@@ -80,8 +81,9 @@ export function AppearanceSection() {
           ))}
         </div>
         <div className="muted small">
-          Onyx is the default: the black of the Northcroft QS Team logo, with film grain, a soft red glow, smoked glass, white serif
-          headings and buttons that stand out and press in. QS Team glass is deep navy with a blue glow and the Riyadh skyline along the
+          Onyx is the default: soft charcoal clay in the Northcroft QS Team world, with film grain, a soft red glow and the skyline,
+          white serif headings, puffy clay buttons that squash when you press them, and every row of a table as its own thick clay
+          block. Pearl is the same clay in warm light grey, with black ink and the logo on its black plate. QS Team glass is deep navy with a blue glow and the Riyadh skyline along the
           bottom. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass
           but makes cards, buttons and tabs soft and puffy, like clay, and buttons sink a little when you press them. Automatic follows your phone or
           computer, switching to dark at night if you've set it up that way.
@@ -91,7 +93,7 @@ export function AppearanceSection() {
         <div className="setting-row">
           <div className="grow">
             <b>Solid surfaces</b>
-            <small>Replaces the see-through glass with solid panels. Turn this on if text over the coloured background is hard to read, or to save battery on older phones.</small>
+            <small>Replaces the see-through glass in the glass looks with solid panels. Turn this on if text over the coloured background is hard to read, or to save battery on older phones. Onyx and Pearl are solid clay already.</small>
           </div>
           <Switch checked={solid} onChange={applySolid} label="Solid surfaces" />
         </div>
