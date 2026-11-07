@@ -4,14 +4,14 @@ import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
-type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx" | "pearl";
+type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx" | "pearl" | "dusk";
 
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" || t === "pearl" ? t : "onyx";
+    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" || t === "pearl" || t === "onyx" ? t : "dusk";
   } catch {
-    return "onyx";
+    return "dusk";
   }
 }
 
@@ -33,9 +33,9 @@ export function AppearanceSection() {
     const root = document.documentElement;
     // Onyx, QS Team glass and Purple glass are the dark theme with a palette over it; Pearl and Clay
     // glass are the light theme with a palette over it.
-    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx" || t === "pearl") root.dataset.palette = t;
+    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx" || t === "pearl" || t === "dusk") root.dataset.palette = t;
     else delete root.dataset.palette;
-    const base = t === "purple" || t === "qs" || t === "onyx" ? "dark" : t === "clay" || t === "pearl" ? "light" : t;
+    const base = t === "purple" || t === "qs" || t === "onyx" || t === "dusk" ? "dark" : t === "clay" || t === "pearl" ? "light" : t;
     try {
       if (base === "system") delete root.dataset.theme;
       else root.dataset.theme = base;
@@ -59,6 +59,7 @@ export function AppearanceSection() {
   }
 
   const options: { value: Theme; label: string }[] = [
+    { value: "dusk", label: "Dusk" },
     { value: "onyx", label: "Onyx" },
     { value: "pearl", label: "Pearl" },
     { value: "qs", label: "QS Team glass" },
@@ -81,7 +82,8 @@ export function AppearanceSection() {
           ))}
         </div>
         <div className="muted small">
-          Onyx is the default: soft charcoal clay in the Northcroft QS Team world, with film grain, a soft red glow and the skyline,
+          Dusk is the default: the same clay in a twilight palette, with Black Rock and Blue Suede Shoes cards and the counts at the
+          top in solid Succulent Lime, Wondrous Wisteria and Persian Orange. Onyx is soft charcoal clay in the Northcroft QS Team world, with film grain, a soft red glow and the skyline,
           white serif headings, puffy clay buttons that squash when you press them, and every row of a table as its own thick clay
           block. Pearl is the same clay in warm light grey, with black ink and the logo on its black plate. QS Team glass is deep navy with a blue glow and the Riyadh skyline along the
           bottom. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass

@@ -42,7 +42,7 @@
 }
 
 /* ------------------------------------------------------------------ tokens */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) {
   --font: "Inter Variable", "Inter", "Saudi Riyal", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
   --font-display: "Cormorant Garamond Variable", "Cormorant Garamond", "Saudi Riyal", Georgia, "Times New Roman", serif;
   --blob-alpha: 1;
@@ -100,7 +100,7 @@
 }
 
 /* Onyx: soft charcoal. Also the dark island used for page headers and the Home banner in Pearl. */
-:root[data-palette="onyx"],
+:root:is([data-palette="onyx"], [data-palette="dusk"]),
 :root[data-palette="pearl"] :is(.page-head, .home-banner, .file-head) {
   --canvas: #17171a;
   --abyss: #0f0f11;
@@ -178,7 +178,7 @@
   --on-navy-active: rgba(255, 255, 255, 0.1);
   color: var(--ink);
 }
-:root[data-palette="onyx"] { background: var(--canvas); }
+:root:is([data-palette="onyx"], [data-palette="dusk"]) { background: var(--canvas); }
 
 /* Pearl: warm clay grey, black ink, the black primary of the wordmark. */
 :root[data-palette="pearl"] {
@@ -262,9 +262,9 @@
 }
 
 /* No glass anywhere: nothing is blurred behind. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) *,
-:root:is([data-palette="onyx"], [data-palette="pearl"]) *::before,
-:root:is([data-palette="onyx"], [data-palette="pearl"]) *::after {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) *,
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) *::before,
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) *::after {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
@@ -273,13 +273,13 @@
 /* The five drifting colour blobs become the layers of the Northcroft artwork, so no markup changes:
    b1 the red glow from the leaf corner, b2 the streak of light, b3 the light along the horizon,
    b4 the film grain, b5 the hairline the skyline stands on; ::after is the skyline itself. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper {
   background:
     radial-gradient(120% 120% at 50% 35%, transparent 55%, var(--abyss) 100%),
     radial-gradient(90% 60% at 50% -15%, var(--canvas-high) 0%, transparent 62%),
     var(--canvas);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper .blob {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper .blob {
   inset: auto;
   width: auto;
   height: auto;
@@ -290,7 +290,7 @@
   will-change: auto;
   transform: none;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper .b1 {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper .b1 {
   right: -14%;
   top: -22%;
   width: max(62vw, 460px);
@@ -298,7 +298,7 @@
   border-radius: 50%;
   background: radial-gradient(closest-side, var(--signal-glow), transparent);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper .b2 {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper .b2 {
   top: 0;
   bottom: 0;
   left: 47%;
@@ -306,7 +306,7 @@
   background: linear-gradient(180deg, transparent 0%, var(--streak) 16%, var(--streak) 80%, transparent 100%);
   box-shadow: 0 0 24px 3px var(--streak);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper .b3 {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper .b3 {
   left: 0;
   right: 0;
   bottom: 0;
@@ -314,7 +314,7 @@
   opacity: 0.8;
   background: radial-gradient(70% 90% at 50% 100%, var(--horizon) 0%, transparent 70%);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper .b5 {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper .b5 {
   left: 6%;
   right: 6%;
   bottom: 0;
@@ -322,7 +322,7 @@
   z-index: 2;
   background: linear-gradient(90deg, transparent, var(--streak), transparent);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper .b4 {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper .b4 {
   inset: 0;
   z-index: 3;
   background: var(--grain);
@@ -331,9 +331,9 @@
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.5 0 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mask-size: 180px 180px;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper::before { content: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper::before { content: none; }
 /* The skyline, painted in the theme's own skyline colour through the artwork's shape. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper::after {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper::after {
   inset: auto 0 0 0;
   height: min(38vh, 300px);
   z-index: 1;
@@ -345,91 +345,91 @@
 
 /* ------------------------------------------------------------------ clay surfaces */
 /* Every panel is a clay object: cards, tiles, the menu, sheets. No borders, no sheen, no edge glow. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.glass, .glass-strong, .solid) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.glass, .glass-strong, .solid) {
   background: var(--clay);
   border-color: transparent;
   box-shadow: var(--clay-panel);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.glass, .glass-strong)::before,
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.glass, .glass-strong)::after { content: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.glass, .glass-strong)::before,
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.glass, .glass-strong)::after { content: none; }
 /* Floating clay: sheets, toasts, menus and the tools that float over a page. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.glass-strong, .sheet, .toast, .search-panel, .mention-menu, .pin-bar, .jump-down) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.glass-strong, .sheet, .toast, .search-panel, .mention-menu, .pin-bar, .jump-down) {
   box-shadow: var(--clay-float);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sheet { border-radius: var(--r-xl); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sheet-backdrop { background: var(--scrim); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sheet { border-radius: var(--r-xl); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sheet-backdrop { background: var(--scrim); }
 /* A pressed-in well, where the app asks for one. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass-inset { background: var(--well); border-color: transparent; box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass-inset { background: var(--well); border-color: transparent; box-shadow: var(--clay-well-sm); }
 /* Give panels room so their shadows fall on the page, not on each other. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .stack { --clay-gap: 1; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .stack { --clay-gap: 1; }
 
 /* The menu, the phone top bar and the tab bar: clay, like every other panel. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.sidebar.glass, .topbar.glass, .tabbar.glass-strong) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.sidebar.glass, .topbar.glass, .tabbar.glass-strong) {
   color: var(--text);
   background: var(--clay);
   border-color: transparent;
   box-shadow: var(--clay-panel);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tabbar.glass-strong { box-shadow: var(--clay-float); border-radius: 28px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .topbar.glass { border-radius: 0 0 28px 28px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .topbar.glass::after { content: none; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .brand-word,
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .topbar .brand-word { color: var(--text); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .brand small { color: var(--text-3); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tabbar.glass-strong { box-shadow: var(--clay-float); border-radius: 28px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .topbar.glass { border-radius: 0 0 28px 28px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .topbar.glass::after { content: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .brand-word,
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .topbar .brand-word { color: var(--text); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .brand small { color: var(--text-3); }
 
 /* Section labels in the menu: small capitals, widely spaced, like MIDDLE EAST & AFRICA. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .nav-label { color: var(--silver); font-weight: 500; letter-spacing: 0.22em; font-size: 10.5px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .nav a { color: var(--text-2); border-radius: var(--r-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .nav a svg { color: var(--text-2); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .nav a:hover { background: var(--surface-hover); color: var(--text); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .nav-label { color: var(--silver); font-weight: 500; letter-spacing: 0.22em; font-size: 10.5px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .nav a { color: var(--text-2); border-radius: var(--r-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .nav a svg { color: var(--text-2); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .nav a:hover { background: var(--surface-hover); color: var(--text); }
 /* The current page: a puffy clay pill raised out of the menu, with its icon lit. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .nav a.active {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .nav a.active {
   color: var(--text);
   background: var(--neu-face);
   box-shadow: var(--clay-sm);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .nav a.active svg { color: var(--text); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .sidebar-user { background: var(--well); box-shadow: var(--clay-well-sm); color: var(--text); border-radius: 22px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .sidebar-user .meta span { color: var(--text-2); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .nav a.active svg { color: var(--text); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .sidebar-user { background: var(--well); box-shadow: var(--clay-well-sm); color: var(--text); border-radius: 22px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .sidebar-user .meta span { color: var(--text-2); }
 
 /* Search in the menu: a well pressed into the clay. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .nav-search {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .nav-search {
   border-radius: 18px;
   border: 1px solid var(--field-edge);
   background: var(--well);
   color: var(--text-2);
   box-shadow: var(--clay-well);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .nav-search:hover { background: var(--well); color: var(--text); border-color: var(--text-3); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .nav-search kbd { color: var(--text-3); border-color: var(--line); border-radius: 8px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .nav-search:hover { background: var(--well); color: var(--text); border-color: var(--text-3); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .nav-search kbd { color: var(--text-3); border-color: var(--line); border-radius: 8px; }
 
 /* Menu icon tiles: small clay tiles with the icon in its own colour (nudged so it reads on clay). */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.sidebar .nav a .nav-ic, .tabbar a .tab-ic, .more-grid a .ic) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.sidebar .nav a .nav-ic, .tabbar a .tab-ic, .more-grid a .ic) {
   background: var(--neu-face) !important;
   box-shadow: var(--clay-xs);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.sidebar .nav a .nav-ic, .tabbar a .tab-ic, .more-grid a .ic) svg {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.sidebar .nav a .nav-ic, .tabbar a .tab-ic, .more-grid a .ic) svg {
   color: color-mix(in srgb, var(--tile, var(--text)) 72%, var(--tile-mix)) !important;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .sidebar .nav a.active .nav-ic { box-shadow: var(--clay-xs), var(--glow-rim); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sidebar .nav a.active .nav-ic { box-shadow: var(--clay-xs), var(--glow-rim); }
 
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .topbar .icon-btn { color: var(--text); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .topbar .icon-btn.plain:hover { background: var(--surface-hover); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tabbar a { color: var(--text-2); border-radius: 22px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tabbar a.active { color: var(--text); background: var(--well); box-shadow: var(--clay-well-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tabbar a.active .tab-ic { box-shadow: var(--clay-xs), var(--glow-rim); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tabbar .dot { border-color: var(--clay); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .topbar .icon-btn { color: var(--text); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .topbar .icon-btn.plain:hover { background: var(--surface-hover); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tabbar a { color: var(--text-2); border-radius: 22px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tabbar a.active { color: var(--text); background: var(--well); box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tabbar a.active .tab-ic { box-shadow: var(--clay-xs), var(--glow-rim); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tabbar .dot { border-color: var(--clay); }
 
 /* The full logo is white lettering: in Onyx it sits straight on the clay, in Pearl on a black plate. */
-:root[data-palette="onyx"] :is(.sidebar, .topbar) .qs-logo { background: transparent; padding: 0; }
+:root:is([data-palette="onyx"], [data-palette="dusk"]) :is(.sidebar, .topbar) .qs-logo { background: transparent; padding: 0; }
 :root[data-palette="pearl"] :is(.sidebar, .topbar) .qs-logo { background: #060607; padding: 8px 12px; border-radius: 20px; box-shadow: var(--clay-sm); }
 :root[data-palette="pearl"] .topbar .qs-logo { padding: 4px 8px; border-radius: 12px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .qs-mark { box-shadow: var(--clay-xs), var(--glow-rim); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .qs-mark { box-shadow: var(--clay-xs), var(--glow-rim); }
 
 /* ------------------------------------------------------------------ page headers and the Home banner */
 /* The tower photo stays, in black and white and dimmed, in a dark clay panel with the red rule. In
    Pearl they keep the Onyx tokens (see above), so they read as the black of the logo on light clay. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.page-head, .home-banner) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.page-head, .home-banner) {
   background: #0d0d0f;
   border: 0;
   box-shadow: var(--clay-panel);
@@ -438,64 +438,64 @@
 :root[data-palette="pearl"] :is(.page-head, .home-banner) {
   box-shadow: 0 24px 44px -20px rgba(60, 54, 44, 0.55), inset 6px 6px 14px rgba(255, 255, 255, 0.07), inset -8px -8px 16px rgba(0, 0, 0, 0.35);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .page-head::before,
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .home-banner .hb-photo { filter: grayscale(1) brightness(0.62) contrast(1.12); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .page-head::after {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .page-head::before,
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .home-banner .hb-photo { filter: grayscale(1) brightness(0.62) contrast(1.12); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .page-head::after {
   background:
     linear-gradient(90deg, rgba(13, 13, 15, 0.97) 0%, rgba(13, 13, 15, 0.88) 40%, rgba(13, 13, 15, 0.5) 72%, rgba(13, 13, 15, 0.2) 100%),
     radial-gradient(60% 120% at 100% 0%, rgba(253, 0, 2, 0.1), transparent 70%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 45%);
   box-shadow: inset 6px 6px 14px rgba(255, 255, 255, 0.06), inset -8px -8px 16px rgba(0, 0, 0, 0.35);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .home-banner .hb-shade {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .home-banner .hb-shade {
   background:
     linear-gradient(90deg, rgba(13, 13, 15, 0.96) 0%, rgba(13, 13, 15, 0.84) 34%, rgba(13, 13, 15, 0.32) 66%, rgba(13, 13, 15, 0.06) 100%),
     radial-gradient(50% 110% at 100% 0%, rgba(253, 0, 2, 0.12), transparent 70%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 40%);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .home-banner::after { box-shadow: inset 6px 6px 14px rgba(255, 255, 255, 0.06), inset -8px -8px 16px rgba(0, 0, 0, 0.35); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .hb-eyebrow { color: var(--silver); font-weight: 500; letter-spacing: 0.22em; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.page-head, .home-banner) .qs-logo { background: transparent; padding: 0; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .home-banner::after { box-shadow: inset 6px 6px 14px rgba(255, 255, 255, 0.06), inset -8px -8px 16px rgba(0, 0, 0, 0.35); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .hb-eyebrow { color: var(--silver); font-weight: 500; letter-spacing: 0.22em; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.page-head, .home-banner) .qs-logo { background: transparent; padding: 0; }
 @media (max-width: 899px) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .page-head::after {
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .page-head::after {
     background:
       linear-gradient(90deg, rgba(13, 13, 15, 0.96) 0%, rgba(13, 13, 15, 0.8) 58%, rgba(13, 13, 15, 0.42) 100%),
       linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 45%);
   }
 }
 /* The file viewer's header bar: dark clay in both looks. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .file-head { background: var(--navy-solid); box-shadow: var(--clay-panel); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .file-head { background: var(--navy-solid); box-shadow: var(--clay-panel); }
 
 /* ------------------------------------------------------------------ headings and figures */
 /* Serif headings, close to the Northcroft wordmark. The serif has small lowercase letters, so it's
    sized by the height of its lowercase (font-size-adjust) to read as large as the text around it. */
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(h1, h2, h3),
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.td-title, .pc-name, .celebrate-headline) {
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(h1, h2, h3),
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.td-title, .pc-name, .celebrate-headline) {
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.005em;
   font-size-adjust: 0.45;
   color: var(--text);
 }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.page-head, .home-banner) :is(h1, h2, h3) { color: var(--on-navy); }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .page-head h1 { font-size: 31px; line-height: 1.1; }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .home-banner h1 { font-size: 35px; line-height: 1.06; }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .card-head :is(h2, h3) { font-size: 18px; }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .sheet-head h2 { font-size: 20px; }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .project-hero h1 { font-size: 28px; }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .td-title { font-size: 26px; line-height: 1.18; }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .pc-name { font-size: 23px; }
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .celebrate-headline { font-size: 31px; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.page-head, .home-banner) :is(h1, h2, h3) { color: var(--on-navy); }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .page-head h1 { font-size: 31px; line-height: 1.1; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .home-banner h1 { font-size: 35px; line-height: 1.06; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .card-head :is(h2, h3) { font-size: 18px; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .sheet-head h2 { font-size: 20px; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .project-hero h1 { font-size: 28px; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .td-title { font-size: 26px; line-height: 1.18; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .pc-name { font-size: 23px; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .celebrate-headline { font-size: 31px; }
 @media (max-width: 899px) {
-  :root:root:is([data-palette="onyx"], [data-palette="pearl"]) .page-head h1 { font-size: 27px; }
-  :root:root:is([data-palette="onyx"], [data-palette="pearl"]) .home-banner h1 { font-size: 29px; }
-  :root:root:is([data-palette="onyx"], [data-palette="pearl"]) .project-hero h1 { font-size: 24px; }
-  :root:root:is([data-palette="onyx"], [data-palette="pearl"]) .td-title { font-size: 23px; }
+  :root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .page-head h1 { font-size: 27px; }
+  :root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .home-banner h1 { font-size: 29px; }
+  :root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .project-hero h1 { font-size: 24px; }
+  :root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .td-title { font-size: 23px; }
 }
 /* Coloured card titles keep their small icon in colour; the words stay in ink. */
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .card-head :is(h2, h3)[class*="tone-"] { color: var(--text); }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .card-head :is(h2, h3)[class*="tone-"] { color: var(--text); }
 /* Figures are never in the serif: Inter with even-width digits. */
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.stat .value, .leave-balance .value, .clock, .break-timer .big, .du-stat b) {
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.stat .value, .leave-balance .value, .clock, .break-timer .big, .du-stat b) {
   font-family: var(--font);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -503,87 +503,87 @@
 }
 
 /* ------------------------------------------------------------------ buttons: puffy clay that squashes when held */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn {
   height: 38px;
   padding: 0 16px;
   border-radius: 999px;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.small { height: 32px; padding: 0 12px; border-radius: 999px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.large { height: 48px; padding: 0 22px; border-radius: 999px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.small { height: 32px; padding: 0 12px; border-radius: 999px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.large { height: 48px; padding: 0 22px; border-radius: 999px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)) {
   border-color: transparent;
   color: var(--text);
   background: var(--neu-face);
   box-shadow: var(--clay-sm);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)):hover { background: var(--neu-face); filter: brightness(1.06); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:where(:not(.ghost, .on-dark)):active { transform: scale(0.96); filter: none; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)):active {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)):hover { background: var(--neu-face); filter: brightness(1.06); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:where(:not(.ghost, .on-dark)):active { transform: scale(0.96); filter: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:where(:not(.ghost, .danger, .warn, .on-dark, .primary, .brand, .success)):active {
   background: var(--well);
   box-shadow: var(--clay-well-sm);
 }
 /* The main button: glossy primary clay (white in Onyx, black in Pearl). One per view. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:is(.primary, .brand) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:is(.primary, .brand) {
   border-color: transparent;
   color: var(--on-primary);
   text-shadow: none;
   background: linear-gradient(145deg, var(--primary-bright) 0%, var(--primary) 55%, var(--primary-deep) 100%);
   box-shadow: var(--clay-primary);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:is(.primary, .brand):hover { background: linear-gradient(145deg, var(--primary-bright) 0%, var(--primary) 55%, var(--primary-deep) 100%); filter: brightness(1.04); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:is(.primary, .brand):active { background: var(--primary-deep); box-shadow: var(--clay-well-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.success {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:is(.primary, .brand):hover { background: linear-gradient(145deg, var(--primary-bright) 0%, var(--primary) 55%, var(--primary-deep) 100%); filter: brightness(1.04); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:is(.primary, .brand):active { background: var(--primary-deep); box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.success {
   border-color: transparent;
   color: var(--on-primary);
   background: linear-gradient(145deg, color-mix(in srgb, var(--green) 80%, #fff) 0%, var(--green) 55%, color-mix(in srgb, var(--green) 82%, #000) 100%);
   box-shadow: var(--clay-sm);
 }
-:root[data-palette="onyx"] .btn.success { color: #04211d; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.success:active { box-shadow: var(--clay-well-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:is(.danger, .warn) { border-color: transparent; box-shadow: var(--clay-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.danger { color: var(--red); background: linear-gradient(var(--red-soft), var(--red-soft)), var(--neu-face); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.warn { color: var(--orange); background: linear-gradient(var(--orange-soft), var(--orange-soft)), var(--neu-face); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:is(.danger, .warn):active { box-shadow: var(--clay-well-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.ghost { color: var(--text-2); border-color: transparent; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.ghost:hover { color: var(--text); background: var(--well); box-shadow: var(--clay-well-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.small:where(:not(.ghost)) { box-shadow: var(--clay-xs); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:is(.primary, .brand).small { box-shadow: var(--clay-primary); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn.large:where(:not(.ghost, .primary, .brand)) { box-shadow: var(--clay-md); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .btn:focus-visible { outline: none; box-shadow: var(--clay-sm), var(--focus-ring); }
+:root:is([data-palette="onyx"], [data-palette="dusk"]) .btn.success { color: #04211d; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.success:active { box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:is(.danger, .warn) { border-color: transparent; box-shadow: var(--clay-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.danger { color: var(--red); background: linear-gradient(var(--red-soft), var(--red-soft)), var(--neu-face); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.warn { color: var(--orange); background: linear-gradient(var(--orange-soft), var(--orange-soft)), var(--neu-face); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:is(.danger, .warn):active { box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.ghost { color: var(--text-2); border-color: transparent; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.ghost:hover { color: var(--text); background: var(--well); box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.small:where(:not(.ghost)) { box-shadow: var(--clay-xs); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:is(.primary, .brand).small { box-shadow: var(--clay-primary); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn.large:where(:not(.ghost, .primary, .brand)) { box-shadow: var(--clay-md); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .btn:focus-visible { outline: none; box-shadow: var(--clay-sm), var(--focus-ring); }
 /* Buttons sitting on a page header's photo: the same clay. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .page-head .btn:not(.primary):not(.brand):not(.danger) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .page-head .btn:not(.primary):not(.brand):not(.danger) {
   color: var(--text);
   background: var(--neu-face);
   border-color: transparent;
   box-shadow: var(--clay-sm);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .page-head .btn:not(.primary):not(.brand):not(.danger):hover { background: var(--neu-face); filter: brightness(1.08); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .page-head .btn:not(.primary):not(.brand):not(.danger):hover { background: var(--neu-face); filter: brightness(1.08); }
 
 /* Round icon buttons (not the plain ones in the bars). */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .icon-btn:not(.plain) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .icon-btn:not(.plain) {
   border-radius: 50%;
   border-color: transparent;
   color: var(--text);
   background: var(--neu-face);
   box-shadow: var(--clay-xs);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .icon-btn:not(.plain):hover { filter: brightness(1.06); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .icon-btn:not(.plain):active { background: var(--well); box-shadow: var(--clay-well-sm); filter: none; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.page-head, .topbar) .icon-btn:not(.plain) { background: var(--neu-face); color: var(--text); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .icon-btn.plain { border-radius: 50%; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .icon-btn .dot { box-shadow: 0 0 0 2px var(--clay); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .icon-btn:not(.plain):hover { filter: brightness(1.06); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .icon-btn:not(.plain):active { background: var(--well); box-shadow: var(--clay-well-sm); filter: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.page-head, .topbar) .icon-btn:not(.plain) { background: var(--neu-face); color: var(--text); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .icon-btn.plain { border-radius: 50%; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .icon-btn .dot { box-shadow: 0 0 0 2px var(--clay); }
 
 /* The New task button on phones: the glossy main button. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .fab {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .fab {
   border-radius: 50%;
   color: var(--on-primary);
   background: linear-gradient(145deg, var(--primary-bright) 0%, var(--primary) 55%, var(--primary-deep) 100%);
   box-shadow: var(--clay-primary);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .fab:active { background: var(--primary-deep); box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .fab:active { background: var(--primary-deep); box-shadow: var(--clay-well-sm); }
 
 /* ------------------------------------------------------------------ tabs: a pressed-in track, a clay pill */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.segmented, .tabs, .tabs.glass) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.segmented, .tabs, .tabs.glass) {
   border-radius: 999px;
   padding: 5px;
   gap: 4px;
@@ -591,8 +591,8 @@
   background: var(--well);
   box-shadow: var(--clay-well-sm);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.segmented button, .tabs a, .tabs button) { border-radius: 999px; color: var(--text-2); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.segmented button.active, .tabs a.active, .tabs button.active) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.segmented button, .tabs a, .tabs button) { border-radius: 999px; color: var(--text-2); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.segmented button.active, .tabs a.active, .tabs button.active) {
   color: var(--text);
   background: var(--neu-face);
   box-shadow: var(--clay-xs);
@@ -600,125 +600,125 @@
 
 /* ------------------------------------------------------------------ fields: wells pressed into the clay */
 /* Clay is soft, so fields keep a 1px border (3:1) and never rely on shadow alone. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.input, .select, .textarea) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.input, .select, .textarea) {
   border-radius: 18px;
   border: 1px solid var(--field-edge);
   background-color: var(--well);
   color: var(--text);
   box-shadow: var(--clay-well);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .textarea { border-radius: 20px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.input, .select, .textarea):hover { border-color: var(--text-3); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.input, .select, .textarea):focus {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .textarea { border-radius: 20px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.input, .select, .textarea):hover { border-color: var(--text-3); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.input, .select, .textarea):focus {
   border-color: var(--rim);
   box-shadow: var(--clay-well), var(--focus-ring);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.input, .textarea)::placeholder { color: var(--text-3); opacity: 1; }
-:root[data-palette="onyx"] .select {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.input, .textarea)::placeholder { color: var(--text-3); opacity: 1; }
+:root:is([data-palette="onyx"], [data-palette="dusk"]) .select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23c8c8cb' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 :root[data-palette="pearl"] .select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2338383d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 /* Switches: a well track with a clay thumb; on, the track fills with the primary colour. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .switch .track { background: var(--well); box-shadow: var(--clay-well-sm); outline: 1px solid var(--field-edge); outline-offset: -1px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .switch .track::after { background: linear-gradient(145deg, var(--clay-hi), var(--clay-lo)); box-shadow: var(--clay-xs); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .switch input:checked + .track { background: var(--primary); box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.3); outline-color: transparent; }
-:root[data-palette="onyx"] .switch input:checked + .track::after { background: linear-gradient(145deg, #3a3a40, #232327); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .switch .track { background: var(--well); box-shadow: var(--clay-well-sm); outline: 1px solid var(--field-edge); outline-offset: -1px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .switch .track::after { background: linear-gradient(145deg, var(--clay-hi), var(--clay-lo)); box-shadow: var(--clay-xs); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .switch input:checked + .track { background: var(--primary); box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.3); outline-color: transparent; }
+:root:is([data-palette="onyx"], [data-palette="dusk"]) .switch input:checked + .track::after { background: linear-gradient(145deg, #3a3a40, #232327); }
 :root[data-palette="pearl"] .switch input:checked + .track::after { background: linear-gradient(145deg, #fff, #ebe8e1); }
 /* Meters and progress bars: a well with the colour inside. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .progress { height: 7px; border-radius: 999px; background: var(--well); box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .progress { height: 7px; border-radius: 999px; background: var(--well); box-shadow: var(--clay-well-sm); }
 
 /* ------------------------------------------------------------------ small things on the primary colour */
 /* Anything that sits on the primary colour takes the colour made for it. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.check-row .check-ic, .day-chips button.on, .reg-cat.on .n, .photo-picker .photo-badge) { color: var(--on-primary); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .msg.mine .bubble .mention { color: var(--on-primary); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .msg.mine .bubble { box-shadow: var(--clay-xs); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .pill { border-radius: 999px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) ::selection { background: color-mix(in srgb, var(--rim) 22%, transparent); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :focus-visible { outline-color: color-mix(in srgb, var(--rim) 70%, transparent); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.check-row .check-ic, .day-chips button.on, .reg-cat.on .n, .photo-picker .photo-badge) { color: var(--on-primary); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .msg.mine .bubble .mention { color: var(--on-primary); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .msg.mine .bubble { box-shadow: var(--clay-xs); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .pill { border-radius: 999px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) ::selection { background: color-mix(in srgb, var(--rim) 22%, transparent); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :focus-visible { outline-color: color-mix(in srgb, var(--rim) 70%, transparent); }
 
 /* ------------------------------------------------------------------ data tables: every row a thick clay block */
 /* Each cell carries the block's face and its solid 7px side edge; the soft shadow under the block
    belongs to the whole row, so the block never shows seams between its cells. No hairlines and no
    zebra stripes: the gaps between blocks separate the lines. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table-wrap { padding: 2px 14px 22px; border-radius: var(--r-lg); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.vo-table, .vlog-table, .reg-table) { padding: 0; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.vo-table, .reg-table) > .table-wrap,
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .vlog-wrap { padding: 2px 14px 22px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table-wrap { padding: 2px 14px 22px; border-radius: var(--r-lg); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.vo-table, .vlog-table, .reg-table) { padding: 0; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.vo-table, .reg-table) > .table-wrap,
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .vlog-wrap { padding: 2px 14px 22px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table {
   border-collapse: separate;
   border-spacing: 0 12px;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table th {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table th {
   background: var(--clay);
   border-bottom: 0;
   color: var(--text-2);
   padding: 12px 14px 2px;
   vertical-align: bottom;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table td {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table td {
   padding: 12px 14px;
   border-bottom: 0;
   background: linear-gradient(180deg, var(--clay-hi), var(--clay-lo));
   box-shadow: var(--clay-block);
   transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table td:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table td:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table td:first-child:last-child { border-radius: var(--r-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table :is(tbody, tfoot) tr { box-shadow: var(--clay-block-drop); border-radius: var(--r-sm); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table tbody tr:hover { background: none; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table tbody tr:hover td { transform: translateY(-3px); box-shadow: var(--clay-block-hover); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table tbody tr.clickable:hover td { background: linear-gradient(180deg, var(--clay-hi), var(--clay-lo)); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table tbody tr.clickable:active td { transform: translateY(5px); box-shadow: var(--clay-block-press); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table tbody tr.clickable:focus-visible { outline: 2px solid var(--rim); outline-offset: 3px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table tbody tr.clickable:focus-visible td { outline: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table td:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table td:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table td:first-child:last-child { border-radius: var(--r-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table :is(tbody, tfoot) tr { box-shadow: var(--clay-block-drop); border-radius: var(--r-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tbody tr:hover { background: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tbody tr:hover td { transform: translateY(-3px); box-shadow: var(--clay-block-hover); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tbody tr.clickable:hover td { background: linear-gradient(180deg, var(--clay-hi), var(--clay-lo)); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tbody tr.clickable:active td { transform: translateY(5px); box-shadow: var(--clay-block-press); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tbody tr.clickable:focus-visible { outline: 2px solid var(--rim); outline-offset: 3px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tbody tr.clickable:focus-visible td { outline: none; }
 /* The totals row is pressed into the panel: a well, not a block. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table tfoot tr { box-shadow: none; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table tfoot td {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tfoot tr { box-shadow: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tfoot td {
   background: var(--well);
   box-shadow: var(--clay-well-sm);
   transform: none;
 }
 /* Sticky columns and headers in the VO log keep their block or the panel's clay behind them. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table.vlog :is(.c-sr, .c-ref) { background: linear-gradient(180deg, var(--clay-hi), var(--clay-lo)); box-shadow: var(--clay-block); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table.vlog thead :is(.c-sr, .c-ref) { background: var(--clay); box-shadow: none; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table.vlog tbody tr.clickable:hover td { background: linear-gradient(180deg, var(--clay-hi), var(--clay-lo)); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table.vlog tbody tr:focus-visible td { outline: none; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table.vlog tfoot :is(td, .c-sr, .c-ref) { background: var(--well); box-shadow: var(--clay-well-sm); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table.vlog :is(.c-sr, .c-ref) { background: linear-gradient(180deg, var(--clay-hi), var(--clay-lo)); box-shadow: var(--clay-block); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table.vlog thead :is(.c-sr, .c-ref) { background: var(--clay); box-shadow: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table.vlog tbody tr.clickable:hover td { background: linear-gradient(180deg, var(--clay-hi), var(--clay-lo)); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table.vlog tbody tr:focus-visible td { outline: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table.vlog tfoot :is(td, .c-sr, .c-ref) { background: var(--well); box-shadow: var(--clay-well-sm); }
 /* An empty row is not a block. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .table td:has(> .empty:only-child) { background: none; box-shadow: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table td:has(> .empty:only-child) { background: none; box-shadow: none; }
 /* Phones and small tablets: lighter blocks (a 5px side, no shadow under them, no lift) so long
    lists scroll smoothly. */
 @media (max-width: 640px) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .table td,
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .table tbody tr:hover td { box-shadow: var(--clay-block-lite); transform: none; }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .table :is(tbody, tfoot) tr { box-shadow: none; }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .table tfoot td { box-shadow: var(--clay-well-sm); }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .table-wrap,
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.vo-table, .reg-table) > .table-wrap,
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .vlog-wrap { padding: 0 10px 16px; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table td,
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tbody tr:hover td { box-shadow: var(--clay-block-lite); transform: none; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table :is(tbody, tfoot) tr { box-shadow: none; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table tfoot td { box-shadow: var(--clay-well-sm); }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table-wrap,
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.vo-table, .reg-table) > .table-wrap,
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .vlog-wrap { padding: 0 10px 16px; }
 }
 
 /* ------------------------------------------------------------------ sign-in and set-up screens */
 /* The world with the skyline instead of the tower photo. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .auth-photo {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .auth-photo {
   background:
     radial-gradient(62% 62% at 96% 0%, var(--signal-glow), transparent 70%),
     radial-gradient(120% 120% at 50% 35%, transparent 55%, var(--abyss) 100%),
     radial-gradient(90% 60% at 50% -15%, var(--canvas-high) 0%, transparent 62%),
     var(--canvas);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .auth-photo .img { display: none; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .auth-photo .shade {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .auth-photo .img { display: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .auth-photo .shade {
   inset: auto 0 0 0;
   height: min(40vh, 320px);
   background: var(--skyline);
   -webkit-mask: url("/brand/onyx-skyline.svg") center bottom / max(100%, 980px) auto no-repeat;
   mask: url("/brand/onyx-skyline.svg") center bottom / max(100%, 980px) auto no-repeat;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .auth-photo::before {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .auth-photo::before {
   content: "";
   position: absolute;
   top: 0;
@@ -728,7 +728,7 @@
   background: linear-gradient(180deg, transparent 0%, var(--streak) 16%, var(--streak) 80%, transparent 100%);
   box-shadow: 0 0 24px 3px var(--streak);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .auth-photo::after {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .auth-photo::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -738,21 +738,21 @@
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.5 0 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mask-size: 180px 180px;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .auth-card { border-radius: var(--r-xl); box-shadow: var(--clay-float); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .auth-card p.lead { color: var(--silver); font-size: 11px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .auth-card { border-radius: var(--r-xl); box-shadow: var(--clay-float); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .auth-card p.lead { color: var(--silver); font-size: 11px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
 
 /* ------------------------------------------------------------------ easier reading, less motion, print */
 @media (prefers-reduced-transparency: reduce) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .wallpaper .b4,
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .auth-photo::after { display: none; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .wallpaper .b4,
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .auth-photo::after { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.btn, .fab):active { transform: none; }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .table td { transition: none; transform: none !important; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.btn, .fab):active { transform: none; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table td { transition: none; transform: none !important; }
 }
 @media print {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.glass, .glass-strong, .solid, .table td, .table tbody tr, .table tfoot tr) { box-shadow: none !important; transform: none !important; }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .table td { border-bottom: 1px solid #c8c8c8; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.glass, .glass-strong, .solid, .table td, .table tbody tr, .table tfoot tr) { box-shadow: none !important; transform: none !important; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .table td { border-bottom: 1px solid #c8c8c8; }
 }
 
 /* ------------------------------------------------------------------ the swatches in Settings > Appearance */
@@ -783,7 +783,7 @@
 
 /* The weekly report keeps its own fonts and colours; only make sure the heading sizing above doesn't
    reach into it. */
-:root:root:is([data-palette="onyx"], [data-palette="pearl"]) .rp-doc :is(h1, h2, h3) { font-size-adjust: none; }
+:root:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .rp-doc :is(h1, h2, h3) { font-size-adjust: none; }
 
 /* ------------------------------------------------------------------ lists: every row a thick clay block */
 /* Every row of every list (tasks, EIs, submissions, inbox, chats, files, people, events, checklists,
@@ -795,7 +795,7 @@
    Blocks lift on hover and sink when tapped; on phones they're lighter so long lists scroll smoothly.
    Colours are worked out on each element from a tone (--card-tone, --person, --row-tone), so one set
    of rules serves both looks. */
-:root[data-palette="onyx"] {
+:root:is([data-palette="onyx"], [data-palette="dusk"]) {
   --block-hi: #35353b;
   --block-lo: #2b2b30;
   --block-edge: #101012;
@@ -858,7 +858,7 @@
   --card-drop: 0 30px 40px -18px rgba(110, 103, 90, 0.5);
 }
 /* The colours: one set for both looks, bright enough for charcoal and deep enough for light grey. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) {
   --hue-red: #ff6b6b;
   --hue-orange: #ff9a52;
   --hue-amber: #f2b33d;
@@ -875,41 +875,41 @@
 /* A card takes the colour of its icon (the tone on its heading); a card without one takes the next
    colour in turn, so cards next to each other never match. The card is tinted with it and stands on a
    solid edge in a deeper shade of it; its icon tile takes it too. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 1) { --card-tone: var(--hue-blue); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 2) { --card-tone: var(--hue-teal); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 3) { --card-tone: var(--hue-purple); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 4) { --card-tone: var(--hue-amber); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 5) { --card-tone: var(--hue-green); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 6) { --card-tone: var(--hue-pink); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 7) { --card-tone: var(--hue-sky); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 8) { --card-tone: var(--hue-orange); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-red, :has(> .card-head .tone-red)) { --card-tone: var(--hue-red); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-orange, :has(> .card-head .tone-orange)) { --card-tone: var(--hue-orange); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-amber, :has(> .card-head .tone-amber)) { --card-tone: var(--hue-amber); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-green, :has(> .card-head .tone-green)) { --card-tone: var(--hue-green); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-teal, :has(> .card-head .tone-teal)) { --card-tone: var(--hue-teal); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-sky, :has(> .card-head .tone-sky)) { --card-tone: var(--hue-sky); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-blue, :has(> .card-head .tone-blue)) { --card-tone: var(--hue-blue); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-indigo, :has(> .card-head .tone-indigo)) { --card-tone: var(--hue-indigo); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-purple, :has(> .card-head .tone-purple)) { --card-tone: var(--hue-purple); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-pink, :has(> .card-head .tone-pink)) { --card-tone: var(--hue-pink); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):nth-child(8n + 1) { --card-tone: var(--hue-blue); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):nth-child(8n + 2) { --card-tone: var(--hue-teal); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):nth-child(8n + 3) { --card-tone: var(--hue-purple); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):nth-child(8n + 4) { --card-tone: var(--hue-amber); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):nth-child(8n + 5) { --card-tone: var(--hue-green); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):nth-child(8n + 6) { --card-tone: var(--hue-pink); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):nth-child(8n + 7) { --card-tone: var(--hue-sky); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):nth-child(8n + 8) { --card-tone: var(--hue-orange); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-red, :has(> .card-head .tone-red)) { --card-tone: var(--hue-red); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-orange, :has(> .card-head .tone-orange)) { --card-tone: var(--hue-orange); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-amber, :has(> .card-head .tone-amber)) { --card-tone: var(--hue-amber); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-green, :has(> .card-head .tone-green)) { --card-tone: var(--hue-green); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-teal, :has(> .card-head .tone-teal)) { --card-tone: var(--hue-teal); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-sky, :has(> .card-head .tone-sky)) { --card-tone: var(--hue-sky); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-blue, :has(> .card-head .tone-blue)) { --card-tone: var(--hue-blue); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-indigo, :has(> .card-head .tone-indigo)) { --card-tone: var(--hue-indigo); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-purple, :has(> .card-head .tone-purple)) { --card-tone: var(--hue-purple); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat):is(.tone-pink, :has(> .card-head .tone-pink)) { --card-tone: var(--hue-pink); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat) {
   background: linear-gradient(180deg, color-mix(in srgb, var(--card-tone) var(--tint-top), var(--clay)) 0%, color-mix(in srgb, var(--card-tone) var(--tint-bottom), var(--clay)) 100%);
   box-shadow: 0 11px 0 var(--card-edge), var(--card-drop), var(--puff), inset 0 1px 0 var(--block-light);
   margin-bottom: 11px;
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat) :is(.card-head :is(h2, h3) > svg:first-child, .label svg) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat) :is(.card-head :is(h2, h3) > svg:first-child, .label svg) {
   color: color-mix(in srgb, var(--card-tone) 80%, var(--ink-mix));
   background: color-mix(in srgb, var(--card-tone) 22%, transparent);
 }
 /* Cards that are buttons or links: the same lift and press as the blocks. */
 @media (hover: hover) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a, button).glass:is(.card, .stat):hover {
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(a, button).glass:is(.card, .stat):hover {
     transform: translateY(-3px);
     box-shadow: 0 14px 0 var(--card-edge), var(--card-drop), var(--puff), inset 0 1px 0 var(--block-light);
   }
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a, button).glass:is(.card, .stat):active {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(a, button).glass:is(.card, .stat):active {
   transform: translateY(8px);
   box-shadow: 0 3px 0 var(--card-edge), var(--puff), var(--block-press);
 }
@@ -917,7 +917,7 @@
 /* ------------------------------------------------------------------ rows: the block */
 /* Each block works from its face colours (--rhi, --rlo), its edge (--redge) and a tone (--row-tone,
    none by default). A tone tints the face and colours the edge. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person) {
   --rhi: var(--block-hi);
   --rlo: var(--block-lo);
   --redge: var(--block-edge);
@@ -932,22 +932,22 @@
   box-shadow: 0 9px 0 var(--redge), var(--rdrop), var(--puff-sm), inset 0 1px 0 var(--block-light);
   transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person):last-child { margin-bottom: 10px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .team-snap .person { padding: 10px 12px; margin: 0 !important; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .team-snap { gap: 22px 12px; padding-bottom: 10px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person):last-child { margin-bottom: 10px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .team-snap .person { padding: 10px 12px; margin: 0 !important; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .team-snap { gap: 22px 12px; padding-bottom: 10px; }
 /* Rows with a state: overdue red, waiting for review purple, on hold amber, done or closed green. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row.st-late, .alert-row.late, .reg-row.late) { --row-tone: var(--hue-red); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .task-row.st-review { --row-tone: var(--hue-purple); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .task-row.st-hold { --row-tone: var(--hue-amber); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row.st-done, .reg-row.closed, .sub-row.closed) { --row-tone: var(--hue-green); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row:is(.st-late, .st-review, .st-hold, .st-done), .alert-row.late, .reg-row:is(.late, .closed), .sub-row.closed) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row.st-late, .alert-row.late, .reg-row.late) { --row-tone: var(--hue-red); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .task-row.st-review { --row-tone: var(--hue-purple); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .task-row.st-hold { --row-tone: var(--hue-amber); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row.st-done, .reg-row.closed, .sub-row.closed) { --row-tone: var(--hue-green); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row:is(.st-late, .st-review, .st-hold, .st-done), .alert-row.late, .reg-row:is(.late, .closed), .sub-row.closed) {
   --rface: linear-gradient(180deg, color-mix(in srgb, var(--row-tone) var(--row-tint-top), var(--rhi)), color-mix(in srgb, var(--row-tone) var(--row-tint-bottom), var(--rlo)));
 
 }
 /* The old divider lines between rows are gone: the gaps between blocks do that now. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.chat-item, .notif)::before { content: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.chat-item, .notif)::before { content: none; }
 /* Lists that were one framed box are now just a stack of blocks. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.files, .reg-sublist) {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.files, .reg-sublist) {
   border: 0;
   border-radius: 0;
   background: none;
@@ -956,43 +956,43 @@
   padding: 2px 0 0;
 }
 /* Rows that can be swiped: the gap sits on the swipe wrapper, so the block keeps its edge. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-row { margin-bottom: 19px; border-radius: 16px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-row:last-child { margin-bottom: 10px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-front > * { margin: 0 !important; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-row:is([data-side="lead"], [data-side="trail"]) .swipe-front { background: none; box-shadow: none; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .swipe-row { margin-bottom: 19px; border-radius: 16px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .swipe-row:last-child { margin-bottom: 10px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .swipe-front > * { margin: 0 !important; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .swipe-row:is([data-side="lead"], [data-side="trail"]) .swipe-front { background: none; box-shadow: none; }
 /* An unread notice has a faint tint; the open chat is pressed in. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .notif.unread {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .notif.unread {
   --rface: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--rhi)), color-mix(in srgb, var(--accent) 6%, var(--rlo)));
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .chat-item.active {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .chat-item.active {
   background: var(--well);
   box-shadow: var(--clay-well-sm);
   transform: none;
 }
 /* Small icon tiles inside rows stand up a little too. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .alert-row .tag { box-shadow: var(--clay-xs); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .alert-row .tag { box-shadow: var(--clay-xs); }
 
 /* Tappable blocks lift a little under the mouse and sink in when pressed. */
 @media (hover: hover) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .chat-item:not(.active), .notif, .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person):hover {
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .chat-item:not(.active), .notif, .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person):hover {
     background: var(--rface);
     transform: translateY(-3px);
     box-shadow: 0 12px 0 var(--redge), var(--rdrop), var(--puff-sm), inset 0 1px 0 var(--block-light);
   }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .files > .file:hover { background: var(--rface); }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .files > .file:hover { background: var(--rface); }
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .chat-item:not(.active), .notif, .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person):active {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .chat-item:not(.active), .notif, .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person):active {
   background: var(--rface);
   transform: translateY(5px);
   box-shadow: 0 2px 0 var(--redge), var(--puff-sm), var(--block-press);
 }
 
 /* ------------------------------------------------------------------ groups: a person is one big block in their colour */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-stack { gap: 32px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-grid { gap: 32px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-stack { gap: 32px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-grid { gap: 32px; }
 /* On the team tasks page the card only holds the person's block. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass.tt-card { background: none; box-shadow: none; padding: 0; border: 0; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass.tt-card { background: none; box-shadow: none; padding: 0; border: 0; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person {
   --person: var(--text-3);
   border: 0;
   border-radius: 26px;
@@ -1000,10 +1000,10 @@
   background: linear-gradient(180deg, color-mix(in srgb, var(--person) var(--tint-top), var(--group-hi)), color-mix(in srgb, var(--person) var(--tint-bottom), var(--group-lo)));
   box-shadow: 0 11px 0 var(--group-edge), var(--group-drop), var(--puff), inset 0 1px 0 var(--block-light);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .tt-head { margin-bottom: 12px; padding: 0 2px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .tt-list { border-radius: 0; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person .tt-head { margin-bottom: 12px; padding: 0 2px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person .tt-list { border-radius: 0; }
 /* The tasks inside a person: smaller, lighter blocks stacked on the person's block. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .task-row {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person .task-row {
   --rhi: var(--block-hi-2);
   --rlo: var(--block-lo-2);
   --redge: var(--block-edge-2);
@@ -1014,29 +1014,29 @@
   box-shadow: 0 8px 0 var(--redge), var(--rdrop), var(--puff-sm), inset 0 1px 0 var(--block-light);
 }
 
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .task-row:last-child { margin-bottom: 9px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person .task-row:last-child { margin-bottom: 9px; }
 @media (hover: hover) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person a.task-row:hover { box-shadow: 0 11px 0 var(--redge), var(--rdrop), var(--puff-sm), inset 0 1px 0 var(--block-light); }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person a.task-row:hover { box-shadow: 0 11px 0 var(--redge), var(--rdrop), var(--puff-sm), inset 0 1px 0 var(--block-light); }
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person a.task-row:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--redge), var(--puff-sm), var(--block-press); }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .tt-more { margin-top: 2px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person a.task-row:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--redge), var(--puff-sm), var(--block-press); }
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person .tt-more { margin-top: 2px; }
 
 /* ------------------------------------------------------------------ chips: small raised clay pills */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .pill {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .pill {
   border-color: transparent;
   background-image: linear-gradient(180deg, var(--chip-light) 0%, transparent 70%);
   box-shadow: 0 2px 0 var(--block-edge), inset 0 1px 0 var(--chip-light), inset 0 -1px 0 rgba(0, 0, 0, 0.14);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .prio {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .prio {
   border-color: color-mix(in srgb, var(--p-bot) 75%, #000);
   box-shadow: 0 3px 0 color-mix(in srgb, var(--p-bot) 55%, #000), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 1px rgba(0, 0, 0, 0.12);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .prio.urgent {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .prio.urgent {
   animation: none;
   box-shadow: 0 3px 0 color-mix(in srgb, var(--p-bot) 60%, #000), 0 0 12px var(--p-glow), inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(0, 0, 0, 0.25);
 }
 /* The project name (or General) on a task: a neutral clay chip with the project's colour dot. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .ptag {
+:root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .ptag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1053,31 +1053,251 @@
 
 /* ------------------------------------------------------------------ phones, less motion, print */
 @media (max-width: 640px) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person) {
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person) {
     margin-bottom: 16px;
     box-shadow: 0 7px 0 var(--redge), var(--puff-sm), inset 0 1px 0 var(--block-light);
   }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .chat-item.active { box-shadow: var(--clay-well-sm); }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person {
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .chat-item.active { box-shadow: var(--clay-well-sm); }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person {
     padding: 12px 10px 8px;
     border-radius: 22px;
     box-shadow: 0 9px 0 var(--group-edge), var(--puff), inset 0 1px 0 var(--block-light);
   }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .task-row {
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-person .task-row {
     margin-bottom: 14px;
     box-shadow: 0 6px 0 var(--redge), var(--puff-sm), inset 0 1px 0 var(--block-light);
   }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-row { margin-bottom: 16px; }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-stack { gap: 28px; }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat) { box-shadow: 0 9px 0 var(--card-edge), var(--card-drop), var(--puff), inset 0 1px 0 var(--block-light); margin-bottom: 9px; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .swipe-row { margin-bottom: 16px; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .tt-stack { gap: 28px; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) .glass:is(.card, .stat) { box-shadow: 0 9px 0 var(--card-edge), var(--card-drop), var(--puff), inset 0 1px 0 var(--block-light); margin-bottom: 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .reg-row, .sub-row, .pick-row, .team-snap .person, a.glass, button.glass) { transition: none; transform: none !important; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .reg-row, .sub-row, .pick-row, .team-snap .person, a.glass, button.glass) { transition: none; transform: none !important; }
 }
 @media print {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person, .tt-person, .pill, .prio, .ptag) {
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person, .tt-person, .pill, .prio, .ptag) {
     box-shadow: none !important;
     transform: none !important;
   }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .notif, .files > .file, .reg-row, .sub-row) { border: 1px solid #c8c8c8; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"], [data-palette="dusk"]) :is(.task-row, .list-item, .alert-row, .notif, .files > .file, .reg-row, .sub-row) { border: 1px solid #c8c8c8; }
+}
+
+/* ================================================================== Dusk */
+/* Dusk: the same clay world in a twilight palette. Black Rock (#2B2D3B) behind everything with a soft
+   wisteria glow from the top; Blue Suede Shoes (#494C65) cards for lists, people and tasks; Daemonette
+   Hide (#676386) for each person's box; and the highlight cards (the counts at the top of Home, Last 7
+   days, Submissions and the check-in card) in solid Succulent Lime (#DDDE68), Wondrous Wisteria
+   (#A5B2EB) and Persian Orange (#DA935D) with dark text. The main button is lime. It's the dark theme
+   underneath and shares every clay rule with Onyx; only the colours below differ. The default look. */
+:root[data-palette="dusk"] {
+  --d-lime: #dddE68;
+  --d-wisteria: #a5b2eb;
+  --d-orange: #da935d;
+  --d-hide: #676386;
+  --d-suede: #494c65;
+  --d-rock: #2b2d3b;
+  --d-ink-dark: #23243a;
+
+  --canvas: #2b2d3b;
+  --abyss: #1d1e2a;
+  --canvas-high: #4d4a6e;
+  --horizon: #3a3c52;
+  --skyline: #34364b;
+  --streak: rgba(255, 255, 255, 0.06);
+  --grain: rgba(255, 255, 255, 0.05);
+  --signal-glow: rgba(165, 178, 235, 0.16);
+  --clay: #494c65;
+  --well: #3a3c52;
+  --clay-hi: #555874;
+  --clay-lo: #4a4d66;
+  --surface-tint: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.07);
+  --line: rgba(255, 255, 255, 0.1);
+  --scrim: rgba(22, 23, 33, 0.76);
+  --rim: #f5f5f8;
+  --ink: #f5f5f8;
+  --ink-muted: #d3d5e4;
+  --ink-subtle: #b0b2c8;
+  --silver: #bcbed3;
+  --field-edge: #8e91ad;
+  --primary: #dddE68;
+  --primary-bright: #ecec94;
+  --primary-deep: #c2c34a;
+  --on-primary: #23243a;
+  --tile-mix: #fff;
+  --brand-soft: rgba(221, 222, 104, 0.12);
+  --accent-soft: rgba(221, 222, 104, 0.16);
+  --focus-ring: 0 0 0 2px #2b2d3b, 0 0 0 4px #dddE68;
+  --glow-rim: 0 0 0 1px rgba(221, 222, 104, 0.35), 0 0 22px rgba(221, 222, 104, 0.18);
+
+  /* Status colours in the palette's family. */
+  --green: #dddE68;
+  --green-soft: rgba(221, 222, 104, 0.16);
+  --teal: #a5b2eb;
+  --teal-soft: rgba(165, 178, 235, 0.18);
+  --purple: #a5b2eb;
+  --purple-soft: rgba(165, 178, 235, 0.18);
+  --orange: #eaa774;
+  --orange-soft: rgba(218, 147, 93, 0.2);
+  --yellow: #e7d36a;
+  --yellow-soft: rgba(231, 211, 106, 0.16);
+  --red: #f0907e;
+  --red-soft: rgba(240, 144, 126, 0.17);
+
+  --navy-glass: #494c65;
+  --navy-solid: #24263a;
+
+  /* The clay blocks: rows on cards, a person's box, the rows inside it. */
+  --block-hi: #565975;
+  --block-lo: #4b4e68;
+  --block-edge: #282a3b;
+  --block-drop: 0 22px 26px -12px rgba(12, 12, 24, 0.7);
+  --block-hi-2: #5c5a7c;
+  --block-lo-2: #53516f;
+  --block-edge-2: #36344c;
+  --block-drop-2: 0 18px 22px -11px rgba(12, 12, 24, 0.6);
+  --group-hi: #6d6990;
+  --group-lo: #625f84;
+  --group-edge: #3d3b55;
+  --group-drop: 0 30px 36px -16px rgba(12, 12, 24, 0.72);
+  --card-edge: #21222f;
+  --card-drop: 0 30px 40px -18px rgba(10, 10, 22, 0.8);
+  --block-light: rgba(255, 255, 255, 0.14);
+  --block-shade: rgba(0, 0, 0, 0.18);
+  --chip-face: linear-gradient(180deg, #64678a, #575a77);
+  --puff: inset 6px 6px 12px rgba(255, 255, 255, 0.08), inset -8px -8px 16px rgba(12, 12, 28, 0.3);
+  --puff-sm: inset 4px 4px 9px rgba(255, 255, 255, 0.09), inset -6px -6px 12px rgba(12, 12, 28, 0.26);
+
+  /* Card tints and row states in three colours: wisteria, lime and orange (overdue stays a warm red). */
+  --hue-red: #ee8a74;
+  --hue-orange: #da935d;
+  --hue-amber: #da935d;
+  --hue-green: #dddE68;
+  --hue-teal: #dddE68;
+  --hue-sky: #a5b2eb;
+  --hue-blue: #a5b2eb;
+  --hue-indigo: #dddE68;
+  --hue-purple: #a5b2eb;
+  --hue-pink: #da935d;
+  background: #2b2d3b;
+}
+/* Cards with no colour of their own take wisteria, lime and orange in turn. */
+:root[data-palette="dusk"] .glass:is(.card, .stat):nth-child(3n + 1) { --card-tone: var(--d-wisteria); }
+:root[data-palette="dusk"] .glass:is(.card, .stat):nth-child(3n + 2) { --card-tone: var(--d-lime); }
+:root[data-palette="dusk"] .glass:is(.card, .stat):nth-child(3n + 3) { --card-tone: var(--d-orange); }
+
+/* Page headers and the Home banner: Black Rock with the tower photo in black and white. */
+:root[data-palette="dusk"] :is(.page-head, .home-banner) { background: #23243a; }
+:root[data-palette="dusk"] .page-head::after {
+  background:
+    linear-gradient(90deg, rgba(35, 36, 58, 0.97) 0%, rgba(35, 36, 58, 0.88) 40%, rgba(35, 36, 58, 0.5) 72%, rgba(35, 36, 58, 0.2) 100%),
+    radial-gradient(60% 120% at 100% 0%, rgba(165, 178, 235, 0.16), transparent 70%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 45%);
+}
+:root[data-palette="dusk"] .home-banner .hb-shade {
+  background:
+    linear-gradient(90deg, rgba(35, 36, 58, 0.96) 0%, rgba(35, 36, 58, 0.84) 34%, rgba(35, 36, 58, 0.32) 66%, rgba(35, 36, 58, 0.06) 100%),
+    radial-gradient(50% 110% at 100% 0%, rgba(165, 178, 235, 0.18), transparent 70%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 40%);
+}
+@media (max-width: 899px) {
+  :root[data-palette="dusk"] .page-head::after {
+    background:
+      linear-gradient(90deg, rgba(35, 36, 58, 0.96) 0%, rgba(35, 36, 58, 0.8) 58%, rgba(35, 36, 58, 0.42) 100%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 45%);
+  }
+}
+:root[data-palette="dusk"] .select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23d3d5e4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+:root[data-palette="dusk"] .btn.success { color: #23243a; }
+:root[data-palette="dusk"] .l7-ic { color: #23243a; }
+
+/* ------------------------------------------------------------------ Dusk: solid highlight cards */
+/* The counts at the top of a page take lime, orange and wisteria in turn, like the picture they're
+   from; Last 7 days, Submissions and the check-in card take their own colour. Dark text on them. */
+:root:root[data-palette="dusk"] .glass.stat.stat:nth-child(3n + 1) { --card-tone: var(--d-lime); }
+:root:root[data-palette="dusk"] .glass.stat.stat:nth-child(3n + 2) { --card-tone: var(--d-orange); }
+:root:root[data-palette="dusk"] .glass.stat.stat:nth-child(3n + 3) { --card-tone: var(--d-wisteria); }
+:root[data-palette="dusk"] .glass.checkin-card { --card-tone: var(--d-wisteria); }
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) {
+  --text: #23243a;
+  --text-2: rgba(35, 36, 58, 0.8);
+  --text-3: rgba(35, 36, 58, 0.66);
+  color: var(--text);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-tone) 86%, #fff) 0%, var(--card-tone) 55%, color-mix(in srgb, var(--card-tone) 90%, #000) 100%);
+  box-shadow: 0 11px 0 var(--card-edge), var(--card-drop), inset 6px 6px 12px rgba(255, 255, 255, 0.35), inset -8px -8px 16px rgba(0, 0, 0, 0.12);
+  margin-bottom: 11px;
+}
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) :is(h1, h2, h3, b, .value, .label, .hint, .t, .title) { color: inherit; }
+:root:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) :is(h2, h3) { color: #23243a; }
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) :is(.card-head :is(h2, h3) > svg:first-child, .label svg, .checkin-card .ic, .l7-ic) {
+  color: #23243a;
+  background: rgba(35, 36, 58, 0.12);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.4);
+}
+:root[data-palette="dusk"] .glass.checkin-card .ic { color: #23243a; background: rgba(35, 36, 58, 0.12); }
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) .muted { color: var(--text-2); }
+:root[data-palette="dusk"] .glass.l7-card .l7-stats span { background: rgba(35, 36, 58, 0.1); color: var(--text-2); box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.1); }
+:root[data-palette="dusk"] .glass.l7-card .l7-stats .warn b { color: #7a3410; }
+/* Anything dark sitting on a solid card (rows, buttons, chips) keeps light text. */
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) :is(.task-row, .list-item, .alert-row, .sub-row, .btn:not(.primary):not(.brand), .icon-btn, .ptag) {
+  --text: #f5f5f8;
+  --text-2: #d3d5e4;
+  --text-3: #b0b2c8;
+  color: var(--text);
+}
+/* The lime main button would vanish on a lime card, so on these cards it's Black Rock. */
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) .btn:is(.primary, .brand) {
+  color: #f5f5f8;
+  background: linear-gradient(145deg, #3a3c52 0%, #2b2d3b 60%, #222433 100%);
+  box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.6), inset 3px 3px 6px rgba(255, 255, 255, 0.14), inset -4px -4px 8px rgba(0, 0, 0, 0.35);
+}
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) .pill {
+  color: #23243a;
+  background-color: rgba(35, 36, 58, 0.12);
+}
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) :is(.empty, .empty *) { color: var(--text-2); }
+@media (hover: hover) {
+  :root[data-palette="dusk"] :is(a, button).glass.stat:hover { box-shadow: 0 14px 0 var(--card-edge), var(--card-drop), inset 6px 6px 12px rgba(255, 255, 255, 0.35), inset -8px -8px 16px rgba(0, 0, 0, 0.12); }
+}
+:root[data-palette="dusk"] :is(a, button).glass.stat:active { box-shadow: 0 3px 0 var(--card-edge), inset 6px 6px 12px rgba(255, 255, 255, 0.3), inset 0 2px 8px rgba(0, 0, 0, 0.2); }
+@media (max-width: 640px) {
+  :root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) { box-shadow: 0 9px 0 var(--card-edge), var(--card-drop), inset 6px 6px 12px rgba(255, 255, 255, 0.35), inset -8px -8px 16px rgba(0, 0, 0, 0.12); margin-bottom: 9px; }
+}
+
+/* ------------------------------------------------------------------ the swatch in Settings > Appearance */
+.theme-swatch.dusk {
+  background:
+    radial-gradient(70% 70% at 0% 0%, rgba(165, 178, 235, 0.55), transparent 60%),
+    linear-gradient(135deg, #dddE68 0 22%, #2b2d3b 22% 60%, #da935d 60% 78%, #494c65 78%);
+}
+.theme-swatch.dusk::after {
+  border-radius: 999px;
+  background: linear-gradient(145deg, #565975, #4b4e68);
+  border-color: transparent;
+  box-shadow: 0 5px 10px -6px rgba(0, 0, 0, 0.7), inset 2px 2px 4px rgba(255, 255, 255, 0.14), inset -3px -3px 6px rgba(0, 0, 0, 0.3);
+}
+/* Dusk: each highlight card its own colour, in an order that never puts two the same side by side. */
+:root:root[data-palette="dusk"] .glass.l7-card.card { --card-tone: var(--d-wisteria); }
+:root:root[data-palette="dusk"] .glass.sub-home.card { --card-tone: var(--d-orange); }
+:root:root[data-palette="dusk"] .glass.checkin-card { --card-tone: var(--d-lime); }
+/* Coloured words on a solid card (an overdue count, a review count) turn deep so they still read. */
+:root[data-palette="dusk"] :is(.glass.stat, .glass.l7-card, .glass.sub-home, .glass.checkin-card) {
+  --purple: #34307a;
+  --red: #8c2414;
+  --orange: #7a3410;
+  --green: #3c4600;
+  --teal: #234a6e;
+  --yellow: #5c4a00;
+  --accent: #23243a;
+}
+/* The dark cards stay plain Blue Suede Shoes, like the picture; their colour is in a solid icon tile. */
+:root[data-palette="dusk"] .glass.card:not(.l7-card):not(.sub-home) {
+  background: linear-gradient(180deg, #4f5270 0%, #494c65 45%, #44475e 100%);
+}
+:root[data-palette="dusk"] .glass.card:not(.l7-card):not(.sub-home) .card-head :is(h2, h3) > svg:first-child {
+  color: #23243a;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-tone) 85%, #fff), var(--card-tone));
+  box-shadow: 0 3px 0 #2b2d3b, inset 1px 1px 0 rgba(255, 255, 255, 0.45);
 }

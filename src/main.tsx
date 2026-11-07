@@ -24,25 +24,28 @@ import "./styles/onyx.css";
 // someone chooses it in Settings > Appearance. Onyx, QS Team glass and Purple glass are the dark
 // theme with a palette on top (data-palette="onyx" / "qs" / "purple"); Pearl and Clay glass are
 // the light theme with a palette on top (data-palette="pearl" / "clay").
-// When Onyx came in (Nov 2026) every device switched to it once ("nc-look-onyx"); after that,
-// whatever someone picks in Settings stays.
+// Dusk (the same clay in a twilight palette: Black Rock, Blue Suede Shoes and Daemonette Hide with
+// solid Succulent Lime, Wondrous Wisteria and Persian Orange highlight cards) is now the default.
+// When Onyx came in (Nov 2026) every device switched to it once ("nc-look-onyx"), and again to Dusk
+// when it came in ("nc-look-dusk"); after that, whatever someone picks in Settings stays.
 // Glass is the default for everyone. Solid surfaces only come on when switched on again in
 // Settings > Appearance; the old setting ("nc-solid") is cleared so every phone starts on glass.
 try {
-  if (!localStorage.getItem("nc-look-onyx")) {
-    localStorage.setItem("nc-theme", "onyx");
+  if (!localStorage.getItem("nc-look-dusk")) {
+    localStorage.setItem("nc-theme", "dusk");
+    localStorage.setItem("nc-look-dusk", "1");
     localStorage.setItem("nc-look-onyx", "1");
   }
-  const theme = localStorage.getItem("nc-theme") || "onyx";
-  if (theme === "dark" || theme === "purple" || theme === "qs" || theme === "onyx") document.documentElement.dataset.theme = "dark";
+  const theme = localStorage.getItem("nc-theme") || "dusk";
+  if (theme === "dark" || theme === "purple" || theme === "qs" || theme === "onyx" || theme === "dusk") document.documentElement.dataset.theme = "dark";
   else if (theme !== "system") document.documentElement.dataset.theme = "light";
-  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx" || theme === "pearl") document.documentElement.dataset.palette = theme;
+  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx" || theme === "pearl" || theme === "dusk") document.documentElement.dataset.palette = theme;
   localStorage.removeItem("nc-solid");
   if (localStorage.getItem("nc-solid-v2") === "true") document.documentElement.dataset.solid = "true";
 } catch {
-  /* storage can be blocked; the Onyx default still applies */
+  /* storage can be blocked; the Dusk default still applies */
   document.documentElement.dataset.theme = "dark";
-  document.documentElement.dataset.palette = "onyx";
+  document.documentElement.dataset.palette = "dusk";
 }
 
 startScrollHints();
