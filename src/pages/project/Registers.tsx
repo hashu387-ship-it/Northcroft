@@ -269,7 +269,7 @@ export function Registers({ project }: { project: Project }) {
                 i.due_on ? `Due ${fmtDate(i.due_on, { weekday: "short", day: "numeric", month: "short" })}` : null,
               ].filter(Boolean);
               return (
-                <button key={i.id} type="button" className={clsx("reg-row", i.status === "closed" && "closed")} onClick={() => setParam({ item: i.id, new: null })}>
+                <button key={i.id} type="button" className={clsx("reg-row", i.status === "closed" && "closed", late(i, today) && "late")} onClick={() => setParam({ item: i.id, new: null })}>
                   <span className="grow">
                     <span className="t">{itemLabel(i)}</span>
                     <span className={clsx("m", late(i, today) && "reg-late")}>{meta.join(" · ") || "Nobody on it yet"}</span>

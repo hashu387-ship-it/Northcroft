@@ -56,7 +56,7 @@ export function MyEisCard() {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2 className="tone-blue">
+        <h2 className="tone-indigo">
           <ClipboardList /> My EIs
         </h2>
         {list.length > 0 && <Pill tone="blue">{list.length} open</Pill>}
@@ -75,7 +75,7 @@ export function MyEisCard() {
             const role = i.responsible_id === me.id ? "Northcroft responsible" : i.assignees.includes(me.id) ? "Assigned" : subSet.has(i.id) ? "Sub task" : null;
             const p = projects.get(i.project_id);
             return (
-              <Link key={i.id} to={`/projects/${i.project_id}/registers?cat=${i.category_id}&item=${i.id}`} className="alert-row">
+              <Link key={i.id} to={`/projects/${i.project_id}/registers?cat=${i.category_id}&item=${i.id}`} className={late ? "alert-row late" : "alert-row"}>
                 <span className="tag" style={{ background: late ? "var(--red-soft)" : "var(--accent-soft)", color: late ? "var(--red)" : "var(--accent)" }}>
                   <ClipboardList />
                 </span>

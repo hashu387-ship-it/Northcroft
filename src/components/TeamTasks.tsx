@@ -1,6 +1,6 @@
 // Every open task in the team, grouped under each person: the "Ongoing tasks" card on Home and
 // the full list on the tasks screen. A task with several people on it shows under each of them.
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ListTodo } from "lucide-react";
 import clsx from "clsx";
@@ -62,7 +62,7 @@ function PersonBlock({ g, limit, counts }: { g: PersonTasks; limit?: number; cou
   const shown = limit && !all ? g.tasks.slice(0, limit) : g.tasks;
   const more = g.tasks.length - shown.length;
   return (
-    <section className="tt-person">
+    <section className="tt-person" style={g.person?.color ? ({ ["--person" as string]: g.person.color } as CSSProperties) : undefined}>
       <div className="tt-head">
         <Avatar person={g.person} size={30} />
         <div className="grow" style={{ minWidth: 0 }}>

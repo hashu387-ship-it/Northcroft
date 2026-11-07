@@ -789,58 +789,153 @@
 /* Every row of every list (tasks, EIs, submissions, inbox, chats, files, people, events, checklists,
    activity and the rest) is its own thick clay block with a solid side edge, like the table rows, with
    room between blocks instead of divider lines. A group (a person in Ongoing tasks and the team tasks
-   page) is one big block, and the tasks inside it are smaller, lighter blocks stacked on it. Small
-   chips (status pills, priority, the project name) are raised clay pills. Blocks lift on hover and
-   sink when tapped; on phones they're lighter so long lists scroll smoothly. */
+   page) is one big block in that person's colour, and the tasks inside it are smaller, lighter blocks
+   stacked on it. Cards each take their own colour, and rows show their state in colour, so nothing
+   blends together. Small chips (status pills, priority, the project name) are raised clay pills.
+   Blocks lift on hover and sink when tapped; on phones they're lighter so long lists scroll smoothly.
+   Colours are worked out on each element from a tone (--card-tone, --person, --row-tone), so one set
+   of rules serves both looks. */
 :root[data-palette="onyx"] {
-  --block-face: linear-gradient(180deg, #35353b, #2b2b30);
+  --block-hi: #35353b;
+  --block-lo: #2b2b30;
   --block-edge: #101012;
   --block-drop: 0 16px 20px -10px rgba(0, 0, 0, 0.85);
-  --block-face-2: linear-gradient(180deg, #414148, #36363c);
+  --block-hi-2: #414148;
+  --block-lo-2: #36363c;
   --block-edge-2: #19191c;
   --block-drop-2: 0 12px 16px -9px rgba(0, 0, 0, 0.75);
-  --group-face: linear-gradient(180deg, #303036, #27272c);
+  --group-hi: #303036;
+  --group-lo: #27272c;
   --group-edge: #0b0b0d;
   --group-drop: 0 24px 28px -14px rgba(0, 0, 0, 0.9);
+  --card-edge: #0b0b0d;
   --block-light: rgba(255, 255, 255, 0.12);
   --block-shade: rgba(0, 0, 0, 0.22);
   --block-press: inset 0 2px 6px rgba(0, 0, 0, 0.35);
   --chip-face: linear-gradient(180deg, #4b4b53, #3e3e45);
   --chip-light: rgba(255, 255, 255, 0.2);
   --chip-edge-mix: #000;
+  /* How strongly a colour shows: the tint of a face, and the colour of a side edge. */
+  --tint-top: 17%;
+  --tint-bottom: 10%;
+  --row-tint-top: 9%;
+  --row-tint-bottom: 5%;
+  --edge-mix: 58%;
+  --ink-mix: #fff;
 }
 :root[data-palette="pearl"] {
-  --block-face: linear-gradient(180deg, #ffffff, #f1efea);
+  --block-hi: #ffffff;
+  --block-lo: #f1efea;
   --block-edge: #d3cec3;
   --block-drop: 0 16px 20px -10px rgba(110, 103, 90, 0.4);
-  --block-face-2: linear-gradient(180deg, #ffffff, #f8f7f3);
+  --block-hi-2: #ffffff;
+  --block-lo-2: #f8f7f3;
   --block-edge-2: #d6d1c6;
   --block-drop-2: 0 12px 16px -9px rgba(110, 103, 90, 0.32);
-  --group-face: linear-gradient(180deg, #f1efe9, #e8e5de);
+  --group-hi: #f1efe9;
+  --group-lo: #e8e5de;
   --group-edge: #c9c3b6;
   --group-drop: 0 24px 28px -14px rgba(110, 103, 90, 0.45);
+  --card-edge: #c9c3b6;
   --block-light: #ffffff;
   --block-shade: rgba(110, 103, 90, 0.1);
   --block-press: inset 0 2px 6px rgba(110, 103, 90, 0.18);
   --chip-face: linear-gradient(180deg, #ffffff, #f1efea);
   --chip-light: rgba(255, 255, 255, 0.75);
   --chip-edge-mix: #6e675a;
+  --tint-top: 15%;
+  --tint-bottom: 9%;
+  --row-tint-top: 8%;
+  --row-tint-bottom: 4%;
+  --edge-mix: 50%;
+  --ink-mix: #000;
+}
+/* The colours: one set for both looks, bright enough for charcoal and deep enough for light grey. */
+:root:is([data-palette="onyx"], [data-palette="pearl"]) {
+  --hue-red: #ff6b6b;
+  --hue-orange: #ff9a52;
+  --hue-amber: #f2b33d;
+  --hue-green: #4fd17f;
+  --hue-teal: #3ccfbf;
+  --hue-sky: #47c0ee;
+  --hue-blue: #5b9dff;
+  --hue-indigo: #8a8aff;
+  --hue-purple: #b383ff;
+  --hue-pink: #ff6fae;
 }
 
-/* The block: a clay face, a solid 7px side edge and a soft shadow under it. */
+/* ------------------------------------------------------------------ cards: each its own colour */
+/* A card takes the colour of its icon (the tone on its heading); a card without one takes the next
+   colour in turn, so cards next to each other never match. The card is tinted with it and stands on a
+   solid edge in a deeper shade of it; its icon tile takes it too. */
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 1) { --card-tone: var(--hue-blue); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 2) { --card-tone: var(--hue-teal); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 3) { --card-tone: var(--hue-purple); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 4) { --card-tone: var(--hue-amber); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 5) { --card-tone: var(--hue-green); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 6) { --card-tone: var(--hue-pink); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 7) { --card-tone: var(--hue-sky); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):nth-child(8n + 8) { --card-tone: var(--hue-orange); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-red, :has(> .card-head .tone-red)) { --card-tone: var(--hue-red); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-orange, :has(> .card-head .tone-orange)) { --card-tone: var(--hue-orange); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-amber, :has(> .card-head .tone-amber)) { --card-tone: var(--hue-amber); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-green, :has(> .card-head .tone-green)) { --card-tone: var(--hue-green); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-teal, :has(> .card-head .tone-teal)) { --card-tone: var(--hue-teal); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-sky, :has(> .card-head .tone-sky)) { --card-tone: var(--hue-sky); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-blue, :has(> .card-head .tone-blue)) { --card-tone: var(--hue-blue); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-indigo, :has(> .card-head .tone-indigo)) { --card-tone: var(--hue-indigo); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-purple, :has(> .card-head .tone-purple)) { --card-tone: var(--hue-purple); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat):is(.tone-pink, :has(> .card-head .tone-pink)) { --card-tone: var(--hue-pink); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-tone) var(--tint-top), var(--clay)) 0%, color-mix(in srgb, var(--card-tone) var(--tint-bottom), var(--clay)) 100%);
+  box-shadow: 0 8px 0 color-mix(in srgb, var(--card-tone) var(--edge-mix), var(--card-edge)), var(--clay-panel);
+}
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat) :is(.card-head :is(h2, h3) > svg:first-child, .label svg) {
+  color: color-mix(in srgb, var(--card-tone) 80%, var(--ink-mix));
+  background: color-mix(in srgb, var(--card-tone) 22%, transparent);
+}
+/* Cards that are buttons or links: the same lift and press as the blocks. */
+@media (hover: hover) {
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a, button).glass:is(.card, .stat):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 0 color-mix(in srgb, var(--card-tone) var(--edge-mix), var(--card-edge)), var(--clay-panel);
+  }
+}
+:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a, button).glass:is(.card, .stat):active {
+  transform: translateY(4px);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--card-tone) var(--edge-mix), var(--card-edge)), var(--clay-panel);
+}
+
+/* ------------------------------------------------------------------ rows: the block */
+/* Each block works from its face colours (--rhi, --rlo), its edge (--redge) and a tone (--row-tone,
+   none by default). A tone tints the face and colours the edge. */
 :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person) {
+  --rhi: var(--block-hi);
+  --rlo: var(--block-lo);
+  --redge: var(--block-edge);
+  --rdrop: var(--block-drop);
+  --rface: linear-gradient(180deg, var(--rhi), var(--rlo));
   position: relative;
   border: 0;
   border-radius: 16px;
   padding: 12px 14px;
   margin: 0 0 15px;
-  background: var(--block-face);
-  box-shadow: 0 7px 0 var(--block-edge), var(--block-drop), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
+  background: var(--rface);
+  box-shadow: 0 7px 0 var(--redge), var(--rdrop), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
   transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row):last-child { margin-bottom: 7px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) .team-snap .person { padding: 10px 12px; margin: 0; }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person):last-child { margin-bottom: 7px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .team-snap .person { padding: 10px 12px; margin: 0 !important; }
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .team-snap { gap: 18px 12px; padding-bottom: 7px; }
+/* Rows with a state: overdue red, waiting for review purple, on hold amber, done or closed green. */
+:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row.st-late, .alert-row.late, .reg-row.late) { --row-tone: var(--hue-red); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .task-row.st-review { --row-tone: var(--hue-purple); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .task-row.st-hold { --row-tone: var(--hue-amber); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row.st-done, .reg-row.closed, .sub-row.closed) { --row-tone: var(--hue-green); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row:is(.st-late, .st-review, .st-hold, .st-done), .alert-row.late, .reg-row:is(.late, .closed), .sub-row.closed) {
+  --rface: linear-gradient(180deg, color-mix(in srgb, var(--row-tone) var(--row-tint-top), var(--rhi)), color-mix(in srgb, var(--row-tone) var(--row-tint-bottom), var(--rlo)));
+  --redge: color-mix(in srgb, var(--row-tone) var(--edge-mix), var(--block-edge));
+}
 /* The old divider lines between rows are gone: the gaps between blocks do that now. */
 :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.chat-item, .notif)::before { content: none; }
 /* Lists that were one framed box are now just a stack of blocks. */
@@ -857,9 +952,9 @@
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-row:last-child { margin-bottom: 7px; }
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-front > * { margin: 0 !important; }
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-row:is([data-side="lead"], [data-side="trail"]) .swipe-front { background: none; box-shadow: none; }
-/* States: an unread notice has a faint tint; the open chat is pressed in. */
+/* An unread notice has a faint tint; the open chat is pressed in. */
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .notif.unread {
-  background: linear-gradient(color-mix(in srgb, var(--accent) 7%, transparent), color-mix(in srgb, var(--accent) 7%, transparent)), var(--block-face);
+  --rface: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--rhi)), color-mix(in srgb, var(--accent) 6%, var(--rlo)));
 }
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .chat-item.active {
   background: var(--well);
@@ -871,52 +966,52 @@
 
 /* Tappable blocks lift a little under the mouse and sink in when pressed. */
 @media (hover: hover) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .day-item[role="button"], .chat-item:not(.active), .notif, .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person):hover {
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .chat-item:not(.active), .notif, .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person):hover {
+    background: var(--rface);
     transform: translateY(-3px);
-    box-shadow: 0 10px 0 var(--block-edge), var(--block-drop), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
+    box-shadow: 0 10px 0 var(--redge), var(--rdrop), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
   }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .chat-item:not(.active), .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person, .files > .file):hover { background: var(--block-face); }
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) .files > .file:hover { background: var(--rface); }
 }
 :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .chat-item:not(.active), .notif, .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person):active {
+  background: var(--rface);
   transform: translateY(5px);
-  box-shadow: 0 2px 0 var(--block-edge), var(--block-press);
+  box-shadow: 0 2px 0 var(--redge), var(--block-press);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(a.task-row, a.list-item, button.list-item, a.alert-row, a.event-row, a.day-item, .chat-item:not(.active), .reg-row, a.sub-row, button.sub-row, .pick-row, .team-snap .person):active { background: var(--block-face); }
 
-/* ------------------------------------------------------------------ groups: a person is one big block */
+/* ------------------------------------------------------------------ groups: a person is one big block in their colour */
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-stack { gap: 26px; }
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-grid { gap: 26px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) {
+/* On the team tasks page the card only holds the person's block. */
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .glass.tt-card { background: none; box-shadow: none; padding: 0; border: 0; }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person {
+  --person: var(--text-3);
   border: 0;
   border-radius: 26px;
   padding: 14px 14px 10px;
-  background: var(--group-face);
-  box-shadow: 0 9px 0 var(--group-edge), var(--group-drop), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--person) var(--tint-top), var(--group-hi)), color-mix(in srgb, var(--person) var(--tint-bottom), var(--group-lo)));
+  box-shadow: 0 9px 0 color-mix(in srgb, var(--person) var(--edge-mix), var(--group-edge)), var(--group-drop), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) .tt-head { margin-bottom: 12px; padding: 0 2px; }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) .tt-list { border-radius: 0; }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .tt-head { margin-bottom: 12px; padding: 0 2px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .tt-list { border-radius: 0; }
 /* The tasks inside a person: smaller, lighter blocks stacked on the person's block. */
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) .task-row {
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .task-row {
+  --rhi: var(--block-hi-2);
+  --rlo: var(--block-lo-2);
+  --redge: var(--block-edge-2);
+  --rdrop: var(--block-drop-2);
   padding: 11px 12px;
   margin-bottom: 13px;
   border-radius: 14px;
-  background: var(--block-face-2);
-  box-shadow: 0 6px 0 var(--block-edge-2), var(--block-drop-2), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
+  box-shadow: 0 6px 0 var(--redge), var(--rdrop), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) .task-row:last-child { margin-bottom: 6px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .task-row:is(.st-late, .st-review, .st-hold, .st-done) { --redge: color-mix(in srgb, var(--row-tone) var(--edge-mix), var(--block-edge-2)); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .task-row:last-child { margin-bottom: 6px; }
 @media (hover: hover) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) a.task-row:hover {
-    background: var(--block-face-2);
-    transform: translateY(-3px);
-    box-shadow: 0 9px 0 var(--block-edge-2), var(--block-drop-2), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
-  }
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person a.task-row:hover { box-shadow: 0 9px 0 var(--redge), var(--rdrop), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade); }
 }
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) a.task-row:active {
-  background: var(--block-face-2);
-  transform: translateY(4px);
-  box-shadow: 0 2px 0 var(--block-edge-2), var(--block-press);
-}
-:root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) .tt-more { margin-top: 2px; }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person a.task-row:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--redge), var(--block-press); }
+:root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .tt-more { margin-top: 2px; }
 
 /* ------------------------------------------------------------------ chips: small raised clay pills */
 :root:is([data-palette="onyx"], [data-palette="pearl"]) .pill {
@@ -952,26 +1047,27 @@
 @media (max-width: 640px) {
   :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person) {
     margin-bottom: 13px;
-    box-shadow: 0 5px 0 var(--block-edge), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
+    box-shadow: 0 5px 0 var(--redge), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
   }
   :root:is([data-palette="onyx"], [data-palette="pearl"]) .chat-item.active { box-shadow: var(--clay-well-sm); }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) {
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person {
     padding: 12px 10px 8px;
     border-radius: 22px;
-    box-shadow: 0 7px 0 var(--group-edge), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
+    box-shadow: 0 7px 0 color-mix(in srgb, var(--person) var(--edge-mix), var(--group-edge)), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
   }
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.tt-person, .tt-card) .task-row {
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-person .task-row {
     margin-bottom: 11px;
-    box-shadow: 0 4px 0 var(--block-edge-2), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
+    box-shadow: 0 4px 0 var(--redge), inset 0 1px 0 var(--block-light), inset 0 -2px 0 var(--block-shade);
   }
   :root:is([data-palette="onyx"], [data-palette="pearl"]) .swipe-row { margin-bottom: 13px; }
   :root:is([data-palette="onyx"], [data-palette="pearl"]) .tt-stack { gap: 22px; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) .glass:is(.card, .stat) { box-shadow: 0 6px 0 color-mix(in srgb, var(--card-tone) var(--edge-mix), var(--card-edge)), var(--clay-panel); }
 }
 @media (prefers-reduced-motion: reduce) {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .reg-row, .sub-row, .pick-row, .team-snap .person) { transition: none; transform: none !important; }
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .reg-row, .sub-row, .pick-row, .team-snap .person, a.glass, button.glass) { transition: none; transform: none !important; }
 }
 @media print {
-  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person, .tt-person, .tt-card, .pill, .prio, .ptag) {
+  :root:is([data-palette="onyx"], [data-palette="pearl"]) :is(.task-row, .list-item, .alert-row, .event-row, .day-item, .chat-item, .notif, .files > .file, .reg-row, .reg-sublist li, .sub-row, .member-row, .pick-row, .du-item, .wk-people li, .wk-projects li, .cl-item, .feed-item, .ap-row, .team-snap .person, .tt-person, .pill, .prio, .ptag) {
     box-shadow: none !important;
     transform: none !important;
   }

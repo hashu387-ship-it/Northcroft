@@ -419,7 +419,7 @@ function TeamSnapshot() {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2 className="tone-green">
+        <h2 className="tone-teal">
           <Users /> Team today
         </h2>
         <Link to="/attendance">Attendance</Link>
@@ -573,7 +573,7 @@ function QsAlertsCard() {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2 className="tone-red">
+        <h2 className="tone-pink">
           <TriangleAlert /> QS alerts
         </h2>
         <div className="row" style={{ gap: 6 }}>
@@ -589,7 +589,7 @@ function QsAlertsCard() {
           {boqList.slice(0, 6).map((b) => {
             const late = b.due_date! < today;
             return (
-              <Link key={b.id} to={`/projects/${b.project_id}/boq`} className="alert-row">
+              <Link key={b.id} to={`/projects/${b.project_id}/boq`} className={late ? "alert-row late" : "alert-row"}>
                 <span className="tag" style={{ background: late ? "var(--red-soft)" : "var(--teal-soft)", color: late ? "var(--red)" : "var(--teal)" }}>
                   <Layers />
                 </span>
@@ -627,7 +627,7 @@ function EventsCard() {
   return (
     <div className="glass card">
       <div className="card-head">
-        <h2 className="tone-blue">
+        <h2 className="tone-sky">
           <CalendarDays /> Coming up
         </h2>
         <Link to="/calendar">Calendar</Link>

@@ -87,6 +87,10 @@
 .tone-orange { --tile-bg: var(--orange-soft); --tile-fg: var(--orange); }
 .tone-blue { --tile-bg: var(--accent-soft); --tile-fg: var(--accent); }
 .tone-teal { --tile-bg: var(--teal-soft); --tile-fg: var(--teal); }
+.tone-indigo { --tile-bg: rgba(94, 92, 230, 0.14); --tile-fg: #5e5ce6; }
+.tone-pink { --tile-bg: rgba(233, 30, 99, 0.12); --tile-fg: #e91e63; }
+.tone-sky { --tile-bg: rgba(15, 163, 177, 0.13); --tile-fg: #0e93a0; }
+.tone-amber { --tile-bg: rgba(201, 162, 39, 0.16); --tile-fg: #a8800c; }
 
 /* ------------------------------------------------------------------ Home banner */
 .home-banner {

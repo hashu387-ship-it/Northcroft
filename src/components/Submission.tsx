@@ -72,7 +72,7 @@ export function SubmissionsHomeCard() {
   return (
     <div className="glass card sub-home">
       <div className="card-head">
-        <h2 className="tone-orange">
+        <h2 className="tone-amber">
           <FileClock /> Submissions
         </h2>
         <div className="row wrap" style={{ gap: 6, justifyContent: "flex-end" }}>

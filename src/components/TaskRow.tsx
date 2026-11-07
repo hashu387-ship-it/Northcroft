@@ -8,6 +8,7 @@ import { useMe } from "@/lib/auth";
 import { peopleOn } from "@/lib/people";
 import { reviewLabel, useSignoff } from "@/lib/signoff";
 import type { Task } from "@/lib/types";
+import { todayISO } from "@/lib/time";
 import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing, useToast } from "./ui";
 import { ProgressChip } from "@/pages/updates/TaskProgress";
 
@@ -28,8 +29,11 @@ export function TaskRow({
   const me = useMe();
   const changesRequested = !!task.changes_note && (task.status === "in_progress" || task.status === "todo");
   const team = peopleOn(task);
+  // Its state, so a look can colour the row: done, on hold, waiting for review, or overdue.
+  const state =
+    task.status === "done" ? "done" : task.hold === "on" ? "hold" : task.status === "in_review" ? "review" : task.due_date && task.due_date < todayISO() ? "late" : null;
   return (
-    <Link to={`/tasks/${task.id}`} className={clsx("task-row", task.status === "done" && "done")}>
+    <Link to={`/tasks/${task.id}`} className={clsx("task-row", task.status === "done" && "done", state && `st-${state}`)}>
       <StatusRing status={task.status} />
       <div className="body">
         <div className="t">{task.title}</div>
