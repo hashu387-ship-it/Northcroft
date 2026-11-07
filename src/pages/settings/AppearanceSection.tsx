@@ -83,9 +83,8 @@ export function AppearanceSection() {
         </div>
         <div className="muted small">
           Northcroft navy is the default: deep navy clay with white text, the Northcroft red main button, soft blue highlights,
-          and each card's icon in its own colour. Onyx is soft charcoal clay in the Northcroft QS Team world, with film grain, a soft red glow and the skyline,
-          white serif headings, puffy clay buttons that squash when you press them, and every row of a table as its own thick clay
-          block. Pearl is the same clay in warm light grey, with black ink and the logo on its black plate. QS Team glass is deep navy with a blue glow and the Riyadh skyline along the
+          and each card's icon in its own colour. Onyx is black and gold: near-black clay with champagne gold icons, counts, links and
+          buttons, white serif headings, and every row of a table as its own thick clay block. Pearl is the same clay in warm light grey, with black ink and the logo on its black plate. QS Team glass is deep navy with a blue glow and the Riyadh skyline along the
           bottom. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass
           but makes cards, buttons and tabs soft and puffy, like clay, and buttons sink a little when you press them. Automatic follows your phone or
           computer, switching to dark at night if you've set it up that way.

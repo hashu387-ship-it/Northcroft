@@ -1243,3 +1243,194 @@
   border-color: transparent;
   box-shadow: 0 5px 10px -6px rgba(0, 0, 0, 0.8), inset 2px 2px 4px rgba(255, 255, 255, 0.12), inset -3px -3px 6px rgba(0, 6, 20, 0.35);
 }
+
+/* ================================================================== Onyx: black and gold */
+/* Onyx is near-black clay with champagne gold: neutral charcoal cards, gold icon chips, gold counts,
+   gold links and highlights, and a gold main button, with warm white text. Task states keep soft
+   colours (overdue coral, review lavender, on hold amber, done sage). Same 3D clay as the other looks;
+   these colours sit on top of the shared Onyx rules above. */
+:root[data-palette="onyx"] {
+  --canvas: #121214;
+  --abyss: #08080a;
+  --canvas-high: #1d1c20;
+  --horizon: #1a1a1d;
+  --skyline: #1c1c20;
+  --streak: rgba(255, 244, 220, 0.06);
+  --grain: rgba(255, 255, 255, 0.05);
+  --signal-glow: rgba(212, 176, 106, 0.09);
+  --clay: #1f1f23;
+  --well: #17171a;
+  --clay-hi: #27272c;
+  --clay-lo: #1f1f23;
+  --line: rgba(245, 243, 238, 0.1);
+  --rim: #f5f3ee;
+  --ink: #f5f3ee;
+  --ink-muted: #c9c5bc;
+  --ink-subtle: #a6a195;
+  --silver: #b9b1a0;
+  --field-edge: #7f796d;
+  /* Champagne gold: the main button, links, highlights, icon chips and counts. */
+  --primary: #d4b06a;
+  --primary-bright: #e8cd94;
+  --primary-deep: #b8934c;
+  --on-primary: #1a160d;
+  --accent: #d4b06a;
+  --on-accent: #1a160d;
+  --accent-soft: rgba(212, 176, 106, 0.16);
+  --brand: #d4b06a;
+  --brand-soft: rgba(212, 176, 106, 0.12);
+  --focus-ring: 0 0 0 2px #121214, 0 0 0 4px #d4b06a;
+  --glow-rim: 0 0 0 1px rgba(212, 176, 106, 0.4), 0 0 22px rgba(212, 176, 106, 0.18);
+  --clay-primary: 0 12px 22px -10px rgba(0, 0, 0, 0.9), inset 3px 3px 6px rgba(255, 250, 235, 0.55), inset -5px -5px 10px rgba(90, 62, 12, 0.35);
+
+  /* Task states, soft on charcoal. */
+  --red: #f08a7e;
+  --red-soft: rgba(240, 138, 126, 0.15);
+  --purple: #b8a9e8;
+  --purple-soft: rgba(184, 169, 232, 0.15);
+  --yellow: #e8b65a;
+  --yellow-soft: rgba(232, 182, 90, 0.15);
+  --orange: #e8a06a;
+  --orange-soft: rgba(232, 160, 106, 0.15);
+  --green: #8cc9a0;
+  --green-soft: rgba(140, 201, 160, 0.15);
+  --teal: #8cc0c4;
+  --teal-soft: rgba(140, 192, 196, 0.15);
+  --gray: #a6a195;
+
+  /* The clay blocks. */
+  --block-hi: #2b2b30;
+  --block-lo: #242428;
+  --block-edge: #0b0b0d;
+  --block-hi-2: #34343a;
+  --block-lo-2: #2c2c31;
+  --block-edge-2: #131315;
+  --group-hi: #2b2b30;
+  --group-lo: #252529;
+  --group-edge: #09090b;
+  --card-edge: #060607;
+  --chip-face: linear-gradient(180deg, #3a3a41, #303036);
+  /* A person keeps only a faint hint of their colour; row states a light wash. */
+  --tint-top: 7%;
+  --tint-bottom: 4%;
+  --row-tint-top: 8%;
+  --row-tint-bottom: 4%;
+  --hue-red: #f08a7e;
+  --hue-purple: #b8a9e8;
+  --hue-amber: #e8b65a;
+  --hue-green: #8cc9a0;
+  background: #121214;
+}
+/* Cards are plain charcoal; their icon sits in a solid gold chip and the counts are gold. */
+:root[data-palette="onyx"] .glass:is(.card, .stat) {
+  background: linear-gradient(180deg, #252529 0%, #1f1f23 55%, #1b1b1e 100%);
+}
+:root[data-palette="onyx"] .glass:is(.card, .stat) :is(.card-head :is(h2, h3) > svg:first-child, .label svg) {
+  color: #1a160d;
+  background: linear-gradient(180deg, #e8cd94, #d4b06a 60%, #c09a52);
+  box-shadow: 0 3px 0 #060607, inset 1px 1px 0 rgba(255, 250, 235, 0.6);
+}
+:root[data-palette="onyx"] .glass.stat .value { color: #e2c48a; }
+:root[data-palette="onyx"] .l7-ic { color: #1a160d; }
+/* Menu: the current page's icon tile glows gold. */
+:root[data-palette="onyx"] .sidebar .nav a.active .nav-ic,
+:root[data-palette="onyx"] .tabbar a.active .tab-ic { box-shadow: var(--clay-xs), var(--glow-rim); }
+/* Page headers and the Home banner: black with the tower photo and a warm gold light. */
+:root[data-palette="onyx"] .page-head::after {
+  background:
+    linear-gradient(90deg, rgba(13, 13, 15, 0.97) 0%, rgba(13, 13, 15, 0.88) 40%, rgba(13, 13, 15, 0.5) 72%, rgba(13, 13, 15, 0.2) 100%),
+    radial-gradient(60% 120% at 100% 0%, rgba(212, 176, 106, 0.14), transparent 70%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 45%);
+}
+:root[data-palette="onyx"] .home-banner .hb-shade {
+  background:
+    linear-gradient(90deg, rgba(13, 13, 15, 0.96) 0%, rgba(13, 13, 15, 0.84) 34%, rgba(13, 13, 15, 0.32) 66%, rgba(13, 13, 15, 0.06) 100%),
+    radial-gradient(50% 110% at 100% 0%, rgba(212, 176, 106, 0.16), transparent 70%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 40%);
+}
+@media (max-width: 899px) {
+  :root[data-palette="onyx"] .page-head::after {
+    background:
+      linear-gradient(90deg, rgba(13, 13, 15, 0.96) 0%, rgba(13, 13, 15, 0.8) 58%, rgba(13, 13, 15, 0.42) 100%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 45%);
+  }
+}
+/* The swatch in Settings > Appearance: black with a gold glow and a gold chip. */
+.theme-swatch.onyx {
+  background:
+    radial-gradient(70% 70% at 100% 0%, rgba(212, 176, 106, 0.45), transparent 65%),
+    radial-gradient(90% 60% at 50% -15%, #26262b 0%, transparent 62%),
+    #121214;
+}
+.theme-swatch.onyx::after {
+  background: linear-gradient(145deg, #e8cd94, #c09a52);
+  box-shadow: 0 5px 10px -6px rgba(0, 0, 0, 0.85), inset 2px 2px 4px rgba(255, 250, 235, 0.5), inset -3px -3px 6px rgba(90, 62, 12, 0.3);
+}
+/* The check-in card's icon when nothing is going on (navy in the other looks): gold in Onyx, soft blue
+   in Northcroft navy. Green and orange states keep their colour. */
+:root[data-palette="onyx"] .checkin-card .ic.ic-plain {
+  color: #1a160d;
+  background: linear-gradient(180deg, #e8cd94, #d4b06a 60%, #c09a52) !important;
+}
+:root[data-palette="navy"] .checkin-card .ic.ic-plain {
+  color: #0b1a33;
+  background: linear-gradient(180deg, #a9cbff, #7fb2ff 60%, #5f97ec) !important;
+}
+
+/* ------------------------------------------------------------------ Onyx: each card its own jewel tone */
+/* On a dark theme the cards share one neutral charcoal and are told apart by muted accents of equal
+   lightness and strength (OKLCH lightness 0.76, chroma 0.09), so no card shouts louder than another.
+   The accent sits where the eye looks for it: a solid icon chip, the count, and a faint wash on the
+   face. Each colour follows what the card is for; gold stays for the main button and links. */
+:root[data-palette="onyx"] {
+  --j-ruby: oklch(0.74 0.1 20);
+  --j-rose: oklch(0.76 0.09 350);
+  --j-copper: oklch(0.76 0.09 55);
+  --j-gold: oklch(0.8 0.09 88);
+  --j-emerald: oklch(0.76 0.09 152);
+  --j-jade: oklch(0.77 0.08 190);
+  --j-cyan: oklch(0.76 0.08 225);
+  --j-sapphire: oklch(0.74 0.09 262);
+  --j-indigo: oklch(0.74 0.09 285);
+  --j-amethyst: oklch(0.75 0.09 315);
+  /* The same set feeds the task states: overdue ruby, review amethyst, on hold gold, done emerald. */
+  --hue-red: var(--j-ruby);
+  --hue-pink: var(--j-rose);
+  --hue-orange: var(--j-copper);
+  --hue-amber: var(--j-gold);
+  --hue-green: var(--j-emerald);
+  --hue-teal: var(--j-jade);
+  --hue-sky: var(--j-cyan);
+  --hue-blue: var(--j-sapphire);
+  --hue-indigo: var(--j-indigo);
+  --hue-purple: var(--j-amethyst);
+}
+/* Cards without a colour of their own take the jewels in turn (never ruby, which means "alert"). */
+:root[data-palette="onyx"] .glass:is(.card, .stat):nth-child(7n + 1) { --card-tone: var(--j-sapphire); }
+:root[data-palette="onyx"] .glass:is(.card, .stat):nth-child(7n + 2) { --card-tone: var(--j-emerald); }
+:root[data-palette="onyx"] .glass:is(.card, .stat):nth-child(7n + 3) { --card-tone: var(--j-copper); }
+:root[data-palette="onyx"] .glass:is(.card, .stat):nth-child(7n + 4) { --card-tone: var(--j-amethyst); }
+:root[data-palette="onyx"] .glass:is(.card, .stat):nth-child(7n + 5) { --card-tone: var(--j-jade); }
+:root[data-palette="onyx"] .glass:is(.card, .stat):nth-child(7n + 6) { --card-tone: var(--j-gold); }
+:root[data-palette="onyx"] .glass:is(.card, .stat):nth-child(7n + 7) { --card-tone: var(--j-cyan); }
+/* Cards with a colour keep it (the tone rules above, now with the jewels) and outrank the turn order. */
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-red, :has(> .card-head .tone-red)) { --card-tone: var(--j-ruby); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-pink, :has(> .card-head .tone-pink)) { --card-tone: var(--j-rose); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-orange, :has(> .card-head .tone-orange)) { --card-tone: var(--j-copper); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-amber, :has(> .card-head .tone-amber)) { --card-tone: var(--j-gold); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-green, :has(> .card-head .tone-green)) { --card-tone: var(--j-emerald); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-teal, :has(> .card-head .tone-teal)) { --card-tone: var(--j-jade); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-sky, :has(> .card-head .tone-sky)) { --card-tone: var(--j-cyan); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-blue, :has(> .card-head .tone-blue)) { --card-tone: var(--j-sapphire); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-indigo, :has(> .card-head .tone-indigo)) { --card-tone: var(--j-indigo); }
+:root:root[data-palette="onyx"] .glass:is(.card, .stat):is(.tone-purple, :has(> .card-head .tone-purple)) { --card-tone: var(--j-amethyst); }
+/* The card: charcoal with a faint wash of its jewel; its icon chip solid; its count in the jewel. */
+:root[data-palette="onyx"] .glass:is(.card, .stat) {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--card-tone) 19%, #242428) 0%, color-mix(in oklab, var(--card-tone) 12%, #1f1f23) 55%, color-mix(in oklab, var(--card-tone) 8%, #1b1b1e) 100%);
+}
+:root[data-palette="onyx"] .glass:is(.card, .stat) :is(.card-head :is(h2, h3) > svg:first-child, .label svg) {
+  color: #141416;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--card-tone) 82%, #fff), var(--card-tone) 60%, color-mix(in oklab, var(--card-tone) 88%, #000));
+  box-shadow: 0 3px 0 #060607, inset 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+:root[data-palette="onyx"] .glass.stat .value { color: color-mix(in oklab, var(--card-tone) 82%, #fff); }

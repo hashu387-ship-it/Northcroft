@@ -16,7 +16,7 @@ const SHOW_FROM = "14:00";
 function Card({ tone, icon, headline, sub, to, label, primary }: { tone: string; icon: JSX.Element; headline: string; sub: string; to: string; label: string; primary?: boolean }) {
   return (
     <div className="glass checkin-card">
-      <span className="ic" style={{ background: `linear-gradient(145deg, ${tone}, color-mix(in srgb, ${tone} 70%, #000))` }}>{icon}</span>
+      <span className={tone === "#1B3570" || tone === "#5B74A8" ? "ic ic-plain" : "ic"} style={{ background: `linear-gradient(145deg, ${tone}, color-mix(in srgb, ${tone} 70%, #000))` }}>{icon}</span>
       <div className="grow">
         <div className="headline">{headline}</div>
         <div className="muted small">{sub}</div>
