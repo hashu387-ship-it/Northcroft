@@ -1,4 +1,4 @@
--- Tracked tasks (the EI-116 ceiling, wall and wall finishes tasks first).
+-- Tracked tasks (the EI-116 ceiling, external wall and wall finishes tasks first).
 --   A tracked task splits the work between its people: each person has their own steps on the
 --   task's checklist (one owner per step, which they name themselves). In their daily update each
 --   person ticks the steps they finished and sends "3 of 5 done"; the task's % is everyone's steps.
@@ -507,7 +507,7 @@ as $$
 declare
   uid uuid := auth.uid();
   t record;
-  row public.task_time_logs;
+  v_log public.task_time_logs;
 begin
   if uid is null or not public.is_member() then
     raise exception 'Please sign in again';
@@ -523,8 +523,8 @@ begin
     raise exception 'This task has been handed in';
   end if;
   update public.task_time_logs set stopped_at = now() where user_id = uid and stopped_at is null;
-  insert into public.task_time_logs (task_id, user_id) values (p_task, uid) returning * into row;
-  return row;
+  insert into public.task_time_logs (task_id, user_id) values (p_task, uid) returning * into v_log;
+  return v_log;
 end $$;
 
 -- Stop my stopwatch. Returns how many seconds that stretch ran (0 if nothing was running).
