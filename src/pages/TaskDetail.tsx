@@ -40,6 +40,7 @@ import { TaskForm } from "@/components/TaskForm";
 import { DueLabel, EarlyBadge, Empty, Loading, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast } from "@/components/ui";
 import { ActivityFeed } from "./project/ActivityFeed";
 import { Checklist } from "./project/Checklist";
+import { TrackedPanel } from "@/components/Tracked";
 import { useActivity, useWatchers } from "./project/api";
 import { useTaskMeeting } from "./calendar/ActionPoints";
 import { ProgressValue, TaskProgressCard } from "./updates/TaskProgress";
@@ -572,7 +573,7 @@ export default function TaskDetail() {
             {details(t)}
           </div>
 
-          <Checklist task={t} />
+          {t.tracked ? <TrackedPanel task={t} /> : <Checklist task={t} />}
 
           <TaskProgressCard taskId={t.id} />
 

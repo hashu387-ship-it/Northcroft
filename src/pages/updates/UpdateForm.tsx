@@ -1,15 +1,19 @@
 // The daily update form: each open task with how far it has got (%) and what was done on it today,
 // then other work and anything blocking. Used on the Daily updates page and at check-out.
+// On a tracked task (EI-116 first) the line is the person's own steps to tick ("3 of 5 done").
 import "@/styles/updates.css";
+import "@/styles/tracked.css";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, CircleCheck, Send } from "lucide-react";
+import { Check, ChevronDown, CircleCheck, Send } from "lucide-react";
+import clsx from "clsx";
 import { useInvalidate, useProjectMap, useTasks } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { submitDailyUpdate, progressTone, type UpdateLine, type UpdateWithItems } from "@/lib/dailyUpdates";
 import { errorMessage } from "@/lib/supabase";
 import { fmtDate } from "@/lib/time";
-import type { Task } from "@/lib/types";
+import { isUnnamedStep, setStepDone, useTrackedSteps } from "@/lib/tracked";
+import type { ChecklistItem, Task } from "@/lib/types";
 import { DueLabel, Field, Loading, ProjectTag, useToast } from "@/components/ui";
 import { CheckWording } from "@/components/CheckWording";
 
@@ -42,6 +46,24 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
   const [blockers, setBlockers] = useState(existing?.blockers ?? "");
   const [showTodo, setShowTodo] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [ticking, setTicking] = useState<string | null>(null);
+
+  // Tracked tasks: my own steps on each, and everyone's (to know when the whole task is done).
+  const trackedIds = useMemo(() => (tasksQ.data ?? []).filter((t) => t.tracked).map((t) => t.id), [tasksQ.data]);
+  const stepsQ = useTrackedSteps(trackedIds);
+  const stepsByTask = useMemo(() => {
+    const m = new Map<string, ChecklistItem[]>();
+    for (const s of stepsQ.data ?? []) {
+      if (!s.assignee_id) continue;
+      const list = m.get(s.task_id) ?? [];
+      list.push(s);
+      m.set(s.task_id, list);
+    }
+    return m;
+  }, [stepsQ.data]);
+  const stepsOf = (t: Task) =>
+    t.tracked ? (stepsByTask.get(t.id) ?? []).filter((s) => s.assignee_id === me.id).sort((a, b) => a.position - b.position) : [];
+  const ownPct = (steps: ChecklistItem[]) => (steps.length ? Math.round((100 * steps.filter((s) => s.done).length) / steps.length) : 0);
 
   // Tasks they can still move on: not started or under way (in review and done ones are with someone else).
   const sentToday = useMemo(() => new Map((existing?.items ?? []).map((i) => [i.task_id, i])), [existing]);
@@ -50,7 +72,7 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
     const rank = (t: Task) => (t.status === "in_progress" || sentToday.has(t.id) ? 0 : 1);
     return list.sort((a, b) => rank(a) - rank(b) || (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"));
   }, [tasksQ.data, sentToday]);
-  const underWay = open.filter((t) => t.status === "in_progress" || sentToday.has(t.id) || (t.progress ?? 0) > 0);
+  const underWay = open.filter((t) => t.tracked || t.status === "in_progress" || sentToday.has(t.id) || (t.progress ?? 0) > 0);
   const notStarted = open.filter((t) => !underWay.includes(t));
   // Handed in earlier today: shown so they know it's already in the update.
   const handedToday = (existing?.items ?? []).filter((i) => i.handed_in);
@@ -73,11 +95,16 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
   function changed(t: Task): boolean {
     const l = lines[t.id];
     if (!l) return false;
+    // A tracked task always goes in: sending the update is how the count goes in each day.
+    if (stepsOf(t).length) return true;
     return l.progress !== (t.progress ?? 0) || l.note.trim() !== "" || sentToday.has(t.id);
   }
 
   async function send(): Promise<boolean> {
-    const out: UpdateLine[] = open.filter(changed).map((t) => ({ task_id: t.id, progress: lines[t.id].progress, note: lines[t.id].note }));
+    const out: UpdateLine[] = open.filter(changed).map((t) => {
+      const steps = stepsOf(t);
+      return { task_id: t.id, progress: steps.length ? ownPct(steps) : lines[t.id].progress, note: lines[t.id].note };
+    });
     if (!out.length && !other.trim() && !handedToday.length) {
       toast("Say what you did today on at least one task, or under Other work.", "error");
       return false;
@@ -105,7 +132,90 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
 
   if (tasksQ.isLoading) return <Loading rows={3} />;
 
+  async function tick(s: ChecklistItem) {
+    setTicking(s.id);
+    try {
+      await setStepDone(s, !s.done);
+      await invalidate("task_checklist", "tasks");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setTicking(null);
+    }
+  }
+
+  // A tracked task: my steps to tick, my count, and the note.
+  const renderTracked = (t: Task, steps: ChecklistItem[]) => {
+    const l = lines[t.id] ?? { progress: 0, note: "" };
+    const done = steps.filter((s) => s.done).length;
+    const everyone = stepsByTask.get(t.id) ?? [];
+    const allDone = everyone.length > 0 && everyone.every((s) => s.done);
+    const sent = sentToday.get(t.id);
+    return (
+      <div className="du-task" key={t.id}>
+        <div className="du-task-top">
+          <div className="grow" style={{ minWidth: 0 }}>
+            <Link to={`/tasks/${t.id}`} className="du-task-title">
+              {t.title}
+            </Link>
+            <div className="du-task-meta">
+              <ProjectTag project={projects.get(t.project_id)} />
+              <DueLabel date={t.due_date} />
+              <span>Task {t.progress ?? 0}% overall</span>
+            </div>
+          </div>
+          <span className={clsx("trk-tally", done === steps.length && "all")}>
+            <b>{done}</b> of {steps.length}
+          </span>
+        </div>
+        <ol className="trk-steps">
+          {steps.map((s) => (
+            <li key={s.id} className={clsx("trk-step", s.done && "done")}>
+              <button
+                type="button"
+                className={clsx("trk-check", s.done && "on")}
+                onClick={() => void tick(s)}
+                disabled={ticking === s.id}
+                aria-label={s.done ? `Mark "${s.text}" as not done` : `Mark "${s.text}" as done`}
+              >
+                {s.done && <Check strokeWidth={3} />}
+              </button>
+              <span className={clsx("trk-step-label static", isUnnamedStep(s.text) && "unnamed")}>
+                <span>{s.text}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <span className="faint tiny du-was">
+          {sent?.steps_total != null ? `Sent today: ${sent.steps_done} of ${sent.steps_total}` : "Tick the steps you finished, then send your update."}
+          {steps.some((s) => isUnnamedStep(s.text)) && (
+            <>
+              {" "}
+              <Link to={`/tasks/${t.id}`}>Name your steps</Link>
+            </>
+          )}
+        </span>
+        {allDone && (
+          <div className="du-hand-in small">
+            <CircleCheck size={15} /> Every step is done. It goes in for review when you send this.
+          </div>
+        )}
+        <textarea
+          className="textarea"
+          rows={rowsFor(l.note)}
+          value={l.note}
+          onChange={(e) => set(t.id, { note: e.target.value })}
+          placeholder="What you did on it today"
+          maxLength={1000}
+        />
+        <CheckWording value={l.note} onUse={(v) => set(t.id, { note: v.slice(0, 1000) })} kind="update" />
+      </div>
+    );
+  };
+
   const renderTask = (t: Task) => {
+    const steps = stepsOf(t);
+    if (steps.length) return renderTracked(t, steps);
     const l = lines[t.id] ?? { progress: t.progress ?? 0, note: "" };
     const before = t.progress ?? 0;
     return (

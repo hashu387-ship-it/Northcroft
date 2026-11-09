@@ -7,7 +7,7 @@ const TABLES = [
   "variations", "boq_packages", "events", "projects", "attachments", "profiles",
   "conversations", "conversation_members", "chat_reads", "comment_reactions", "drive_links", "event_actions",
   "leave_requests", "chat_pins", "polls", "poll_votes", "daily_updates", "daily_update_items", "daily_update_replies", "lunch_breaks", "project_members", "project_folders", "submissions", "weekly_updates", "register_categories", "register_items",
-  "register_subtasks",
+  "register_subtasks", "task_time_logs",
 ];
 // Tables whose changes also move the Chats list (last message, unread counts, who's in a group).
 const CHAT_LIST = new Set(["comments", "conversations", "conversation_members", "chat_reads"]);

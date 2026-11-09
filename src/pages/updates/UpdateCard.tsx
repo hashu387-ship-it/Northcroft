@@ -77,7 +77,11 @@ export function UpdateCard({ update, who, actions }: { update: UpdateWithItems; 
 }
 
 /** One task in an update; for a manager or senior, with a tick for done and a way to change it. */
-function ItemLine({ item: i, canEdit, ownerName }: { item: DailyUpdateItem; canEdit: boolean; ownerName?: string }) {
+function ItemLine({ item: i, canEdit: canEditAny, ownerName }: { item: DailyUpdateItem; canEdit: boolean; ownerName?: string }) {
+  // A tracked task's line is the person's own steps ("3 of 5"), set by ticking them, so it isn't
+  // changed here with a %.
+  const steps = (i.steps_total ?? 0) > 0;
+  const canEdit = canEditAny && !steps;
   const projects = useProjectMap();
   const people = usePeople();
   const toast = useToast();
@@ -143,10 +147,20 @@ function ItemLine({ item: i, canEdit, ownerName }: { item: DailyUpdateItem; canE
             </div>
           )}
         </div>
-        <span className="du-item-pct">
-          {moved !== 0 && <span className="faint">{i.progress_before}% to </span>}
-          <b style={{ color: progressTone(i.progress) }}>{i.progress}%</b>
-        </span>
+        {steps ? (
+          <span className="du-item-pct">
+            {i.steps_before != null && i.steps_before !== i.steps_done && <span className="faint">{i.steps_before} to </span>}
+            <b style={{ color: progressTone(i.progress) }}>
+              {i.steps_done} of {i.steps_total}
+            </b>{" "}
+            <span className="faint">steps</span>
+          </span>
+        ) : (
+          <span className="du-item-pct">
+            {moved !== 0 && <span className="faint">{i.progress_before}% to </span>}
+            <b style={{ color: progressTone(i.progress) }}>{i.progress}%</b>
+          </span>
+        )}
       </div>
       <div className="du-bar" aria-hidden>
         <i className="before" style={{ width: `${Math.min(i.progress_before, i.progress)}%` }} />

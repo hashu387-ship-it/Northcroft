@@ -25,6 +25,7 @@ import { useApprover, useTaskRequests } from "@/lib/taskApproval";
 import { OnlineCard } from "@/components/OnlineCard";
 import { MyEisCard } from "@/components/MyEisCard";
 import { SubmissionsHomeCard } from "@/components/Submission";
+import { TrackedHomeCard } from "@/components/Tracked";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
 import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
@@ -178,6 +179,7 @@ export default function Home() {
       </div>
 
       {/* The last 7 days, written up every evening; then what the team has to send, and by when. */}
+      <TrackedHomeCard />
       <LastSevenDaysCard />
       <SubmissionsHomeCard />
 

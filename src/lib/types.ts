@@ -789,3 +789,31 @@ export interface RegisterSubtask {
   created_by: string | null;
   created_at: string;
 }
+
+/* ---------------------------------------------------------------- tracked tasks (0051) */
+
+export interface Task {
+  /** Tracked (EI-116 first): each person on it has their own steps on the checklist, counted in
+   *  their daily update, a stopwatch for their time on it, and a countdown to the deadline. */
+  tracked?: boolean;
+}
+
+export interface DailyUpdateItem {
+  /** On a tracked task: this person's steps done and in all when they sent it, and their count on
+   *  the last day before (so "up 2 today" reads right). */
+  steps_done?: number | null;
+  steps_total?: number | null;
+  steps_before?: number | null;
+}
+
+/** One stretch of time someone spent on a tracked task (the stopwatch). Running while stopped_at is null. */
+export interface TimeLog {
+  id: string;
+  task_id: string;
+  user_id: string;
+  started_at: string;
+  stopped_at: string | null;
+  /** Stopped by the app (check-out, handed in, or 11:55 pm), not by the person. */
+  auto_stopped: boolean;
+  created_at: string;
+}
