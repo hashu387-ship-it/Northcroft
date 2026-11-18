@@ -21,7 +21,7 @@ import { latestRound, useVoFileCounts, voMatches, voRef } from "@/lib/volog";
 import { buildVoLogWorkbook, saveBlob, voLogFileName } from "@/lib/vologExcel";
 import { PageHead } from "@/components/PageHead";
 import { DueChip, DueTile } from "@/components/Submission";
-import { Empty, Loading, Pill, Segmented, useToast } from "@/components/ui";
+import { Empty, Loading, Pill, Segmented, useToast, CountUp } from "@/components/ui";
 import { ordinal, voLogLine } from "./project/VoLog";
 import { VoSheet } from "./project/Variations";
 import { useVariations } from "./project/api";
@@ -135,7 +135,7 @@ export default function VoLogPage() {
       <div className="vo-stats vlog-stats">
         <div className="glass stat">
           <span className="label">VOs shown</span>
-          <span className="value">{shown.length}</span>
+          <span className="value"><CountUp value={shown.length} /></span>
           <span className="hint">{totals.open ? `${totals.open} open in the log` : projectId ? projects.get(projectId)?.name : "All projects"}</span>
         </div>
         <div className="glass stat">

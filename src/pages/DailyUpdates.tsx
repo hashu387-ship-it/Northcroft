@@ -11,7 +11,7 @@ import { leaveByDay, leaveKindLabel, useTeamLeave } from "@/lib/leave";
 import { nameList } from "@/lib/people";
 import { addDays, fmtLongDate, isWorkday, todayISO } from "@/lib/time";
 import { PageHead } from "@/components/PageHead";
-import { Avatar, Empty, Loading, Pill, Segmented } from "@/components/ui";
+import { Avatar, Empty, Loading, Pill, Segmented, CountUp } from "@/components/ui";
 import { UpdateForm } from "./updates/UpdateForm";
 import { UpdateCard } from "./updates/UpdateCard";
 import { PeopleBoard } from "./updates/PeopleBoard";
@@ -193,17 +193,17 @@ function TeamDay() {
           <div className="du-stats">
             <div className="glass du-stat">
               <b>
-                {view.sent.length}
+                <CountUp value={view.sent.length} />
                 <span className="faint"> of {view.expected}</span>
               </b>
               <span>sent</span>
             </div>
             <div className="glass du-stat">
-              <b>{view.handed}</b>
+              <b><CountUp value={view.handed} /></b>
               <span>handed in</span>
             </div>
             <div className={`glass du-stat${view.blocked ? " warn" : ""}`}>
-              <b>{view.blocked}</b>
+              <b><CountUp value={view.blocked} /></b>
               <span>blocked</span>
             </div>
           </div>

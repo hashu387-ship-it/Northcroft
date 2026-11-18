@@ -34,7 +34,7 @@ import {
 import { errorMessage } from "@/lib/supabase";
 import { addDays, dateOf, isWorkday, todayISO } from "@/lib/time";
 import type { LeaveBalance, LeaveKind, LeaveRequest } from "@/lib/types";
-import { Avatar, Empty, Field, Loading, Pill, Segmented, Sheet, useConfirm, useToast, PersonNames } from "@/components/ui";
+import { Avatar, Empty, Field, Loading, Pill, Segmented, Sheet, useConfirm, useToast, PersonNames, CountUp } from "@/components/ui";
 import { Attachments } from "@/components/Attachments";
 import { uploadFile } from "@/lib/files";
 import { fileSize } from "@/lib/format";
@@ -102,12 +102,12 @@ export function MyLeaveCard() {
         </div>
         <div>
           <span className="label">Taken</span>
-          <span className="value">{mineBal ? mineBal.used : "–"}</span>
+          <span className="value">{mineBal ? <CountUp value={mineBal.used} /> : "–"}</span>
           <span className="hint">working days</span>
         </div>
         <div>
           <span className="label">Waiting</span>
-          <span className="value">{mineBal ? mineBal.pending : "–"}</span>
+          <span className="value">{mineBal ? <CountUp value={mineBal.pending} /> : "–"}</span>
           <span className="hint">for approval</span>
         </div>
       </div>

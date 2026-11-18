@@ -205,3 +205,46 @@ if (typeof window !== "undefined") {
 export function recentPress(withinMs = 1200) {
   return lastPress && performance.now() - lastPress.t < withinMs ? lastPress : null;
 }
+
+/* ---------------------------------------------------------------- a small burst */
+const BURST_COLORS = ["#34c759", "#0a84ff", "#ffd60a", "#ff9f0a", "#ff375f", "#64d2ff"];
+
+/** A short burst of confetti from an element (or a point): for a small win, like the last step
+ *  ticked. Nothing with reduce motion on. */
+export function burst(at: Element | { x: number; y: number }, pieces = 16) {
+  if (typeof document === "undefined" || prefersReducedMotion()) return;
+  let x: number;
+  let y: number;
+  if (at instanceof Element) {
+    const r = at.getBoundingClientRect();
+    x = r.left + r.width / 2;
+    y = r.top + r.height / 2;
+  } else {
+    ({ x, y } = at);
+  }
+  const host = document.createElement("div");
+  host.className = "burst";
+  host.setAttribute("aria-hidden", "true");
+  host.style.left = `${x}px`;
+  host.style.top = `${y}px`;
+  for (let i = 0; i < pieces; i++) {
+    const p = document.createElement("i");
+    const angle = (i / pieces) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 34 + Math.random() * 46;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist - 12;
+    p.style.background = BURST_COLORS[i % BURST_COLORS.length];
+    if (i % 3 === 0) p.style.borderRadius = "50%";
+    host.appendChild(p);
+    p.animate(
+      [
+        { transform: "translate(-50%, -50%) scale(0.4)", opacity: 1 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1) rotate(${Math.round(Math.random() * 240 - 120)}deg)`, opacity: 1, offset: 0.55 },
+        { transform: `translate(calc(-50% + ${dx * 1.15}px), calc(-50% + ${dy * 1.15 + 22}px)) scale(0.5) rotate(${Math.round(Math.random() * 360 - 180)}deg)`, opacity: 0 },
+      ],
+      { duration: 700 + Math.random() * 250, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "forwards" },
+    );
+  }
+  document.body.appendChild(host);
+  window.setTimeout(() => host.remove(), 1100);
+}

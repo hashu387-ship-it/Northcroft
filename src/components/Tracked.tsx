@@ -32,7 +32,10 @@ import {
   type OwnerSteps,
 } from "@/lib/tracked";
 import type { ChecklistItem, Task, TimeLog } from "@/lib/types";
-import { Avatar, Loading, Pill, Progress, ProjectTag, useToast } from "./ui";
+import { MorphLink } from "./Morph";
+import { Flip, Ring } from "./Motion";
+import { burst, haptic } from "@/lib/motion";
+import { Avatar, CountUp, Loading, Pill, ProjectTag, useToast } from "./ui";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const isOpen = (t: Pick<Task, "status">) => t.status === "todo" || t.status === "in_progress";
@@ -58,7 +61,7 @@ export function Countdown({ task, compact }: { task: Pick<Task, "due_date" | "st
       <div className="trk-digits" role="timer" aria-label={l.late ? `Deadline passed, ${when}` : `${l.days} days ${l.hours} hours ${l.mins} minutes left, until ${when}`}>
         {parts.map(([unit, v]) => (
           <span key={unit} className="trk-digit">
-            <b>{pad(v)}</b>
+            <Flip value={pad(v)} />
             <i>{unit}</i>
           </span>
         ))}
@@ -139,7 +142,7 @@ function TimeLine({ task, logs, userId }: { task: Pick<Task, "id">; logs: TimeLo
 
 /* ---------------------------------------------------------------- steps */
 
-function StepRow({ item, canTick, canName }: { item: ChecklistItem; canTick: boolean; canName: boolean }) {
+function StepRow({ item, canTick, canName, finishing }: { item: ChecklistItem; canTick: boolean; canName: boolean; finishing?: boolean }) {
   const toast = useToast();
   const invalidate = useInvalidate();
   const [editing, setEditing] = useState(false);
@@ -155,10 +158,17 @@ function StepRow({ item, canTick, canName }: { item: ChecklistItem; canTick: boo
     if (editing) input.current?.focus();
   }, [editing]);
 
-  async function tick() {
+  async function tick(from: HTMLElement) {
     setBusy(true);
     try {
       await setStepDone(item, !item.done);
+      if (!item.done) {
+        haptic(finishing ? "success" : "tick");
+        if (finishing) {
+          burst(from);
+          toast("Every step done. Send your daily update to hand it in.");
+        }
+      }
       await invalidate("task_checklist", "tasks");
     } catch (e) {
       toast(errorMessage(e), "error");
@@ -187,7 +197,7 @@ function StepRow({ item, canTick, canName }: { item: ChecklistItem; canTick: boo
       <button
         type="button"
         className={clsx("trk-check", item.done && "on")}
-        onClick={() => void tick()}
+        onClick={(e) => void tick(e.currentTarget)}
         disabled={!canTick || busy}
         aria-label={item.done ? `Mark "${item.text}" as not done` : `Mark "${item.text}" as done`}
       >
@@ -246,15 +256,16 @@ function PersonPart({ task, part, logs }: { task: Task; part: OwnerSteps; logs: 
           </b>
           <TimeLine task={task} logs={logs} userId={part.userId} />
         </div>
-        <span className={clsx("trk-tally", part.total > 0 && part.done === part.total && "all")}>
-          <b>{part.done}</b> of {part.total}
-        </span>
+        <Ring value={pct} size={50} color={part.total > 0 && part.done === part.total ? "var(--green)" : "var(--person, var(--accent))"} label={`${part.done} of ${part.total} steps done`}>
+          <span className="trk-tally-in">
+            <CountUp value={part.done} />/{part.total}
+          </span>
+        </Ring>
       </div>
-      <Progress value={pct} color={part.total > 0 && part.done === part.total ? "var(--green)" : "var(--person, var(--accent))"} />
       {part.steps.length > 0 ? (
         <ol className="trk-steps">
           {part.steps.map((s) => (
-            <StepRow key={s.id} item={s} canTick={(mine && open) || canAssign} canName={mine || canAssign} />
+            <StepRow key={s.id} item={s} canTick={(mine && open) || canAssign} canName={mine || canAssign} finishing={!s.done && part.done === part.total - 1} />
           ))}
         </ol>
       ) : (
@@ -477,10 +488,10 @@ export function TrackedHomeCard() {
           const short = name && t.title.toLowerCase().startsWith(name.toLowerCase()) ? t.title.slice(name.length).replace(/^[\s:,.\-–]+/, "") || t.title : t.title;
           return (
             <div key={t.id} className={clsx("trk-home-row", mine && "mine")}>
-              <Link to={`/tasks/${t.id}`} className="trk-home-link">
+              <MorphLink to={`/tasks/${t.id}`} morphKey={`task-${t.id}`} className="trk-home-link">
                 <span className="trk-home-title">
                   <b>{short}</b>
-                  {t.status === "in_review" ? <Pill tone="purple">In review</Pill> : <span className="trk-home-pct">{t.progress ?? 0}%</span>}
+                  {t.status === "in_review" && <Pill tone="purple">In review</Pill>}
                 </span>
                 <span className="trk-chips">
                   {stepsQ.data && parts.map((p) => {
@@ -496,8 +507,10 @@ export function TrackedHomeCard() {
                     );
                   })}
                 </span>
-                <Progress value={t.progress ?? 0} color={(t.progress ?? 0) >= 100 ? "var(--green)" : undefined} />
-              </Link>
+                <Ring value={t.progress ?? 0} size={46} color={(t.progress ?? 0) >= 100 ? "var(--green)" : undefined}>
+                  <CountUp value={t.progress ?? 0} />
+                </Ring>
+              </MorphLink>
               {mine && isOpen(t) && <StopwatchButton task={t} logs={logs} small />}
             </div>
           );

@@ -11,7 +11,7 @@ import { BOQ_STATUS, VO_STATUS } from "@/lib/constants";
 import { pct, sar } from "@/lib/format";
 import { addDays, dueState, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Project } from "@/lib/types";
-import { Avatar, Empty, Loading, Pill, PriorityFlag, Sheet, StatusRing, useToast, PersonNames } from "@/components/ui";
+import { Avatar, Empty, Loading, Pill, PriorityFlag, Sheet, StatusRing, useToast, PersonNames, CountUp } from "@/components/ui";
 import { ActivityFeed } from "./ActivityFeed";
 import { VoMeter } from "./Variations";
 import { VO_PENDING, useActivity, useBoq, useVariations, voTotals } from "./api";
@@ -82,7 +82,7 @@ export function Overview({ project }: { project: Project }) {
       <div className="grid-4">
         <Link to={`/projects/${project.id}/tasks`} className="glass stat" style={{ color: "inherit" }}>
           <span className="label">Open tasks</span>
-          <span className="value">{open.length}</span>
+          <span className="value"><CountUp value={open.length} /></span>
           <span className="hint">{review.length ? `${review.length} waiting for review` : `${tasks.length - open.length} done`}</span>
         </Link>
         <Link to={`/projects/${project.id}/tasks`} className="glass stat" style={{ color: "inherit" }}>

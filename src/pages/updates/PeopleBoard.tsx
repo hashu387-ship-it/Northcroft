@@ -10,7 +10,7 @@ import { isBlocked, progressTone, sendsDailyUpdate, useTeamDailyUpdates, type Up
 import { peopleOn } from "@/lib/people";
 import { addDays, dateOf, fmtDate, fmtTime12, monthStart, todayISO, weekStart } from "@/lib/time";
 import type { Profile, Task } from "@/lib/types";
-import { Avatar, DueLabel, Empty, Loading, Pill, ProjectTag, Segmented } from "@/components/ui";
+import { Avatar, DueLabel, Empty, Loading, Pill, ProjectTag, Segmented, CountUp } from "@/components/ui";
 import { openPersonCard } from "@/components/People";
 import { BlockerBlock } from "./BlockerThread";
 
@@ -92,15 +92,15 @@ export function PeopleBoard() {
       </div>
       <div className="du-stats">
         <div className="glass du-stat">
-          <b>{totals.ongoing}</b>
+          <b><CountUp value={totals.ongoing} /></b>
           <span>ongoing</span>
         </div>
         <div className="glass du-stat">
-          <b>{totals.review}</b>
+          <b><CountUp value={totals.review} /></b>
           <span>in review</span>
         </div>
         <div className="glass du-stat">
-          <b>{totals.finished}</b>
+          <b><CountUp value={totals.finished} /></b>
           <span>finished {range.label}</span>
         </div>
       </div>

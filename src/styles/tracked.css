@@ -23,19 +23,13 @@
   display: grid;
   place-items: center;
   min-width: 58px;
-  padding: 8px 6px 6px;
-  border-radius: 12px;
+  padding: 5px 5px 6px;
+  border-radius: 13px;
   background: var(--solid);
   color: var(--tone);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--tone) 18%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--tone) 16%, transparent);
 }
-.trk-digit b {
-  font-family: var(--font-display, inherit);
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
+.trk-digit .flip { --flip-bg: color-mix(in srgb, var(--tone) 9%, var(--solid)); width: 100%; border-radius: 10px; }
 .trk-digit i { font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; color: var(--text-2); }
 .trk-count-label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .trk-count-label b { color: var(--tone); font-size: 14px; }
@@ -43,7 +37,7 @@
 .trk-count-label .pill { align-self: flex-start; margin-top: 2px; }
 .trk-count.compact { padding: 12px; margin-bottom: 12px; }
 .trk-count.compact .trk-digit { min-width: 50px; }
-.trk-count.compact .trk-digit b { font-size: 24px; }
+.trk-count.compact .trk-digit .flip { font-size: 24px; }
 /* Under a day, or late: a gentle pulse (not with reduce motion). */
 .trk-count.red .trk-digit { animation: trk-pulse 2.4s ease-in-out infinite; }
 @keyframes trk-pulse {
@@ -166,15 +160,18 @@
 .trk-home-link {
   flex: 1 1 260px;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
   padding: 10px 12px;
   border-radius: 14px;
   background: var(--solid);
   border: 1px solid var(--solid-border, transparent);
   color: var(--text);
 }
+.trk-home-link > .ring { grid-column: 2; grid-row: 1 / span 2; }
+.trk-tally-in { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .trk-home-link:hover { border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .trk-home-title { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 .trk-home-title b { font-size: 14.5px; overflow-wrap: anywhere; }
@@ -205,7 +202,7 @@
 @media (max-width: 560px) {
   .trk-digits { gap: 6px; width: 100%; }
   .trk-digit { flex: 1; min-width: 0; }
-  .trk-digit b { font-size: 24px; }
+  .trk-digit .flip { font-size: 24px; }
   .trk-watch.small { width: 100%; }
 }
 

@@ -75,7 +75,7 @@ export default function ProjectDetail() {
         <ChevronLeft size={16} /> Projects
       </Link>
 
-      <div className="project-hero glass">
+      <div className="project-hero glass" data-morph={`project-${project.id}`}>
         <ProjectCover project={project} size="hero" editable={canAssign} />
         <div className="row" style={{ alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>

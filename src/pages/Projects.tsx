@@ -1,5 +1,5 @@
+import { MorphLink } from "@/components/Morph";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { Building2, FolderKanban, MapPin, Plus, Trash2 } from "lucide-react";
 import { useInvalidate, usePeople, useProjects, useTasks } from "@/lib/api";
 import { useProjectTeams } from "@/lib/projectTeam";
@@ -138,7 +138,7 @@ export default function Projects() {
             const v = voTotals(vos.filter((x) => x.project_id === p.id));
             const pct = s.total ? (s.done / s.total) * 100 : 0;
             return (
-              <Link key={p.id} to={`/projects/${p.id}`} className="project-card glass">
+              <MorphLink key={p.id} to={`/projects/${p.id}`} morphKey={`project-${p.id}`} className="project-card glass">
                 <ProjectCover project={p} />
                 <div className="row" style={{ alignItems: "flex-start" }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -191,7 +191,7 @@ export default function Projects() {
                     <span>VOs pending</span>
                   </div>
                 </div>
-              </Link>
+              </MorphLink>
             );
           })}
         </div>

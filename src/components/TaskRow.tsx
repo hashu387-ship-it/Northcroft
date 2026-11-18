@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import { ArrowRight, Hourglass, ListChecks, Pause, Play, RotateCcw, Send, Users } from "lucide-react";
 import { useInvalidate, usePeople, useProjectMap } from "@/lib/api";
@@ -12,6 +13,7 @@ import { todayISO } from "@/lib/time";
 import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing, useToast, PersonName } from "./ui";
 import { ProgressChip } from "@/pages/updates/TaskProgress";
 import { WorkingDots } from "./Tracked";
+import { MorphLink } from "./Morph";
 
 export function TaskRow({
   task,
@@ -28,13 +30,19 @@ export function TaskRow({
   const projects = useProjectMap();
   const signoff = useSignoff();
   const me = useMe();
+  const qc = useQueryClient();
   const changesRequested = !!task.changes_note && (task.status === "in_progress" || task.status === "todo");
   const team = peopleOn(task);
   // Its state, so a look can colour the row: done, on hold, waiting for review, or overdue.
   const state =
     task.status === "done" ? "done" : task.hold === "on" ? "hold" : task.status === "in_review" ? "review" : task.due_date && task.due_date < todayISO() ? "late" : null;
   return (
-    <Link to={`/tasks/${task.id}`} className={clsx("task-row", task.status === "done" && "done", state && `st-${state}`)}>
+    <MorphLink
+      to={`/tasks/${task.id}`}
+      morphKey={`task-${task.id}`}
+      className={clsx("task-row", task.status === "done" && "done", state && `st-${state}`)}
+      onClick={() => qc.setQueryData(["tasks", "one", task.id], (old: Task | null | undefined) => old ?? task)}
+    >
       <StatusRing status={task.status} />
       <div className="body">
         <div className="t">{task.title}</div>
@@ -89,7 +97,7 @@ export function TaskRow({
         ) : (
           <Avatar person={people.get(team[0])} size={30} />
         ))}
-    </Link>
+    </MorphLink>
   );
 }
 

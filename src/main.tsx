@@ -16,6 +16,7 @@ import "./styles/feel.css";
 import "./styles/clay.css";
 import "./styles/qs.css";
 import "./styles/onyx.css";
+import "./styles/motion.css";
 
 // Appearance preferences are per device. Onyx (the design system's look: soft charcoal clay, the
 // Northcroft world with grain, a red glow and the skyline, serif headings, puffy clay buttons and

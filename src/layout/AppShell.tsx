@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { isMorphing, morphBack } from "@/lib/morph";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import {
   BarChart3,
@@ -166,7 +167,7 @@ export default function AppShell() {
       return;
     }
     const tabs = TAB_ROOTS.includes(from) && TAB_ROOTS.includes(location.pathname);
-    layer.dataset.nav = tabs ? "fade" : navType === "POP" ? "back" : "forward";
+    layer.dataset.nav = isMorphing() ? "morph" : tabs ? "fade" : navType === "POP" ? "back" : "forward";
   }, [location.key, location.pathname, navType]);
 
   // Phone gestures: swipe from the left edge to go back, pull down to refresh.
@@ -288,7 +289,7 @@ export default function AppShell() {
               <QsMark size={34} />
             </Link>
           ) : (
-            <button className="icon-btn plain" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))} aria-label="Back">
+            <button className="icon-btn plain" onClick={() => (window.history.length > 1 ? morphBack(navigate) || navigate(-1) : navigate("/"))} aria-label="Back">
               <ChevronLeft />
             </button>
           )}

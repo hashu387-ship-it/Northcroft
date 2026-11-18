@@ -390,7 +390,7 @@ export default function TaskDetail() {
 
       <div className="td-layout">
         <div className="stack" style={{ gap: 16, minWidth: 0 }}>
-          <div className="glass card stack" style={{ gap: 14 }}>
+          <div className="glass card stack" style={{ gap: 14 }} data-morph={`task-${t.id}`}>
             <div className="row" style={{ gap: 8, alignItems: "flex-start" }}>
               <div className="row wrap" style={{ gap: 8, flex: 1, minWidth: 0 }}>
                 <StatusPill status={t.status} />

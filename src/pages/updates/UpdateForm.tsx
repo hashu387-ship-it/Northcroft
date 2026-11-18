@@ -13,6 +13,7 @@ import { submitDailyUpdate, progressTone, type UpdateLine, type UpdateWithItems 
 import { errorMessage } from "@/lib/supabase";
 import { fmtDate } from "@/lib/time";
 import { isUnnamedStep, setStepDone, useTrackedSteps } from "@/lib/tracked";
+import { burst, haptic } from "@/lib/motion";
 import type { ChecklistItem, Task } from "@/lib/types";
 import { DueLabel, Field, Loading, ProjectTag, useToast } from "@/components/ui";
 import { CheckWording } from "@/components/CheckWording";
@@ -132,10 +133,14 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
 
   if (tasksQ.isLoading) return <Loading rows={3} />;
 
-  async function tick(s: ChecklistItem) {
+  async function tick(s: ChecklistItem, from: HTMLElement, finishing: boolean) {
     setTicking(s.id);
     try {
       await setStepDone(s, !s.done);
+      if (!s.done) {
+        haptic(finishing ? "success" : "tick");
+        if (finishing) burst(from);
+      }
       await invalidate("task_checklist", "tasks");
     } catch (e) {
       toast(errorMessage(e), "error");
@@ -174,7 +179,7 @@ export function UpdateForm({ existing, onSent, footer }: UpdateFormProps) {
               <button
                 type="button"
                 className={clsx("trk-check", s.done && "on")}
-                onClick={() => void tick(s)}
+                onClick={(e) => void tick(s, e.currentTarget, !s.done && done === steps.length - 1)}
                 disabled={ticking === s.id}
                 aria-label={s.done ? `Mark "${s.text}" as not done` : `Mark "${s.text}" as done`}
               >
