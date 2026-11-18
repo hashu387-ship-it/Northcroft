@@ -16,6 +16,7 @@ import "./styles/feel.css";
 import "./styles/clay.css";
 import "./styles/qs.css";
 import "./styles/onyx.css";
+import "./styles/aurora.css";
 import "./styles/motion.css";
 
 // Appearance preferences are per device. Onyx (the design system's look: soft charcoal clay, the
@@ -38,9 +39,9 @@ try {
     localStorage.setItem("nc-look-onyx", "1");
   }
   const theme = localStorage.getItem("nc-theme") || "navy";
-  if (theme === "dark" || theme === "purple" || theme === "qs" || theme === "onyx" || theme === "navy") document.documentElement.dataset.theme = "dark";
+  if (theme === "dark" || theme === "purple" || theme === "qs" || theme === "onyx" || theme === "navy" || theme === "aurora") document.documentElement.dataset.theme = "dark";
   else if (theme !== "system") document.documentElement.dataset.theme = "light";
-  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx" || theme === "pearl" || theme === "navy") document.documentElement.dataset.palette = theme;
+  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx" || theme === "pearl" || theme === "navy" || theme === "aurora") document.documentElement.dataset.palette = theme;
   localStorage.removeItem("nc-solid");
   if (localStorage.getItem("nc-solid-v2") === "true") document.documentElement.dataset.solid = "true";
 } catch {

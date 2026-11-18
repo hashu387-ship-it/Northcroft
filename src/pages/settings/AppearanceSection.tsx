@@ -4,12 +4,12 @@ import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
-type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx" | "pearl" | "navy";
+type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx" | "pearl" | "navy" | "aurora";
 
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" || t === "pearl" || t === "onyx" || t === "navy" ? t : "navy";
+    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" || t === "pearl" || t === "onyx" || t === "navy" || t === "aurora" ? t : "navy";
   } catch {
     return "navy";
   }
@@ -33,9 +33,9 @@ export function AppearanceSection() {
     const root = document.documentElement;
     // Onyx, QS Team glass and Purple glass are the dark theme with a palette over it; Pearl and Clay
     // glass are the light theme with a palette over it.
-    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx" || t === "pearl" || t === "navy") root.dataset.palette = t;
+    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx" || t === "pearl" || t === "navy" || t === "aurora") root.dataset.palette = t;
     else delete root.dataset.palette;
-    const base = t === "purple" || t === "qs" || t === "onyx" || t === "navy" ? "dark" : t === "clay" || t === "pearl" ? "light" : t;
+    const base = t === "purple" || t === "qs" || t === "onyx" || t === "navy" || t === "aurora" ? "dark" : t === "clay" || t === "pearl" ? "light" : t;
     try {
       if (base === "system") delete root.dataset.theme;
       else root.dataset.theme = base;
@@ -60,6 +60,7 @@ export function AppearanceSection() {
 
   const options: { value: Theme; label: string }[] = [
     { value: "navy", label: "Northcroft navy" },
+    { value: "aurora", label: "Aurora glass (new)" },
     { value: "onyx", label: "Onyx" },
     { value: "pearl", label: "Pearl" },
     { value: "qs", label: "QS Team glass" },
@@ -83,7 +84,8 @@ export function AppearanceSection() {
         </div>
         <div className="muted small">
           Northcroft navy is the default: deep navy clay with white text, the Northcroft red main button, soft blue highlights,
-          and each card's icon in its own colour. Onyx is black and gold: near-black clay with champagne gold icons, counts, links and
+          and each card's icon in its own colour. Aurora glass is the new look to try: deep midnight navy with soft blue, cyan and red light
+          slowly moving behind frosted glass, thin bright edges on every panel, and big bold numbers. Onyx is black and gold: near-black clay with champagne gold icons, counts, links and
           buttons, white serif headings, and every row of a table as its own thick clay block. Pearl is the same clay in warm light grey, with black ink and the logo on its black plate. QS Team glass is deep navy with a blue glow and the Riyadh skyline along the
           bottom. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass
           but makes cards, buttons and tabs soft and puffy, like clay, and buttons sink a little when you press them. Automatic follows your phone or
