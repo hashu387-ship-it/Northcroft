@@ -26,6 +26,7 @@ import { OnlineCard } from "@/components/OnlineCard";
 import { MyEisCard } from "@/components/MyEisCard";
 import { SubmissionsHomeCard } from "@/components/Submission";
 import { TrackedHomeCard, WorkingNowStrip } from "@/components/Tracked";
+import { openPersonCard } from "@/components/People";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
 import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
@@ -114,20 +115,26 @@ export default function Home() {
         <div className="hb-shade" aria-hidden />
         <QsLogo size={150} className="hb-logo" />
         <div className="hb-body">
-          <span className="hb-eyebrow">
-            <i className="hb-bar" /> {fmtLongDate(today)}
-          </span>
-          <h1>
-            {greeting()}, {firstName}
-          </h1>
-          <p>{summary}</p>
-          <div className="hb-actions">
-            <button className="btn brand" onClick={() => setNewTask(true)}>
-              <Plus /> New task
-            </button>
-            <Link to="/my-tasks" className="btn on-dark">
-              <SquareCheckBig /> {givesOnly ? "Assigned tasks" : "My tasks"}
-            </Link>
+          {/* Whoever is signed in, in their own photo. Tap it for your profile card. */}
+          <button type="button" className="hb-me" onClick={() => openPersonCard(me.id)} aria-label="Your profile">
+            <Avatar person={me} size={76} />
+          </button>
+          <div className="hb-text">
+            <span className="hb-eyebrow">
+              <i className="hb-bar" /> {fmtLongDate(today)}
+            </span>
+            <h1>
+              {greeting()}, {firstName}
+            </h1>
+            <p>{summary}</p>
+            <div className="hb-actions">
+              <button className="btn brand" onClick={() => setNewTask(true)}>
+                <Plus /> New task
+              </button>
+              <Link to="/my-tasks" className="btn on-dark">
+                <SquareCheckBig /> {givesOnly ? "Assigned tasks" : "My tasks"}
+              </Link>
+            </div>
           </div>
         </div>
       </section>
