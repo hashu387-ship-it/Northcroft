@@ -26,6 +26,7 @@ const DailyUpdates = lazy(() => import("@/pages/DailyUpdates"));
 const UpdateReport = lazy(() => import("@/pages/UpdateReport"));
 const VoLogPage = lazy(() => import("@/pages/VoLogPage"));
 const Submissions = lazy(() => import("@/pages/Submissions"));
+const TimeReport = lazy(() => import("@/pages/TimeReport"));
 const WeeklyCheck = lazy(() => import("@/pages/WeeklyCheck"));
 
 function Gate() {
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="updates/check" element={<WeeklyCheck />} />
           <Route path="vo-log" element={<VoLogPage />} />
           <Route path="submissions" element={<Submissions />} />
+          <Route path="time" element={<TimeReport />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

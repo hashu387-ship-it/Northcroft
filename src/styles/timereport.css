@@ -1,0 +1,69 @@
+/* The Time report. */
+.tr-page .grow { flex: 1; min-width: 0; }
+.tr-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.tr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.tr-stats .value small { font-size: 0.5em; font-weight: 700; margin-left: 1px; color: var(--text-2); }
+
+/* hours per day: one bar per day, the hours above it */
+.tr-days { margin-bottom: 14px; }
+.tr-bars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(28px, 1fr); gap: 8px; align-items: end; height: 170px; overflow-x: auto; padding-bottom: 2px; }
+.tr-bar { display: grid; grid-template-rows: auto 1fr auto; height: 100%; justify-items: center; gap: 4px; min-width: 0; }
+.tr-bar-val { font-size: 11.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tr-bar-col { position: relative; width: 100%; max-width: 46px; height: 100%; border-radius: 8px; background: color-mix(in srgb, var(--text) 6%, transparent); overflow: hidden; }
+.tr-bar-col i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--h);
+  border-radius: 8px 8px 6px 6px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent));
+  transform-origin: bottom;
+  animation: tr-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.tr-bar.zero .tr-bar-col i { display: none; }
+.tr-bar-day { font-size: 11.5px; color: var(--text-2); font-weight: 600; }
+@keyframes tr-grow { from { transform: scaleY(0); } }
+
+/* people and tasks */
+.tr-list { padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+.tr-person { --person: var(--accent); border-radius: 16px; }
+.tr-person.open { background: color-mix(in srgb, var(--person) 6%, transparent); }
+.tr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tr-row:hover { background: var(--fill); }
+.tr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.tr-main b { display: flex; align-items: center; gap: 6px; font-size: 14.5px; }
+.tr-title { overflow-wrap: anywhere; }
+.tr-meter { display: block; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--text) 8%, transparent); overflow: hidden; }
+.tr-meter i { display: block; height: 100%; border-radius: inherit; background: var(--person, var(--accent)); transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.tr-total { font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tr-total.small { font-size: 14px; }
+.tr-chev { width: 18px; height: 18px; color: var(--text-3); transition: transform 0.2s; }
+.tr-person.open .tr-chev { transform: rotate(180deg); }
+.tr-sub { list-style: none; margin: 0 0 6px; padding: 0 8px 4px 58px; display: flex; flex-direction: column; gap: 2px; }
+.tr-subrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; color: var(--text); }
+.tr-subrow:hover { background: var(--fill); }
+.tr-subrow .grow { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.tr-subrow .tr-title { font-size: 13.5px; }
+.tr-taskrow { color: var(--text); }
+@media (max-width: 560px) {
+  .tr-sub { padding-left: 10px; }
+  .tr-bars { height: 150px; }
+}
+@media (max-width: 560px) {
+  .tr-stats { grid-template-columns: 1fr 1fr; }
+  .tr-stats > :first-child { grid-column: 1 / -1; }
+}

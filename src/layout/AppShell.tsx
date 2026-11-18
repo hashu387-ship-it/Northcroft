@@ -3,6 +3,7 @@ import { isMorphing, morphBack } from "@/lib/morph";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import {
   BarChart3,
+  Timer,
   CalendarDays,
   ChevronLeft,
   ClipboardList,
@@ -225,6 +226,7 @@ export default function AppShell() {
       label: "Manage",
       items: [
         ...(canAssign ? [{ to: "/workload", label: "Workload", icon: BarChart3, color: MENU_COLOR.workload }] : []),
+        { to: "/time", label: "Time report", icon: Timer, color: MENU_COLOR.time },
         { to: "/settings", label: "Settings", icon: Settings, color: MENU_COLOR.settings },
       ],
     },
@@ -349,7 +351,7 @@ export default function AppShell() {
           Inbox
           {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
         </NavLink>
-        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/vo-log", "/submissions", "/workload", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
+        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/vo-log", "/submissions", "/workload", "/time", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
           {tabIcon(Ellipsis, MENU_COLOR.more)}
           More
           {!!unacked && <span className="dot">{unacked}</span>}

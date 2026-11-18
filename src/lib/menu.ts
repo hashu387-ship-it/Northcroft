@@ -13,6 +13,7 @@ export const MENU_COLOR = {
   inbox: "#0FA3B1",
   attendance: "#A2845E",
   workload: "#C9A227",
+  time: "#0FA37F",
   settings: "#3A6EA5",
   more: "#F13E44",
 } as const;

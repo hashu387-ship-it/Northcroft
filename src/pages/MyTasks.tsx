@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, CircleCheck, ClipboardCheck, ClipboardList, Inbox, Plus, SquareCheckBig } from "lucide-react";
+import { ChevronRight, CircleCheck, ClipboardCheck, ClipboardList, Inbox, Plus, SquareCheckBig, List, Columns3 } from "lucide-react";
 import { useChecklistCounts, usePeople, useTasks } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useSignoff, waitingOn } from "@/lib/signoff";
@@ -12,6 +12,7 @@ import { TaskForm } from "@/components/TaskForm";
 import { SwipeTaskRow } from "@/components/TaskRow";
 import { TeamTaskList } from "@/components/TeamTasks";
 import { Avatar, Empty, Fab, Loading, Segmented } from "@/components/ui";
+import { TaskBoard } from "@/components/TaskBoard";
 import { todayISO } from "@/lib/time";
 import type { Task } from "@/lib/types";
 import { DUE_GROUP_LABEL, dueGroup, type DueGroup } from "./project/api";
@@ -94,7 +95,7 @@ export default function MyTasks() {
   const signoff = useSignoff();
   const approver = useApprover();
   const [params, setParams] = useSearchParams();
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(() => params.get("new") === "1");
   // Someone who only gives out tasks (the Commercial Head) has no list of their own: they see
   // every assigned task instead.
   const givesOnly = me.assignable === false;
@@ -112,7 +113,25 @@ export default function MyTasks() {
   const openQ = useTasks({ openOnly: true });
   // Tasks team members made: the approver sees all of them, a team member their own.
   const requestsQ = useTaskRequests();
-  const recentDone = useRecentDone(givesOnly && view === "done");
+  // List or board, remembered on this device. The board is for Mine, Everyone and By me.
+  const [layout, setLayoutState] = useState<"list" | "board">(() => {
+    try {
+      return localStorage.getItem("nc-tasks-layout") === "board" ? "board" : "list";
+    } catch {
+      return "list";
+    }
+  });
+  const setLayout = (v: "list" | "board") => {
+    setLayoutState(v);
+    try {
+      localStorage.setItem("nc-tasks-layout", v);
+    } catch {
+      /* fine */
+    }
+  };
+  const boardable = view === "mine" || view === "team" || view === "byme";
+  const onBoard = boardable && layout === "board";
+  const recentDone = useRecentDone((givesOnly && view === "done") || (onBoard && view !== "mine"));
   const checks = useMyChecks(me.id).data ?? [];
 
   const today = todayISO();
@@ -233,14 +252,38 @@ export default function MyTasks() {
         }
       />
 
-      <div style={{ marginBottom: 6 }}>
+      <div className="row wrap" style={{ marginBottom: 6, gap: 10, justifyContent: "space-between" }}>
         <Segmented<View> value={view} onChange={setView} options={options} />
+        {boardable && (
+          <div className="view-toggle" role="group" aria-label="Show as">
+            <button type="button" aria-pressed={layout === "list"} onClick={() => setLayout("list")}>
+              <List /> List
+            </button>
+            <button type="button" aria-pressed={layout === "board"} onClick={() => setLayout("board")}>
+              <Columns3 /> Board
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Someone who only gives out tasks has no Mine view, so a weekly update to check shows on top. */}
       {givesOnly && <ChecksGroup checks={checks} />}
       {loading ? (
         <Loading />
+      ) : onBoard ? (
+        <>
+          <p className="faint small tb-hint">Drag a card to another column to move it. On a phone, hold it for a moment first.</p>
+          <TaskBoard
+            tasks={view === "mine" ? [...open, ...waiting, ...held] : view === "team" ? allOpen : byMe}
+            done={
+              view === "mine"
+                ? myTasks.filter((t) => t.status === "done")
+                : view === "team"
+                  ? recentDone.data ?? []
+                  : (recentDone.data ?? []).filter((t) => t.created_by === me.id && !peopleOn(t).includes(me.id))
+            }
+          />
+        </>
       ) : view === "mine" ? (
         open.length + waiting.length + held.length + myRequests.length + checks.length === 0 ? (
           <div className="glass" style={{ marginTop: 16 }}>
