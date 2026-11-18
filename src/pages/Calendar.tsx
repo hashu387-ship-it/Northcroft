@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { CalendarDays, ChevronLeft, ChevronRight, MapPin, Plus, Trash2, Users } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
-import { Avatar, AvatarStack, Empty, Field, Loading, PriorityFlag, ProjectSelect, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Avatar, AvatarStack, Empty, Field, Loading, PriorityFlag, ProjectSelect, Segmented, Sheet, useConfirm, useToast, PersonName } from "@/components/ui";
 import { useInvalidate, usePeople, useProjectMap, useProjects, useSettings, useTasks } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { BOQ_STATUS, EVENT_KIND, VO_STATUS } from "@/lib/constants";
@@ -577,7 +577,7 @@ function EventForm({
             </div>
           )}
           {event.notes && <p style={{ whiteSpace: "pre-wrap" }}>{event.notes}</p>}
-          <p className="faint small">Added by {people.get(event.created_by)?.short_name ?? "someone"}. Only they or a senior can change it.</p>
+          <p className="faint small">Added by <PersonName person={people.get(event.created_by)} size={16} fallback="someone" />. Only they or a senior can change it.</p>
         </div>
         <ActionPoints event={event} />
       </Sheet>

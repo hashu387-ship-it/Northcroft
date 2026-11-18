@@ -38,7 +38,7 @@ import { fmtDate, todayISO } from "@/lib/time";
 import type { Profile, Project, RegisterCategory, RegisterItem, RegisterStatus, RegisterSubtask } from "@/lib/types";
 import { Attachments } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
-import { Empty, Field, Loading, PeopleSelect, PersonSelect, Pill, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Empty, Field, Loading, PeopleSelect, PersonSelect, Pill, Segmented, Sheet, useConfirm, useToast, PersonName, PersonNames, AvatarStack } from "@/components/ui";
 
 type View = "open" | "mine" | "closed" | "all";
 
@@ -247,8 +247,8 @@ export function Registers({ project }: { project: Project }) {
                       <td>
                         <Pill tone={REGISTER_STATUS[i.status].tone}>{REGISTER_STATUS[i.status].label}</Pill>
                       </td>
-                      <td>{people.get(i.responsible_id)?.short_name ?? <span className="faint">Not set</span>}</td>
-                      <td>{names(i.assignees, people.byId) || <span className="faint">Nobody</span>}</td>
+                      <td><PersonName person={people.get(i.responsible_id)} size={20} fallback={<span className="faint">Not set</span>} /></td>
+                      <td><PersonNames people={i.assignees.map((id) => people.get(id))} size={20} empty={<span className="faint">Nobody</span>} /></td>
                       <td>{dateText(i.received_on)}</td>
                       <td className={clsx(late(i, today) && "reg-late")}>{dateText(i.due_on)}</td>
                     </tr>
@@ -260,10 +260,11 @@ export function Registers({ project }: { project: Project }) {
 
           <div className="glass reg-cards hide-desktop">
             {shown.map((i) => {
-              const who = people.get(i.responsible_id)?.short_name;
+              const who = people.get(i.responsible_id);
+              const on = [...new Set([i.responsible_id, ...i.assignees])].map((id) => people.get(id)).filter(Boolean);
               const subs = subsOf.get(i.id) ?? [];
               const meta = [
-                who ? `Northcroft: ${who}` : null,
+                who ? `Northcroft: ${who.short_name}` : null,
                 names(i.assignees, people.byId) || null,
                 subs.length ? `${subs.filter((t) => t.done).length}/${subs.length} sub tasks` : null,
                 i.due_on ? `Due ${fmtDate(i.due_on, { weekday: "short", day: "numeric", month: "short" })}` : null,
@@ -274,6 +275,7 @@ export function Registers({ project }: { project: Project }) {
                     <span className="t">{itemLabel(i)}</span>
                     <span className={clsx("m", late(i, today) && "reg-late")}>{meta.join(" · ") || "Nobody on it yet"}</span>
                   </span>
+                  {on.length > 0 && <AvatarStack people={on} size={24} max={3} />}
                   <Pill tone={REGISTER_STATUS[i.status].tone}>{REGISTER_STATUS[i.status].label}</Pill>
                 </button>
               );
@@ -590,7 +592,7 @@ function SubtaskList({ item, noun, list }: { item: RegisterItem | null; noun: st
           {list.length > 0 && (
             <ul className="reg-sublist">
               {list.map((t) => {
-                const person = people.get(t.assignee_id)?.short_name;
+                const person = people.get(t.assignee_id);
                 const canRemove = canAssign || t.created_by === me.id;
                 return (
                   <li key={t.id} className={clsx(t.done && "done")}>
@@ -608,8 +610,13 @@ function SubtaskList({ item, noun, list }: { item: RegisterItem | null; noun: st
                     <span className="grow">
                       <span className="t">{t.title}</span>
                       <span className="m">
-                        {person ?? "Nobody on it"}
-                        {t.done && t.done_by ? ` · done by ${people.get(t.done_by)?.short_name ?? "someone"}` : ""}
+                        <PersonName person={person} size={16} fallback="Nobody on it" />
+                        {t.done && t.done_by && (
+                          <>
+                            {" · done by "}
+                            <PersonName person={people.get(t.done_by)} size={16} fallback="someone" />
+                          </>
+                        )}
                       </span>
                     </span>
                     {canRemove && (

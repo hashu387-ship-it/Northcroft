@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Check, ListChecks, Plus, SendHorizontal, X } from "lucide-react";
-import { Avatar, Pill, useToast } from "@/components/ui";
+import { Avatar, Pill, useToast, PersonName } from "@/components/ui";
 import { unwrap, useInvalidate, usePeople } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { TASK_STATUS } from "@/lib/constants";
@@ -211,7 +211,7 @@ export function ActionPoints({ event }: { event: CalendarEvent }) {
                           </span>
                         )}
                         {p.due_date && <span>{fmtDue(p.due_date)}</span>}
-                        {p.done_at && <span>Done{p.done_by ? ` by ${people.get(p.done_by)?.short_name ?? "someone"}` : ""}</span>}
+                        {p.done_at && <span>Done{p.done_by && <> by <PersonName person={people.get(p.done_by)} size={16} fallback="someone" /></>}</span>}
                       </>
                     )}
                     {p.task_id && (

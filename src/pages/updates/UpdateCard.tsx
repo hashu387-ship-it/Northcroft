@@ -12,7 +12,7 @@ import { editUpdateItem, isBlocked, progressTone, type UpdateWithItems } from "@
 import { errorMessage } from "@/lib/supabase";
 import { fmtLongDate, fmtTime12, timeAgo } from "@/lib/time";
 import type { DailyUpdateItem } from "@/lib/types";
-import { Avatar, Pill, ProjectTag, useConfirm, useToast } from "@/components/ui";
+import { Avatar, Pill, ProjectTag, useConfirm, useToast, PersonName } from "@/components/ui";
 import { openPersonCard } from "@/components/People";
 import { BlockerBlock } from "./BlockerThread";
 
@@ -237,7 +237,7 @@ function ItemLine({ item: i, canEdit: canEditAny, ownerName }: { item: DailyUpda
             <div className="du-item-foot">
               {editor && i.edited_at && (
                 <span className="faint tiny">
-                  Changed by {editor.short_name}, {timeAgo(i.edited_at)}
+                  Changed by <PersonName person={editor} size={16} />, {timeAgo(i.edited_at)}
                 </span>
               )}
               <span className="spacer" />

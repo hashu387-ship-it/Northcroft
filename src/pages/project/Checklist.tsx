@@ -5,7 +5,7 @@ import { useChecklist, useInvalidate, usePeople } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
 import type { ChecklistItem, Task } from "@/lib/types";
-import { Progress, useToast } from "@/components/ui";
+import { Progress, useToast, PersonName } from "@/components/ui";
 
 export function Checklist({ task }: { task: Task }) {
   const me = useMe();
@@ -95,9 +95,9 @@ export function Checklist({ task }: { task: Task }) {
                     ))}
                   </select>
                 ) : (
-                  owner && <span>{owner.short_name}</span>
+                  owner && <PersonName person={owner} size={16} />
                 )}
-                {i.done && i.done_by && <span>Done by {people.get(i.done_by)?.short_name ?? "someone"}</span>}
+                {i.done && i.done_by && <span>Done by <PersonName person={people.get(i.done_by)} size={16} fallback="someone" /></span>}
               </span>
             </span>
             {canManage && (

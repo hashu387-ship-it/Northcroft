@@ -29,7 +29,7 @@ import { Attachments, useAttachmentList } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
 import { DropZone } from "@/components/DropZone";
 import { canPickFolder } from "@/lib/folderUpload";
-import { Empty, Field, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Empty, Field, Sheet, useConfirm, useToast, PersonName } from "@/components/ui";
 import { useVariations } from "./api";
 import { useSubmissions } from "@/lib/submissions";
 
@@ -279,7 +279,7 @@ export function ProjectFiles({ project }: { project: Project }) {
                   <span className="file-text">
                     <span className="file-name">{f.name}</span>
                     <span className="file-meta">
-                      {countText(f.id)} · {people.get(f.created_by)?.short_name ?? "Someone"} · {timeAgo(f.created_at)}
+                      {countText(f.id)} · <PersonName person={people.get(f.created_by)} size={16} /> · {timeAgo(f.created_at)}
                     </span>
                   </span>
                 </button>

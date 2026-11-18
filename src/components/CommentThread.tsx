@@ -40,7 +40,7 @@ import { PendingMessages, outboxChat } from "./Offline";
 import { fmtDue, dateOf, fmtTime12, todayISO } from "@/lib/time";
 import { fileSize } from "@/lib/format";
 import type { Attachment, ChatPin, Comment, Profile, ReactionKind } from "@/lib/types";
-import { Avatar, Empty, Loading, Sheet, useConfirm, useToast } from "./ui";
+import { Avatar, Empty, Loading, Sheet, useConfirm, useToast, PersonName } from "./ui";
 import { PersonAvatar, openPersonCard } from "./People";
 import { RecorderBar, VoiceNote } from "./Voice";
 import { useOpenFile } from "./useOpenFile";
@@ -456,7 +456,7 @@ export function CommentThread({
                 )}
                 {c.reply_to && (
                   <button type="button" className="quote" onClick={() => jumpTo(c.reply_to!)}>
-                    <b>{quote(c.reply_to) ? (quote(c.reply_to)!.author_id === me.id ? "You" : people.get(quote(c.reply_to)!.author_id)?.short_name ?? "Someone") : ""}</b>
+                    <b>{quote(c.reply_to) ? (quote(c.reply_to)!.author_id === me.id ? "You" : <PersonName person={people.get(quote(c.reply_to)!.author_id)} size={16} />) : ""}</b>
                     <span>{snippet(quote(c.reply_to))}</span>
                   </button>
                 )}

@@ -37,7 +37,7 @@ import {
   type TeamWeek,
   type WeeklyStatus,
 } from "@/lib/weeklyUpdates";
-import { Empty, Field, Loading, Pill, PersonSelect, Sheet, Spinner, useConfirm, useToast } from "@/components/ui";
+import { Empty, Field, Loading, Pill, PersonSelect, Sheet, Spinner, useConfirm, useToast, PersonName } from "@/components/ui";
 
 export function Weekly() {
   const { canAssign } = useAuth();
@@ -550,8 +550,13 @@ function GeneratedList({ manager }: { manager: boolean }) {
           <span className="grow">
             <b>{rangeLabel(g.start, g.end)}</b>
             <span className="faint tiny" style={{ display: "block" }}>
-              {manager ? (g.userId ? (people.get(g.userId)?.short_name ?? "One person") : "The team") : g.line}
-              {g.generatedBy && manager ? ` · by ${people.get(g.generatedBy)?.short_name ?? "someone"}` : ""}
+              {manager ? (g.userId ? <PersonName person={people.get(g.userId)} size={16} fallback="One person" /> : "The team") : g.line}
+              {g.generatedBy && manager && (
+                <>
+                  {" · by "}
+                  <PersonName person={people.get(g.generatedBy)} size={16} fallback="someone" />
+                </>
+              )}
               {g.generatedAt ? ` · ${writtenOn(g.generatedAt)}` : ""}
             </span>
           </span>

@@ -9,7 +9,7 @@ import { useAuth, useMe } from "@/lib/auth";
 import { isBlocked, replyToBlocker, type UpdateWithItems } from "@/lib/dailyUpdates";
 import { errorMessage } from "@/lib/supabase";
 import { timeAgo } from "@/lib/time";
-import { Avatar, useToast } from "@/components/ui";
+import { Avatar, useToast, PersonName } from "@/components/ui";
 
 /** The "Blocking" box: orange while it's blocking, green once a manager or senior has replied. */
 export function BlockerBlock({ update }: { update: UpdateWithItems }) {
@@ -34,7 +34,7 @@ export function BlockerBlock({ update }: { update: UpdateWithItems }) {
       <p className="du-note">{update.blockers}</p>
       {sorted && update.blocker_cleared_at && (
         <span className="du-sorted-by small">
-          Sorted by {by?.id === me.id ? "you" : by?.short_name ?? "a manager"}, {timeAgo(update.blocker_cleared_at)}
+          Sorted by {by?.id === me.id ? "you" : <PersonName person={by} size={16} fallback="a manager" />}, {timeAgo(update.blocker_cleared_at)}
         </span>
       )}
       <BlockerThread update={update} />

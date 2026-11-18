@@ -12,7 +12,7 @@ import { errorMessage, supabase } from "@/lib/supabase";
 import { dateOf, dueState, fmtDate, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Project, Submission, Variation, VoStatus } from "@/lib/types";
 import { SubmissionRow, SubmissionSheet } from "@/components/Submission";
-import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, PriorityFlag, PriorityPicker, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Avatar, AvatarStack, Empty, Field, Loading, PeopleSelect, Pill, PriorityFlag, PriorityPicker, Segmented, Sheet, useConfirm, useToast, PersonName } from "@/components/ui";
 import { VO_APPROVED, VO_PENDING, dueInline, nextVoNumber, useVariations, voTotals } from "./api";
 import { ownersOf } from "@/lib/people";
 import { VoLogFields, mergeRounds, voLogForm, voLogLine, voLogRow, type VoLogForm } from "./VoLog";
@@ -463,7 +463,13 @@ export function VoSheet({
         {vo && (
           <p className="faint tiny full">
             Added {fmtDate(dateOf(vo.created_at), { day: "numeric", month: "short", year: "numeric" })}
-            {vo.created_by ? ` by ${people.get(vo.created_by)?.short_name ?? "someone"}` : ""}.
+            {vo.created_by && (
+              <>
+                {" by "}
+                <PersonName person={people.get(vo.created_by)} size={16} fallback="someone" />
+              </>
+            )}
+            .
           </p>
         )}
       </div>

@@ -165,6 +165,25 @@ export function useTimeLogs(taskIds: string[]) {
   });
 }
 
+/** A stretch that's running now, with the task it's on. */
+export type RunningLog = TimeLog & { task: Pick<Task, "id" | "title" | "project_id"> | null };
+
+/** Every stopwatch running right now, across the team (for "Working now" and the live dots). */
+export function useRunningLogs() {
+  return useQuery({
+    queryKey: ["task_time_logs", "running"],
+    queryFn: () =>
+      unwrap<RunningLog[]>(
+        supabase.from("task_time_logs").select("*, task:tasks(id, title, project_id)").is("stopped_at", null).order("started_at"),
+      ),
+    refetchInterval: 60_000,
+  });
+}
+
+/** Whether this task can be timed: open, approved and not on hold. */
+export const canTime = (t: Pick<Task, "status" | "approval" | "hold">) =>
+  (t.status === "todo" || t.status === "in_progress") && !t.approval && t.hold !== "on";
+
 export async function startStopwatch(taskId: string) {
   const { error } = await supabase.rpc("stopwatch_start", { p_task: taskId });
   if (error) throw error;

@@ -28,7 +28,7 @@ import type { Project, Submission, SubmissionKind, Variation } from "@/lib/types
 import { useVariations } from "@/pages/project/api";
 import { Attachments } from "./Attachments";
 import { CommentThread } from "./CommentThread";
-import { Field, Loading, Pill, Sheet, useConfirm, useToast } from "./ui";
+import { Field, Loading, Pill, Sheet, useConfirm, useToast, PersonName } from "./ui";
 
 /* ---------------------------------------------------------------- the timer */
 
@@ -548,8 +548,13 @@ export function SubmissionSheet({
 
         {s && (
           <p className="faint tiny">
-            Added {fmtDate(dateOf(s.created_at), { day: "numeric", month: "short", year: "numeric" })} by {who(s.created_by)}
-            {s.updated_by && s.updated_at !== s.created_at ? `, last changed by ${who(s.updated_by)} ${fmtDate(dateOf(s.updated_at))}` : ""}.
+            Added {fmtDate(dateOf(s.created_at), { day: "numeric", month: "short", year: "numeric" })} by {s.created_by === me.id ? "you" : <PersonName person={people.get(s.created_by)} size={16} fallback="someone" />}
+            {s.updated_by && s.updated_at !== s.created_at && (
+              <>
+                , last changed by {s.updated_by === me.id ? "you" : <PersonName person={people.get(s.updated_by)} size={16} fallback="someone" />} {fmtDate(dateOf(s.updated_at))}
+              </>
+            )}
+            .
           </p>
         )}
       </div>

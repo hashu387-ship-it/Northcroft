@@ -723,6 +723,11 @@ p {
   border: 3px solid var(--solid);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
 }
+/* a small photo with the name, in a line of text, a chip or a table cell */
+.pname { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; white-space: nowrap; max-width: 100%; }
+.pname > .avatar { box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 16%, transparent); }
+.pname-text { overflow: hidden; text-overflow: ellipsis; }
+.pnames { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; vertical-align: middle; }
 .avatar-stack { display: inline-flex; }
 .avatar-stack .avatar { margin-left: -8px; border: 2px solid var(--solid); }
 .avatar-stack .avatar:first-child { margin-left: 0; }

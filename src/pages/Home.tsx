@@ -25,14 +25,14 @@ import { useApprover, useTaskRequests } from "@/lib/taskApproval";
 import { OnlineCard } from "@/components/OnlineCard";
 import { MyEisCard } from "@/components/MyEisCard";
 import { SubmissionsHomeCard } from "@/components/Submission";
-import { TrackedHomeCard } from "@/components/Tracked";
+import { TrackedHomeCard, WorkingNowStrip } from "@/components/Tracked";
 import { TeamTodayPresence } from "./attendance/Presence";
 import { LeaveToApproveCard } from "./attendance/Leave";
 import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
 import { LastSevenDaysCard } from "./updates/LastSevenDays";
 import { leaveByDay, useTeamLeave } from "@/lib/leave";
 import { VoiceNote } from "@/components/Voice";
-import { Avatar, CountUp, Empty, Fab, Loading, Pill, PriorityFlag, useToast } from "@/components/ui";
+import { Avatar, CountUp, Empty, Fab, Loading, Pill, PriorityFlag, useToast, PersonNames } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useSignoff, waitingOn } from "@/lib/signoff";
@@ -55,7 +55,7 @@ import {
   todayISO,
 } from "@/lib/time";
 import type { Attendance, Profile, Task } from "@/lib/types";
-import { nameList, ownersOf } from "@/lib/people";
+import { ownersOf } from "@/lib/people";
 import {
   acknowledge,
   needsMyAck,
@@ -179,6 +179,7 @@ export default function Home() {
       </div>
 
       {/* The last 7 days, written up every evening; then what the team has to send, and by when. */}
+      <WorkingNowStrip />
       <TrackedHomeCard />
       <LastSevenDaysCard />
       <SubmissionsHomeCard />
@@ -601,7 +602,12 @@ function QsAlertsCard() {
                   </span>
                   <span className="meta" style={{ display: "block" }}>
                     {projects.get(b.project_id)?.name ?? "Project"} · {BOQ_STATUS[b.status].label}
-                    {ownersOf(b).length ? ` · ${nameList(ownersOf(b).map((id) => people.get(id)?.short_name ?? "someone"))}` : ""}
+                    {ownersOf(b).length > 0 && (
+                      <>
+                        {" · "}
+                        <PersonNames people={ownersOf(b).map((id) => people.get(id))} size={16} />
+                      </>
+                    )}
                   </span>
                 </span>
                 <PriorityFlag priority={b.priority ?? "normal"} size="small" />

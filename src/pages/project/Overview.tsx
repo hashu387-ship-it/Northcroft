@@ -11,11 +11,11 @@ import { BOQ_STATUS, VO_STATUS } from "@/lib/constants";
 import { pct, sar } from "@/lib/format";
 import { addDays, dueState, fmtDue, todayISO } from "@/lib/time";
 import type { Priority, Project } from "@/lib/types";
-import { Avatar, Empty, Loading, Pill, PriorityFlag, Sheet, StatusRing, useToast } from "@/components/ui";
+import { Avatar, Empty, Loading, Pill, PriorityFlag, Sheet, StatusRing, useToast, PersonNames } from "@/components/ui";
 import { ActivityFeed } from "./ActivityFeed";
 import { VoMeter } from "./Variations";
 import { VO_PENDING, useActivity, useBoq, useVariations, voTotals } from "./api";
-import { nameList, peopleOn } from "@/lib/people";
+import { peopleOn } from "@/lib/people";
 
 interface Deadline {
   key: string;
@@ -157,7 +157,7 @@ export function Overview({ project }: { project: Project }) {
                 <StatusRing status={t.status} />
                 <div className="grow">
                   <div className="title">{t.title}</div>
-                  <div className="meta">From {nameList(peopleOn(t).map((id) => people.get(id)?.short_name ?? "someone")) || "someone"}</div>
+                  <div className="meta">From <PersonNames people={peopleOn(t).map((id) => people.get(id))} size={16} empty="someone" /></div>
                 </div>
                 <PriorityFlag priority={t.priority} size="small" />
               </Link>

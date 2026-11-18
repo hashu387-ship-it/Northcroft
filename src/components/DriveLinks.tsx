@@ -1,4 +1,4 @@
-import { useEffect, useState, type MutableRefObject } from "react";
+import { useEffect, useState, type MutableRefObject, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -46,7 +46,7 @@ import { fileSize } from "@/lib/format";
 import { isIOS } from "@/lib/push";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { fmtDate, timeAgo } from "@/lib/time";
-import { Field, Sheet, Spinner, useConfirm, useToast } from "./ui";
+import { Field, Sheet, Spinner, useConfirm, useToast, PersonName } from "./ui";
 import type { OpenFileState } from "./useOpenFile";
 
 function ItemIcon({ item }: { item: Pick<DriveItem, "folder" | "mime" | "name"> }) {
@@ -246,7 +246,11 @@ function OtherLinkCard({
   const people = usePeople();
   const meta = compact
     ? linkMeta(link)
-    : [linkMeta(link), `added by ${people.get(link.added_by)?.short_name ?? "someone"} ${timeAgo(link.created_at)}`].join(" · ");
+    : (
+        <>
+          {linkMeta(link)} · added by <PersonName person={people.get(link.added_by)} size={16} fallback="someone" /> {timeAgo(link.created_at)}
+        </>
+      );
   return (
     <div className={clsx("dl-card", compact && "compact")}>
       <div className="dl-head">
@@ -341,7 +345,12 @@ export function LinkCard({
         ? "Google Drive folder"
         : "Google Drive folder · tap to see the files"
       : "Google Drive file"
-    : [link.kind === "folder" ? "Google Drive folder" : "Google Drive file", `added by ${people.get(link.added_by)?.short_name ?? "someone"} ${timeAgo(link.created_at)}`].join(" · ");
+    : (
+        <>
+          {link.kind === "folder" ? "Google Drive folder" : "Google Drive file"} · added by <PersonName person={people.get(link.added_by)} size={16} fallback="someone" />{" "}
+          {timeAgo(link.created_at)}
+        </>
+      );
 
   return (
     <div className={clsx("dl-card", compact && "compact")}>
@@ -360,7 +369,7 @@ export function LinkCard({
             {openList ? <ChevronDown className="dl-chev" aria-hidden /> : <ChevronRight className="dl-chev" aria-hidden />}
           </button>
         ) : (
-          <FileHead link={link} file={file} meta={from ? `${meta} · ${from}` : meta} />
+          <FileHead link={link} file={file} meta={from ? <>{meta} · {from}</> : meta} />
         )}
         <a className="icon-btn small plain" href={driveWebUrl(link)} target="_blank" rel="noopener noreferrer" aria-label={`Open ${link.title} in Google Drive`} title="Open in Google Drive">
           <ExternalLink />
@@ -378,7 +387,7 @@ export function LinkCard({
 }
 
 /** A link to a single file: opens like any file, with a Download button. */
-function FileHead({ link, file, meta }: { link: DriveLink; file: DriveItem; meta: string }) {
+function FileHead({ link, file, meta }: { link: DriveLink; file: DriveItem; meta: ReactNode }) {
   const navigate = useNavigate();
   const toast = useToast();
   const k = fileKind(file);

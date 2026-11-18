@@ -37,10 +37,10 @@ import { Attachments } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
 import { CommentThread } from "@/components/CommentThread";
 import { TaskForm } from "@/components/TaskForm";
-import { DueLabel, EarlyBadge, Empty, Loading, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast } from "@/components/ui";
+import { DueLabel, EarlyBadge, Empty, Loading, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast, PersonName } from "@/components/ui";
 import { ActivityFeed } from "./project/ActivityFeed";
 import { Checklist } from "./project/Checklist";
-import { TrackedPanel } from "@/components/Tracked";
+import { TaskTimeCard, TrackedPanel } from "@/components/Tracked";
 import { useActivity, useWatchers } from "./project/api";
 import { useTaskMeeting } from "./calendar/ActionPoints";
 import { ProgressValue, TaskProgressCard } from "./updates/TaskProgress";
@@ -573,7 +573,14 @@ export default function TaskDetail() {
             {details(t)}
           </div>
 
-          {t.tracked ? <TrackedPanel task={t} /> : <Checklist task={t} />}
+          {t.tracked ? (
+            <TrackedPanel task={t} />
+          ) : (
+            <>
+              <TaskTimeCard task={t} />
+              <Checklist task={t} />
+            </>
+          )}
 
           <TaskProgressCard taskId={t.id} />
 
@@ -809,7 +816,7 @@ export default function TaskDetail() {
           <Row label="Created">
             <span className="row" style={{ gap: 8, minWidth: 0 }}>
               <span className="small">
-                {creator?.short_name ?? "Someone"}, {fmtDateTime(task.created_at)}
+                <PersonName person={creator} size={18} />, {fmtDateTime(task.created_at)}
               </span>
               {creator && creator.id !== reviewer?.id && <WhatsAppButton person={creator} variant="small" text={msg(creator.short_name)} />}
             </span>
@@ -825,14 +832,14 @@ export default function TaskDetail() {
           {task.first_ok_by && task.first_ok_at && task.status !== "todo" && task.status !== "in_progress" && (
             <Row label="Checked">
               <span className="small">
-                {people.get(task.first_ok_by)?.short_name ?? "Someone"}, {fmtDateTime(task.first_ok_at)}
+                <PersonName person={people.get(task.first_ok_by)} size={18} />, {fmtDateTime(task.first_ok_at)}
               </span>
             </Row>
           )}
           {task.status === "done" && task.completed_at && (
             <Row label={task.finished_by_first ? "Finished" : task.first_ok_by ? "Final OK" : "Approved"}>
               <span className="small">
-                {people.get(task.approved_by)?.short_name ?? "Someone"}, {fmtDateTime(task.completed_at)}
+                <PersonName person={people.get(task.approved_by)} size={18} />, {fmtDateTime(task.completed_at)}
                 {task.finished_by_first && signoff.final ? ` · without ${signoff.final.short_name}'s final OK` : ""}
               </span>
             </Row>

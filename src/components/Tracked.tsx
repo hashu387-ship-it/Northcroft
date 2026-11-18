@@ -10,6 +10,7 @@ import { useChecklist, useInvalidate, usePeople, useProjectMap, useSettings } fr
 import { useAuth, useMe } from "@/lib/auth";
 import { errorMessage } from "@/lib/supabase";
 import {
+  canTime,
   fmtClockSecs,
   fmtDeadline,
   fmtSpent,
@@ -24,13 +25,14 @@ import {
   timeTotals,
   useDeadline,
   useNow,
+  useRunningLogs,
   useTimeLogs,
   useTrackedSteps,
   useTrackedTasks,
   type OwnerSteps,
 } from "@/lib/tracked";
 import type { ChecklistItem, Task, TimeLog } from "@/lib/types";
-import { Avatar, Pill, Progress, ProjectTag, useToast } from "./ui";
+import { Avatar, Loading, Pill, Progress, ProjectTag, useToast } from "./ui";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const isOpen = (t: Pick<Task, "status">) => t.status === "todo" || t.status === "in_progress";
@@ -73,14 +75,14 @@ export function Countdown({ task, compact }: { task: Pick<Task, "due_date" | "st
 /* ---------------------------------------------------------------- the stopwatch */
 
 /** My stopwatch on a task: Start, or the running time and Stop. */
-export function StopwatchButton({ task, logs, small }: { task: Pick<Task, "id" | "status">; logs: TimeLog[]; small?: boolean }) {
+export function StopwatchButton({ task, logs, small }: { task: Pick<Task, "id" | "status" | "approval" | "hold">; logs: TimeLog[]; small?: boolean }) {
   const me = useMe();
   const toast = useToast();
   const invalidate = useInvalidate();
   const now = useNow(1000);
   const [busy, setBusy] = useState(false);
   const t = timeTotals(logs, task.id, me.id, now, startOfToday());
-  if (!isOpen(task)) return null;
+  if (!canTime(task)) return null;
 
   async function toggle() {
     setBusy(true);
@@ -92,7 +94,7 @@ export function StopwatchButton({ task, logs, small }: { task: Pick<Task, "id" |
         await startStopwatch(task.id);
         toast("Stopwatch started. It stops by itself when you check out.");
       }
-      await invalidate("task_time_logs");
+      await invalidate("task_time_logs", "tasks");
     } catch (e) {
       toast(errorMessage(e), "error");
     } finally {
@@ -272,7 +274,8 @@ function PersonPart({ task, part, logs }: { task: Task; part: OwnerSteps; logs: 
 
 /** On the task page of a tracked task: the countdown, then each person's steps and time. */
 export function TrackedPanel({ task }: { task: Task }) {
-  const items = useChecklist(task.id).data ?? [];
+  const itemsQ = useChecklist(task.id);
+  const items = itemsQ.data ?? [];
   const logs = useTimeLogs([task.id]).data ?? [];
   const parts = stepsByOwner(task, items);
   const done = parts.reduce((n, p) => n + p.done, 0);
@@ -290,16 +293,133 @@ export function TrackedPanel({ task }: { task: Task }) {
         )}
       </div>
       <Countdown task={task} />
-      <div className="trk-people">
-        {parts.map((p) => (
-          <PersonPart key={p.userId} task={task} part={p} logs={logs} />
-        ))}
-      </div>
+      {itemsQ.isLoading ? (
+        <Loading rows={2} />
+      ) : (
+        <div className="trk-people">
+          {parts.map((p) => (
+            <PersonPart key={p.userId} task={task} part={p} logs={logs} />
+          ))}
+        </div>
+      )}
       <p className="faint small trk-foot">
         Each person ticks their own steps here or in their daily update. The count goes in with the daily update, and the managers get it as
         a push. The stopwatch stops by itself at check-out, when the task is handed in, and at 11:55 pm.
       </p>
     </div>
+  );
+}
+
+/* ---------------------------------------------------------------- time on any task */
+
+/** On any task's page: my stopwatch, and each person's time on it. Hidden until there's something
+ *  to show (I can time it, or someone has). */
+export function TaskTimeCard({ task }: { task: Task }) {
+  const me = useMe();
+  const people = usePeople();
+  const logs = useTimeLogs([task.id]).data ?? [];
+  const mine = (task.assignees ?? []).includes(me.id);
+  const ids = [...new Set([...(task.assignees ?? []), ...logs.map((l) => l.user_id)])];
+  if (!logs.length && !(mine && canTime(task))) return null;
+  return (
+    <div className="glass card trk-timecard">
+      <div className="card-head">
+        <h3 className="tone-teal">
+          <Timer /> Time on this task
+        </h3>
+      </div>
+      <div className="trk-timelist">
+        {ids.map((id) => {
+          const p = people.get(id);
+          return (
+            <div key={id} className="trk-timerow">
+              <Avatar person={p} size={30} />
+              <b className="trk-name grow">
+                {p?.short_name ?? "Someone"}
+                {id === me.id && <span className="faint"> (you)</span>}
+              </b>
+              <TimeLine task={task} logs={logs} userId={id} />
+            </div>
+          );
+        })}
+      </div>
+      {mine && <StopwatchButton task={task} logs={logs} />}
+    </div>
+  );
+}
+
+/** Home: who has a stopwatch running right now, with the task and a live timer. Nothing when
+ *  nobody's timing. */
+export function WorkingNowStrip() {
+  const me = useMe();
+  const people = usePeople();
+  const invalidate = useInvalidate();
+  const toast = useToast();
+  const list = useRunningLogs().data ?? [];
+  const now = useNow(1000);
+  if (!list.length) return null;
+
+  async function stopMine() {
+    try {
+      const secs = await stopStopwatch();
+      toast(`Stopped. ${fmtSpent(secs)} on it just now.`);
+      await invalidate("task_time_logs");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    }
+  }
+
+  return (
+    <div className="glass card wn" aria-label="Working now">
+      <div className="wn-head">
+        <i className="trk-live" aria-hidden />
+        <b>Working now</b>
+        <span className="muted small">
+          {list.length} {list.length === 1 ? "person" : "people"} timing a task
+        </span>
+      </div>
+      <div className="wn-row">
+        {list.map((l) => {
+          const p = people.get(l.user_id);
+          const secs = Math.max(0, Math.floor((now - new Date(l.started_at).getTime()) / 1000));
+          return (
+            <div key={l.id} className="wn-item" style={p?.color ? ({ ["--person" as string]: p.color } as CSSProperties) : undefined}>
+              <Link to={`/tasks/${l.task_id}`} className="wn-link">
+                <Avatar person={p} size={38} />
+                <span className="wn-text">
+                  <b>
+                    {p?.short_name ?? "Someone"}
+                    {l.user_id === me.id && <span className="faint"> (you)</span>}
+                  </b>
+                  <span className="wn-task">{l.task?.title ?? "A task"}</span>
+                </span>
+                <span className="wn-time">{fmtClockSecs(secs)}</span>
+              </Link>
+              {l.user_id === me.id && (
+                <button type="button" className="icon-btn small" onClick={() => void stopMine()} aria-label="Stop my stopwatch" title="Stop">
+                  <Pause />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** In a task row: the photos of whoever is timing this task right now. */
+export function WorkingDots({ taskId }: { taskId: string }) {
+  const people = usePeople();
+  const on = (useRunningLogs().data ?? []).filter((l) => l.task_id === taskId);
+  if (!on.length) return null;
+  return (
+    <span className="wn-dots" title={`${on.map((l) => people.get(l.user_id)?.short_name ?? "Someone").join(", ")} working on it now`}>
+      <i className="trk-live" aria-hidden />
+      {on.slice(0, 3).map((l) => (
+        <Avatar key={l.id} person={people.get(l.user_id)} size={18} />
+      ))}
+    </span>
   );
 }
 
@@ -371,7 +491,7 @@ export function TrackedHomeCard() {
                         className={clsx("trk-chip", p.total > 0 && p.done === p.total && "all")}
                         style={who?.color ? ({ ["--person" as string]: who.color } as CSSProperties) : undefined}
                       >
-                        <i aria-hidden /> {who?.short_name ?? "Someone"} {p.done}/{p.total}
+                        <Avatar person={who} size={20} /> {who?.short_name ?? "Someone"} <b>{p.done}/{p.total}</b>
                       </span>
                     );
                   })}

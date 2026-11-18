@@ -9,7 +9,7 @@ import { errorMessage, supabase } from "@/lib/supabase";
 import { fileSize } from "@/lib/format";
 import { timeAgo } from "@/lib/time";
 import type { Attachment } from "@/lib/types";
-import { Empty, Loading, useConfirm, useToast } from "./ui";
+import { Empty, Loading, useConfirm, useToast, PersonName } from "./ui";
 import { useOpenFile } from "./useOpenFile";
 import { DropZone } from "./DropZone";
 import { canPickFolder, folderParts, relPath, withoutJunk } from "@/lib/folderUpload";
@@ -349,7 +349,7 @@ export function Attachments({
               {making ? "Making a preview · " : ""}
               {a.version > 1 ? `Version ${a.version} · ` : ""}
               {a.size != null ? `${fileSize(a.size)} · ` : ""}
-              {people.get(a.uploaded_by)?.short_name ?? "Someone"} · {timeAgo(a.created_at)}
+              <PersonName person={people.get(a.uploaded_by)} size={16} /> · {timeAgo(a.created_at)}
             </span>
           </span>
         </button>

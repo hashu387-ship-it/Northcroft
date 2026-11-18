@@ -9,8 +9,9 @@ import { peopleOn } from "@/lib/people";
 import { reviewLabel, useSignoff } from "@/lib/signoff";
 import type { Task } from "@/lib/types";
 import { todayISO } from "@/lib/time";
-import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing, useToast } from "./ui";
+import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectTag, StatusRing, useToast, PersonName } from "./ui";
 import { ProgressChip } from "@/pages/updates/TaskProgress";
+import { WorkingDots } from "./Tracked";
 
 export function TaskRow({
   task,
@@ -43,6 +44,7 @@ export function TaskRow({
           <PriorityFlag priority={task.priority} />
           <EarlyBadge task={task} />
           <ProgressChip task={task} />
+          <WorkingDots taskId={task.id} />
           {checklist && checklist[1] > 0 && (
             <span className="row" style={{ gap: 3 }}>
               <ListChecks size={13} />
@@ -72,7 +74,7 @@ export function TaskRow({
               <Pause /> Hold asked
             </Pill>
           )}
-          {task.status === "done" && task.finished_by_first && <span className="small muted">Finished by {people.get(task.approved_by)?.short_name ?? "the first checker"}</span>}
+          {task.status === "done" && task.finished_by_first && <span className="small muted">Finished by <PersonName person={people.get(task.approved_by)} size={16} fallback="the first checker" /></span>}
           {changesRequested && (
             <Pill tone="orange">
               <RotateCcw />

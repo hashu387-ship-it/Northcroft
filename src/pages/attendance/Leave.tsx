@@ -34,7 +34,7 @@ import {
 import { errorMessage } from "@/lib/supabase";
 import { addDays, dateOf, isWorkday, todayISO } from "@/lib/time";
 import type { LeaveBalance, LeaveKind, LeaveRequest } from "@/lib/types";
-import { Avatar, Empty, Field, Loading, Pill, Segmented, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Avatar, Empty, Field, Loading, Pill, Segmented, Sheet, useConfirm, useToast, PersonNames } from "@/components/ui";
 import { Attachments } from "@/components/Attachments";
 import { uploadFile } from "@/lib/files";
 import { fileSize } from "@/lib/format";
@@ -248,7 +248,7 @@ export function TeamLeaveCard() {
           <>
             {awayToday.length > 0 && (
               <div className="muted small" style={{ marginBottom: 6 }}>
-                Away today: {awayToday.map((r) => people.get(r.user_id)?.short_name ?? "Someone").join(", ")}
+                Away today: <PersonNames people={awayToday.map((r) => people.get(r.user_id))} size={18} />
               </div>
             )}
             <div className="list">

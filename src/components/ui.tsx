@@ -115,6 +115,32 @@ export function PersonChip({ person, size = 22 }: { person?: Profile | null; siz
   );
 }
 
+type PersonLike = Pick<Profile, "short_name" | "full_name" | "color"> & { avatar_url?: string | null; id?: string };
+
+/** A small photo and the short name together: for a line of text, a chip or a table cell. */
+export function PersonName({ person, size = 18, fallback = "Someone", name }: { person?: PersonLike | null; size?: number; fallback?: ReactNode; name?: string }) {
+  if (!person) return <>{fallback}</>;
+  return (
+    <span className="pname">
+      <AvatarPicture person={person} size={size} />
+      <span className="pname-text">{name ?? person.short_name}</span>
+    </span>
+  );
+}
+
+/** Several people in a line, each with their photo. */
+export function PersonNames({ people, size = 18, empty = null }: { people: (PersonLike | null | undefined)[]; size?: number; empty?: ReactNode }) {
+  const list = people.filter(Boolean) as PersonLike[];
+  if (!list.length) return <>{empty}</>;
+  return (
+    <span className="pnames">
+      {list.map((p, i) => (
+        <PersonName key={p.id ?? i} person={p} size={size} />
+      ))}
+    </span>
+  );
+}
+
 /* ---------------------------------------------------------------- pills */
 export function Pill({ tone = "gray", children, className, lg }: { tone?: string; children: ReactNode; className?: string; lg?: boolean }) {
   return <span className={clsx("pill", tone, lg && "lg", className)}>{children}</span>;
