@@ -49,6 +49,8 @@ export function MissedCheckinCard() {
   const approver = fixApprover(me.id, signoff)?.short_name;
   const list = useMemo(() => (mine.data ?? []).filter((r) => r.work_date >= addDays(today, -62)), [mine.data, today]);
   const shown = all ? list : list.slice(0, 3);
+  // Requests couldn't be loaded: leave the card out rather than offer a button that can't work.
+  if (mine.isError) return null;
 
   return (
     <div className="glass card fix-card">

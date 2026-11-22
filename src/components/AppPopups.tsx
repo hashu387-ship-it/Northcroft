@@ -45,6 +45,7 @@ function readLater(): Set<string> {
 function useMyAnnouncementViews(userId: string) {
   return useQuery({
     queryKey: ["announcement_views", userId],
+    retryOnMount: false,
     queryFn: () => unwrap<AnnouncementView[]>(supabase.from("announcement_views").select("*").eq("user_id", userId).limit(1000)),
     staleTime: 60_000,
   });
@@ -120,15 +121,16 @@ export function AppPopups() {
         if (a.author_id === me.id) return false;
         const made = dateOf(a.created_at);
         if (needsMyAck(a, me.id)) return made >= month;
-        return !a.requires_ack && !seen.has(a.id) && made >= week;
+        // Without a record of what's been seen (it couldn't load), only the ones to acknowledge pop up.
+        return !views.isError && !a.requires_ack && !seen.has(a.id) && made >= week;
       })
       .sort((x, y) => Number(y.important) - Number(x.important) || x.created_at.localeCompare(y.created_at));
-  }, [anns.data, anns.isLoading, views.data, views.isLoading, me.id, today]);
+  }, [anns.data, anns.isLoading, views.data, views.isLoading, views.isError, me.id, today]);
 
   // Not checked in, a working day, past the start time plus the grace minutes, not on leave and
   // not already asked about today. Worked out on every render (the clock moves).
   const forgot = (() => {
-    if (!checksIn || !settings || todayRow.isLoading || todayRow.data === undefined || mine.isLoading || away.isLoading) return false;
+    if (!checksIn || !settings || todayRow.isLoading || todayRow.data === undefined || !mine.isFetched || away.isLoading) return false;
     if (!isWorkday(today, settings.work_days)) return false;
     if ((todayRow.data ?? []).length > 0) return false;
     if ((away.data ?? []).some((l) => l.user_id === me.id)) return false;
@@ -377,6 +379,8 @@ function ForgotPopup({ onLater, onAsk }: { onLater: () => void; onAsk: () => voi
   const mine = useMyCheckinRequests(me.id);
   const today = todayISO();
   const use = fixUsage(mine.data, today);
+  // Requests can't be sent if they couldn't be loaded (e.g. offline): only Check in is offered.
+  const canAsk = use.canAsk && !mine.isError;
   const approver = fixApprover(me.id, signoff)?.short_name ?? "a manager";
   const start = fmtClock(settings?.work_start ?? "08:30");
   const afterHours = clockNow() >= (settings?.work_end ?? "17:30").slice(0, 5);
@@ -391,7 +395,7 @@ function ForgotPopup({ onLater, onAsk }: { onLater: () => void; onAsk: () => voi
           <button className="btn" type="button" onClick={onLater}>
             Not now
           </button>
-          {use.canAsk && (
+          {canAsk && (
             <button className="btn" type="button" onClick={onAsk}>
               <ClockAlert /> Ask {approver}
             </button>
@@ -426,7 +430,7 @@ function ForgotPopup({ onLater, onAsk }: { onLater: () => void; onAsk: () => voi
             ? `If you were at work today, ask ${approver} to record the times you came in and left.`
             : `If you're at the office, check in now. If you got here earlier and forgot, ask ${approver} to record the time you came in.`}
         </p>
-        {use.canAsk ? (
+        {mine.isError ? null : use.canAsk ? (
           <FixAllowance used={use.approved} waiting={use.waiting} month={monthName(today)} />
         ) : (
           <p className="muted small" style={{ margin: 0 }}>

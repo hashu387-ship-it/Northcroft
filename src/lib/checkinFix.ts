@@ -19,6 +19,8 @@ export const FIX_DAYS_BACK = 7;
 export function useMyCheckinRequests(userId: string) {
   return useQuery({
     queryKey: ["checkin_requests", "mine", userId],
+    // Several screens share this list; one that opens shouldn't reload a list that failed.
+    retryOnMount: false,
     queryFn: () =>
       unwrap<CheckinRequest[]>(
         supabase.from("checkin_requests").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(60),
@@ -31,6 +33,7 @@ export function usePendingCheckinRequests(enabled: boolean) {
   return useQuery({
     queryKey: ["checkin_requests", "pending"],
     enabled,
+    retryOnMount: false,
     queryFn: () =>
       unwrap<CheckinRequest[]>(supabase.from("checkin_requests").select("*").eq("status", "pending").order("created_at").limit(100)),
   });
