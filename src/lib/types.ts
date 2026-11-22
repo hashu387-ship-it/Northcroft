@@ -456,7 +456,7 @@ export interface Attendance {
   in_address: string | null;
   in_place_id: string | null;
   in_place_name: string | null;
-  in_place_kind: "office" | "site" | "elsewhere" | "unknown" | null;
+  in_place_kind: "office" | "site" | "elsewhere" | "unknown" | "approved" | null;
   check_out_at: string | null;
   out_lat: number | null;
   out_lng: number | null;
@@ -464,7 +464,7 @@ export interface Attendance {
   out_address: string | null;
   out_place_id: string | null;
   out_place_name: string | null;
-  out_place_kind: "office" | "site" | "elsewhere" | "unknown" | null;
+  out_place_kind: "office" | "site" | "elsewhere" | "unknown" | "approved" | null;
   late_minutes: number;
   early_minutes: number;
   note: string | null;
@@ -816,4 +816,29 @@ export interface TimeLog {
   /** Stopped by the app (check-out, handed in, or 11:55 pm), not by the person. */
   auto_stopped: boolean;
   created_at: string;
+}
+
+/* ---------------------------------------------------------------- missed check-in requests (0054) */
+
+export interface CheckinRequest {
+  id: string;
+  user_id: string;
+  work_date: string;
+  in_at: string | null;
+  out_at: string | null;
+  reason: string;
+  status: "pending" | "approved" | "declined" | "cancelled";
+  approver_id: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  seen_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnnouncementView {
+  announcement_id: string;
+  user_id: string;
+  seen_at: string;
 }

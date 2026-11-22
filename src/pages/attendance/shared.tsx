@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, HardHat, MapPin, MapPinOff } from "lucide-react";
+import { Building2, ClipboardCheck, HardHat, MapPin, MapPinOff } from "lucide-react";
 import { unwrap } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { TZ } from "@/lib/config";
@@ -31,11 +31,12 @@ export function placeTone(kind: Kind): string {
   if (kind === "office") return "green";
   if (kind === "site") return "blue";
   if (kind === "elsewhere") return "orange";
+  if (kind === "approved") return "purple";
   return "gray";
 }
 
 export function PlacePill({ kind, name }: { kind: Kind; name: string | null }) {
-  const Icon = kind === "office" ? Building2 : kind === "site" ? HardHat : kind === "elsewhere" ? MapPin : MapPinOff;
+  const Icon = kind === "office" ? Building2 : kind === "site" ? HardHat : kind === "elsewhere" ? MapPin : kind === "approved" ? ClipboardCheck : MapPinOff;
   return (
     <Pill tone={placeTone(kind)}>
       <Icon />

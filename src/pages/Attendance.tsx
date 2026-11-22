@@ -11,6 +11,7 @@ import { MonthlyReport } from "./attendance/MonthlyReport";
 import { PresenceBoard, PresenceMonthly } from "./attendance/Presence";
 import { LeaveFromLink, LeaveToApproveCard, MyLeaveCard, TeamLeaveCard } from "./attendance/Leave";
 import { useMyAttendance, usePlaces } from "./attendance/shared";
+import { FixesToAnswerCard, FixFromLink, MissedCheckinCard } from "./attendance/CheckinFix";
 import "@/styles/admin.css";
 
 export default function Attendance() {
@@ -25,6 +26,7 @@ export default function Attendance() {
   // Leave waiting on me sits at the top of the team side; everyone's leave below the day board.
   const team = presenceOnly ? (
     <>
+      <FixesToAnswerCard />
       <LeaveToApproveCard />
       <PresenceBoard />
       <TeamLeaveCard />
@@ -32,6 +34,7 @@ export default function Attendance() {
     </>
   ) : (
     <>
+      <FixesToAnswerCard />
       <LeaveToApproveCard />
       <TeamBoard />
       <TeamLeaveCard />
@@ -55,6 +58,7 @@ export default function Attendance() {
         />
         {canAssign && <div className="attendance-grid">{team}</div>}
         <LeaveFromLink />
+        <FixFromLink />
       </div>
     );
   }
@@ -88,6 +92,7 @@ export default function Attendance() {
           <BreakCard today={today} slot="top" />
           <CheckInCard today={today} />
           <BreakCard today={today} slot="after" />
+          <MissedCheckinCard />
           <MyLeaveCard />
           <MyHistory rows={mine.data ?? []} loading={mine.isLoading} />
         </div>
@@ -98,6 +103,7 @@ export default function Attendance() {
         )}
       </div>
       <LeaveFromLink />
+      <FixFromLink />
     </div>
   );
 }

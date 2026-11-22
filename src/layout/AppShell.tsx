@@ -39,6 +39,7 @@ import ProfileSetup from "@/pages/ProfileSetup";
 import { QsLogo, QsMark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CelebrationHost } from "@/components/Celebration";
+import { AppPopups } from "@/components/AppPopups";
 import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
 import { openSearch } from "@/lib/search";
 import { OfflineBar, OutboxRunner } from "@/components/Offline";
@@ -359,6 +360,7 @@ export default function AppShell() {
       </nav>
       <PersonCardHost />
       <CelebrationHost />
+      <AppPopups />
       <SearchHost />
       {appUpdate.ready && (
         <div className="update-bar" role="status">

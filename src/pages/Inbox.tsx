@@ -2,44 +2,7 @@ import "@/styles/comms.css";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import {
-  CalendarRange,
-  Archive,
-  ArchiveRestore,
-  AtSign,
-  Bell,
-  BellRing,
-  Building2,
-  CalendarClock,
-  CalendarDays,
-  CheckCheck,
-  CircleCheck,
-  ClipboardCheck,
-  ClipboardList,
-  Clock,
-  Coffee,
-  FileClock,
-  FileText,
-  Hourglass,
-  Inbox as InboxIcon,
-  Layers,
-  ListChecks,
-  Mail,
-  MailOpen,
-  MapPin,
-  Megaphone,
-  MessageCircle,
-  MessagesSquare,
-  Pause,
-  RotateCcw,
-  Send,
-  SquareCheckBig,
-  TreePalm,
-  TriangleAlert,
-  type LucideIcon,
-  LogIn,
-  LogOut,
-} from "lucide-react";
+import { Archive, ArchiveRestore, AtSign, Bell, BellRing, Building2, CalendarClock, CalendarDays, CalendarRange, CheckCheck, CircleCheck, ClipboardCheck, ClipboardList, Clock, ClockAlert, Coffee, FileClock, FileText, Hourglass, Inbox as InboxIcon, Layers, ListChecks, LogIn, LogOut, Mail, MailOpen, MapPin, Megaphone, MessageCircle, MessagesSquare, Pause, RotateCcw, Send, SquareCheckBig, TreePalm, TriangleAlert, type LucideIcon } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { SwipeRow } from "@/components/Swipe";
 import { Avatar, Empty, Loading, Segmented, useToast } from "@/components/ui";
@@ -93,6 +56,8 @@ const TYPE_META: Record<string, { icon: LucideIcon; color: string; label: string
   register: { icon: ClipboardList, color: "#0A84FF", label: "EIs and registers" },
   checkin_reminder: { icon: LogIn, color: "#0A84FF", label: "Check in" },
   checkout_reminder: { icon: LogOut, color: "#FF9F0A", label: "Check out" },
+  checkin_request: { icon: ClockAlert, color: "#BF5AF2", label: "Missed check-in to approve" },
+  checkin_answer: { icon: ClockAlert, color: "#30B0C7", label: "Missed check-in" },
   leave_request: { icon: TreePalm, color: "#BF5AF2", label: "Leave to approve" },
   leave_update: { icon: TreePalm, color: "#30B0C7", label: "Leave" },
   leave_approved: { icon: TreePalm, color: "#30D158", label: "Leave approved" },
