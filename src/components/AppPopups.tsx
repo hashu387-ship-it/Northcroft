@@ -4,12 +4,13 @@
 //      acknowledge them; the others pop up once.
 //   3. Missed check-in requests waiting for me (Hassan), with Approve and Decline.
 //   4. I haven't checked in and office hours have started: check in, or ask Hassan to record it.
+// Before all of these, once after each app update: What's new (also opened from More, ?whatsnew=1).
 // "Later" or "Not now" hides a popup until the app is next opened (this session).
 import "@/styles/checkinfix.css";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleCheck, ClipboardCheck, ClockAlert, Megaphone, MapPin, X } from "lucide-react";
+import { ArrowRight, CircleCheck, ClipboardCheck, ClockAlert, Gift, Megaphone, MapPin, X } from "lucide-react";
 import { unwrap, useInvalidate, usePeople, useSettings } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import {
@@ -26,7 +27,9 @@ import {
 import { useTeamLeave } from "@/lib/leave";
 import { useSignoff } from "@/lib/signoff";
 import { errorMessage, supabase } from "@/lib/supabase";
-import { addDays, dateOf, fmtClock, fmtDateTime, isWorkday, todayISO } from "@/lib/time";
+import { addDays, dateOf, fmtClock, fmtDateTime, fmtLongDate, isWorkday, todayISO } from "@/lib/time";
+import { itemsFor, LATEST, markReleaseSeen, seenRelease, type WhatsNewContext, type WhatsNewItem } from "@/lib/whatsNew";
+import { tileStyle } from "@/lib/menu";
 import type { AnnouncementView } from "@/lib/types";
 import { acknowledge, needsMyAck, useAnnouncementsWithAcks, useAttendanceOn, type AnnouncementWithAcks } from "@/pages/home/data";
 import { CheckinFixForm, FixAllowance, FixToAnswer } from "@/pages/attendance/CheckinFix";
@@ -60,6 +63,7 @@ const addMinutes = (hhmm: string, mins: number) => {
 };
 
 type Popup =
+  | { kind: "whatsnew"; key: string }
   | { kind: "answers"; key: string }
   | { kind: "announcement"; key: string; a: AnnouncementWithAcks }
   | { kind: "approve"; key: string }
@@ -67,8 +71,11 @@ type Popup =
 
 export function AppPopups() {
   const me = useMe();
-  const { canAssign } = useAuth();
+  const { canAssign, isManager } = useAuth();
+  const signoff = useSignoff();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [wnSeen, setWnSeen] = useState(() => seenRelease(me.id));
   const today = todayISO();
   const settings = useSettings().data;
   const [later, setLater] = useState<Set<string>>(readLater);
@@ -139,22 +146,46 @@ export function AppPopups() {
     return clockNow() >= start;
   })();
 
+  // What's new: once per update, only the items that apply to me. Items about missed check-ins wait
+  // until those tables are in place, so nobody reads about something they can't use yet.
+  const fixReady = mine.isFetched && !mine.isError;
+  const wnCtx: WhatsNewContext = {
+    checksIn,
+    approves: isManager || signoff.first?.id === me.id || signoff.final?.id === me.id,
+    canAssign,
+    approverName: fixApprover(me.id, signoff)?.short_name ?? "a manager",
+  };
+  const wnItems = itemsFor(LATEST, wnCtx, fixReady);
+  const wnHeld = !fixReady && LATEST.items.some((i) => i.needsCheckinFix && (!i.for || i.for(wnCtx)));
+  const wnForced = new URLSearchParams(location.search).get("whatsnew") === "1";
+  const closeWhatsNew = () => {
+    markReleaseSeen(me.id);
+    setWnSeen(LATEST.id);
+    if (wnForced) {
+      const next = new URLSearchParams(location.search);
+      next.delete("whatsnew");
+      navigate({ pathname: location.pathname, search: next.toString() }, { replace: true });
+    }
+  };
+
   // The first popup that's due and not put off.
   const path = location.pathname;
   const queue: Popup[] = [];
+  if (wnItems.length && (wnForced || (wnSeen !== LATEST.id && !wnHeld))) queue.push({ kind: "whatsnew", key: "whatsnew" });
   if (answers.length) queue.push({ kind: "answers", key: "answers" });
   if (!path.startsWith("/announcements")) {
     popAnns.forEach((a) => queue.push({ kind: "announcement", key: `ann-${a.id}`, a }));
   }
   if (toAnswer.list.length && !path.startsWith("/attendance")) queue.push({ kind: "approve", key: "approve" });
   if (forgot && !path.startsWith("/attendance")) queue.push({ kind: "forgot", key: `forgot-${today}` });
-  const due = queue.filter((p) => !later.has(p.key));
+  const due = queue.filter((p) => p.kind === "whatsnew" || !later.has(p.key));
   const current = ready && !asking && !/^\/(enter|share)/.test(path) ? due[0] : undefined;
   // Number the announcements among those still due.
   const annLeft = due.filter((p) => p.kind === "announcement").length;
 
   return (
     <>
+      {current?.kind === "whatsnew" && <WhatsNewPopup key="whatsnew" items={wnItems} ctx={wnCtx} onClose={closeWhatsNew} />}
       {current?.kind === "answers" && <AnswersPopup key="answers" onClose={() => hide("answers")} />}
       {current?.kind === "announcement" && (
         <AnnouncementPopup key={current.key} a={current.a} left={annLeft} onLater={() => hide(current.key)} canAssign={canAssign} />
@@ -172,6 +203,63 @@ export function AppPopups() {
       )}
       <CheckinFixForm open={asking} onClose={() => setAsking(false)} day={today} />
     </>
+  );
+}
+
+/* ---------------------------------------------------------------- what's new */
+
+function WhatsNewPopup({ items, ctx, onClose }: { items: WhatsNewItem[]; ctx: WhatsNewContext; onClose: () => void }) {
+  const navigate = useNavigate();
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="What's new"
+      footer={
+        <button className="btn primary" type="button" onClick={onClose}>
+          Got it
+        </button>
+      }
+    >
+      <div className="pop-body">
+        <div className="pop-hero" style={{ ["--pop-tone" as string]: "var(--accent)" }}>
+          <span className="pop-icon">
+            <Gift />
+          </span>
+          <div>
+            <h3>New in Northcroft</h3>
+            <p className="muted small">
+              Updated {fmtLongDate(LATEST.date)} · {items.length} {items.length === 1 ? "change" : "changes"}
+            </p>
+          </div>
+        </div>
+        <ul className="wn-list">
+          {items.map((it, i) => (
+            <li key={it.id} style={{ ["--i" as string]: i }}>
+              <span className="wn-ic" style={tileStyle(it.color)}>
+                <it.icon />
+              </span>
+              <div className="wn-text">
+                <b>{it.title(ctx)}</b>
+                <span>{it.body(ctx)}</span>
+                {it.to && (
+                  <button
+                    type="button"
+                    className="wn-try"
+                    onClick={() => {
+                      onClose();
+                      navigate(it.to!);
+                    }}
+                  >
+                    {it.cta ?? "Try it"} <ArrowRight />
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Sheet>
   );
 }
 

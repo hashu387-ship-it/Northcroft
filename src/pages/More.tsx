@@ -1,6 +1,6 @@
 import "@/styles/comms.css";
 import { Link } from "react-router-dom";
-import { BarChart3, Timer, CalendarDays, ClipboardList, FileClock, FileSpreadsheet, LogOut, MapPin, Megaphone, MessagesSquare, Settings, type LucideIcon } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardList, FileClock, FileSpreadsheet, LogOut, MapPin, Megaphone, MessagesSquare, Settings, Sparkles, Timer, type LucideIcon } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, useConfirm } from "@/components/ui";
 import { useAuth, useMe } from "@/lib/auth";
@@ -45,6 +45,7 @@ export default function More() {
       : []),
     ...(canAssign ? [{ to: "/workload", label: "Workload", hint: "Who has what", icon: BarChart3, color: MENU_COLOR.workload }] : []),
     { to: "/time", label: "Time report", hint: canAssign ? "Hours on each task" : "Your hours on tasks", icon: Timer, color: MENU_COLOR.time },
+    { to: "/more?whatsnew=1", label: "What's new", hint: "Latest changes to the app", icon: Sparkles, color: "#FF9F0A" },
     { to: "/settings", label: "Settings", hint: "Notifications, password", icon: Settings, color: MENU_COLOR.settings },
   ];
 

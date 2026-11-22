@@ -1,4 +1,5 @@
-import { LogOut, Share, SquarePlus, EllipsisVertical } from "lucide-react";
+import { Link } from "react-router-dom";
+import { LogOut, Share, Sparkles, SquarePlus, EllipsisVertical } from "lucide-react";
 import { useAuth, useMe } from "@/lib/auth";
 import { signOutWarning } from "@/lib/outbox";
 import { isStandalone } from "@/lib/push";
@@ -51,6 +52,15 @@ export function AboutSection() {
             <b>Northcroft QS Team</b>
             <small>Version 1.0 · Times shown in Riyadh time</small>
           </div>
+        </div>
+        <div className="setting-row">
+          <div className="grow">
+            <b>What's new</b>
+            <small>The latest changes to the app, and how to use them.</small>
+          </div>
+          <Link to="?whatsnew=1" className="btn small">
+            <Sparkles /> See what's new
+          </Link>
         </div>
         <div className="setting-row">
           <div className="grow">
