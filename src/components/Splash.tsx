@@ -5,7 +5,7 @@ export function Splash({ label = "Opening Northcroft" }: { label?: string }) {
   return (
     <div className="boot" role="status" aria-label={label}>
       <div className="boot-inner">
-        <QsLogo size={180} className="boot-logo" />
+        <QsLogo size={180} className="boot-logo" onDark />
         <span className="boot-bar" aria-hidden />
       </div>
     </div>

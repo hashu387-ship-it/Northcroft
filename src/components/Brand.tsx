@@ -1,5 +1,5 @@
 // Northcroft logos, traced from the brand files as vectors so they stay sharp at every size.
-import type { CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 
 export const BRAND_NAVY = "#012061";
 export const BRAND_RED = "#F13E44";
@@ -44,23 +44,87 @@ export function LogoMark({ size = 32, variant = "tile", style, className }: { si
   );
 }
 
+/**
+ * The QS Team logo comes in one colour per look (scripts/tint-logos.py makes them from the original):
+ * blue for Northcroft navy, Aurora, QS Team glass and Dark; gold for Onyx; violet for Purple glass;
+ * and ink (navy lettering, no dark glow) for the light looks. Red accents stay red in all of them.
+ */
+export type LogoTone = "blue" | "gold" | "violet" | "ink";
+
+/** The tone for the current look. `onDark`: the logo always sits on a dark background there. */
+function readTone(onDark: boolean): LogoTone {
+  if (typeof document === "undefined") return "blue";
+  const root = document.documentElement;
+  if (root.dataset.palette === "onyx") return "gold";
+  if (root.dataset.palette === "purple") return "violet";
+  const theme = root.dataset.theme;
+  const dark = theme ? theme === "dark" : window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? true;
+  return dark || onDark ? "blue" : "ink";
+}
+
+/** Calls back when the look changes: Settings > Appearance, or the phone switching light and dark. */
+function onLookChange(cb: () => void) {
+  const mo = new MutationObserver(cb);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette"] });
+  const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+  mq?.addEventListener?.("change", cb);
+  return () => {
+    mo.disconnect();
+    mq?.removeEventListener?.("change", cb);
+  };
+}
+
+/** The logo tone for the current look, following changes as they happen. */
+export function useLogoTone(onDark = false): LogoTone {
+  return useSyncExternalStore(onLookChange, () => readTone(onDark), () => "blue");
+}
+
 const LOGO = "/brand/northcroft-qs-team-logo-";
 /** The full logo comes in three widths; the browser picks the smallest that is sharp on the screen. */
-const LOGO_SRCSET = `${LOGO}900.webp 900w, ${LOGO}1320.webp 1320w, ${LOGO}1774.webp 1774w`;
+const logoSrcSet = (tone: LogoTone) => `${LOGO}${tone}-900.webp 900w, ${LOGO}${tone}-1320.webp 1320w, ${LOGO}${tone}-1774.webp 1774w`;
 
 /**
  * The full Northcroft QS Team logo: the Northcroft wordmark, MIDDLE EAST & AFRICA, QS TEAM and the
- * building with its crane, in white on its own soft dark glow. Used on sign-in, the start screen, the
- * top of the side menu, the Home banner, the phone top bar, More, About and the weekly report.
- * `size` is its height. On light looks it sits on a black glass plate so the white lettering always
- * shows. `print` always uses the largest file, for the report's printout and PDF.
+ * building with its crane, in the colours of the current look. Used on sign-in, the start screen,
+ * the top of the side menu, the Home banner, the phone top bar, More, About and the weekly report.
+ * `size` is its height. `onDark` keeps a light version where the background is always dark (the Home
+ * banner, the start screen); `tone` fixes the colour (the report). `print` always uses the largest
+ * file, for the report's printout and PDF.
  */
-export function QsLogo({ size = 120, print, style, className }: { size?: number; print?: boolean; style?: CSSProperties; className?: string }) {
+export function QsLogo({
+  size = 120,
+  print,
+  onDark,
+  tone,
+  style,
+  className,
+}: {
+  size?: number;
+  print?: boolean;
+  onDark?: boolean;
+  tone?: LogoTone;
+  style?: CSSProperties;
+  className?: string;
+}) {
+  const auto = useLogoTone(!!onDark);
+  // Some light looks still have a dark side menu, so the place decides too: light text around the
+  // logo means a dark background, which needs the light version.
+  const ref = useRef<HTMLSpanElement>(null);
+  const [darkHere, setDarkHere] = useState<boolean | null>(null);
+  useLayoutEffect(() => {
+    if (tone || onDark || !ref.current) return;
+    const m = getComputedStyle(ref.current).color.match(/[\d.]+/g);
+    if (!m) return;
+    const [r, g, b] = m.map(Number);
+    setDarkHere((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.55);
+  }, [auto, tone, onDark]);
+  let t = tone ?? auto;
+  if (!tone && !onDark && darkHere !== null && (t === "blue" || t === "ink")) t = darkHere ? "blue" : "ink";
   return (
-    <span className={className ? `qs-logo ${className}` : "qs-logo"} style={style}>
+    <span ref={ref} className={`qs-logo tone-${t}${className ? ` ${className}` : ""}`} style={style}>
       <img
-        src={print ? `${LOGO}1774.webp` : `${LOGO}900.webp`}
-        srcSet={print ? undefined : LOGO_SRCSET}
+        src={print ? `${LOGO}${t}-1774.webp` : `${LOGO}${t}-900.webp`}
+        srcSet={print ? undefined : logoSrcSet(t)}
         sizes={print ? undefined : `${size * 2}px`}
         width={size * 2}
         height={size}
@@ -72,12 +136,18 @@ export function QsLogo({ size = 120, print, style, className }: { size?: number;
   );
 }
 
+/** The darkest colour of each tone, behind the square mark. */
+const MARK_BG: Record<Exclude<LogoTone, "ink">, string> = { blue: "#041234", gold: "#0e0a04", violet: "#100828" };
+
 /**
- * The square QS Team mark: the building, crane and red sweep on black. Used where the full logo
- * would be too small to read: the phone header, team chat, the app icon. `size` is its side.
+ * The square QS Team mark: the building, crane and red sweep, in the colours of the current look
+ * (blue on the light looks too, since it's a tile with its own background). Used where the full logo
+ * would be too small to read: the phone header and team chat. `size` is its side.
  */
 export function QsMark({ size = 40, style, className }: { size?: number; style?: CSSProperties; className?: string }) {
-  const src = size > 80 ? "/brand/qs-team-mark-512.webp" : "/brand/qs-team-mark-160.webp";
+  const auto = useLogoTone(true);
+  const t = auto === "ink" ? "blue" : auto;
+  const src = size > 80 ? `/brand/qs-team-mark-${t}-512.webp` : `/brand/qs-team-mark-${t}-160.webp`;
   return (
     <img
       src={src}
@@ -85,7 +155,7 @@ export function QsMark({ size = 40, style, className }: { size?: number; style?:
       height={size}
       alt="Northcroft QS Team"
       className={className ? `qs-mark ${className}` : "qs-mark"}
-      style={style}
+      style={{ background: MARK_BG[t], ...style }}
       decoding="async"
       draggable={false}
     />

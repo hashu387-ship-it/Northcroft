@@ -1579,6 +1579,8 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
    and on the start screen the plate is clear. Never cropped or stretched. */
 .qs-logo { display: inline-block; flex-shrink: 0; line-height: 0; border-radius: 20px; padding: 6px 12px; background: rgba(6, 6, 7, 0.94); user-select: none; }
 .qs-logo img { display: block; max-width: 100%; height: auto; }
+/* The navy version for light looks needs no dark plate behind it. */
+.qs-logo.tone-ink { background: transparent !important; padding: 0 !important; box-shadow: none !important; }
 :root[data-theme="dark"] .qs-logo,
 .sidebar .qs-logo,
 .boot .qs-logo { background: transparent; padding: 0; }
@@ -1586,7 +1588,7 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .boot .boot-logo img { width: min(360px, 84vw); }
 .auth-brand .auth-logo { max-width: 100%; }
 /* The square QS Team mark: the building, crane and red sweep on black. */
-.qs-mark { display: block; flex-shrink: 0; border-radius: 22%; object-fit: cover; background: #000; user-select: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 4px 12px rgba(0, 0, 0, 0.28); }
+.qs-mark { display: block; flex-shrink: 0; border-radius: 22%; object-fit: cover; background: #041234; user-select: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 4px 12px rgba(0, 0, 0, 0.28); }
 /* The side menu: the full logo across the top instead of a small tile and the wordmark. */
 .sidebar .brand { justify-content: center; padding: 0 4px 12px; }
 .sidebar .brand .side-logo img { width: 100%; max-width: 212px; }

@@ -28,7 +28,7 @@ import { useTeamLeave } from "@/lib/leave";
 import { useSignoff } from "@/lib/signoff";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { addDays, dateOf, fmtClock, fmtDateTime, fmtLongDate, isWorkday, todayISO } from "@/lib/time";
-import { itemsFor, LATEST, markReleaseSeen, seenRelease, type WhatsNewContext, type WhatsNewItem } from "@/lib/whatsNew";
+import { itemsFor, LATEST, markReleaseSeen, RELEASES, releasesSince, seenRelease, type WhatsNewContext, type WhatsNewItem } from "@/lib/whatsNew";
 import { tileStyle } from "@/lib/menu";
 import type { AnnouncementView } from "@/lib/types";
 import { acknowledge, needsMyAck, useAnnouncementsWithAcks, useAttendanceOn, type AnnouncementWithAcks } from "@/pages/home/data";
@@ -155,9 +155,12 @@ export function AppPopups() {
     canAssign,
     approverName: fixApprover(me.id, signoff)?.short_name ?? "a manager",
   };
-  const wnItems = itemsFor(LATEST, wnCtx, fixReady);
-  const wnHeld = !fixReady && LATEST.items.some((i) => i.needsCheckinFix && (!i.for || i.for(wnCtx)));
-  const wnForced = new URLSearchParams(location.search).get("whatsnew") === "1";
+  // Opened from More or Settings: everything recent. On its own: what's new since I last looked.
+  const wnForcedEarly = new URLSearchParams(location.search).get("whatsnew") === "1";
+  const wnReleases = wnForcedEarly ? RELEASES : releasesSince(wnSeen);
+  const wnItems = itemsFor(wnReleases, wnCtx, fixReady);
+  const wnHeld = !fixReady && wnReleases.some((r) => r.items.some((i) => i.needsCheckinFix && (!i.for || i.for(wnCtx))));
+  const wnForced = wnForcedEarly;
   const closeWhatsNew = () => {
     markReleaseSeen(me.id);
     setWnSeen(LATEST.id);

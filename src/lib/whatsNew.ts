@@ -51,6 +51,21 @@ export interface Release {
 /** Newest first. Add a release at the top when something new ships. */
 export const RELEASES: Release[] = [
   {
+    id: "2026-11-24",
+    date: "2026-11-24",
+    items: [
+      {
+        id: "logo-colours",
+        icon: Palette,
+        color: "#0A84FF",
+        title: () => "The logo matches your look",
+        body: () => "The QS Team logo is now blue on Northcroft navy, gold on Onyx, violet on Purple glass and navy on the light looks.",
+        to: "/settings/appearance",
+        cta: "Open Appearance",
+      },
+    ],
+  },
+  {
     id: "2026-11-22",
     date: "2026-11-22",
     items: [
@@ -185,7 +200,12 @@ export function markReleaseSeen(userId: string, id = LATEST.id) {
   }
 }
 
-/** The items of a release that apply to this person. */
-export function itemsFor(release: Release, c: WhatsNewContext, checkinFixReady: boolean): WhatsNewItem[] {
-  return release.items.filter((i) => (!i.for || i.for(c)) && (!i.needsCheckinFix || checkinFixReady));
+/** Releases newer than the one this person last saw (all of them if they've seen none), newest first. */
+export function releasesSince(seen: string | null): Release[] {
+  return RELEASES.filter((r) => !seen || r.id > seen);
+}
+
+/** The items of these releases that apply to this person, newest release first. */
+export function itemsFor(releases: Release[], c: WhatsNewContext, checkinFixReady: boolean): WhatsNewItem[] {
+  return releases.flatMap((r) => r.items).filter((i) => (!i.for || i.for(c)) && (!i.needsCheckinFix || checkinFixReady));
 }

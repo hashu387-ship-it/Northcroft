@@ -113,7 +113,7 @@ export default function Home() {
       <section className="home-banner" aria-label="Today">
         <div className="hb-photo" aria-hidden />
         <div className="hb-shade" aria-hidden />
-        <QsLogo size={150} className="hb-logo" />
+        <QsLogo size={150} className="hb-logo" onDark />
         <div className="hb-body">
           {/* Whoever is signed in, in their own photo. Tap it for your profile card. */}
           <button type="button" className="hb-me" onClick={() => openPersonCard(me.id)} aria-label="Your profile">

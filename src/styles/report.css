@@ -41,13 +41,13 @@
 .rp-logos { flex: none; display: flex; align-items: center; gap: 12px; }
 .rp-nc { display: flex; align-items: center; gap: 8px; color: var(--rp-primary); }
 .rp-nc svg { display: block; }
-/* The full QS Team logo has white lettering, so on the white page it sits on a black plate (also
-   when printed: browsers skip background colours unless told to keep them). */
+/* The full QS Team logo (the blue version) has white lettering, so on the white page it sits on a
+   navy plate (also when printed: browsers skip background colours unless told to keep them). */
 .rp-nc .qs-logo {
   display: block;
   padding: 4px 10px;
   border-radius: 14px;
-  background: #060607;
+  background: #071733;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
