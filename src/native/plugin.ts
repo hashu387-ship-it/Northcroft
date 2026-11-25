@@ -90,7 +90,17 @@ export interface NorthcroftNativePlugin {
   /** Also ends the Live Activity and empties Spotlight (signing out). */
   clearWidget(): Promise<void>;
   /** The workday Live Activity: running while checked in and not yet out. */
-  workday(o: { checkedIn: boolean; checkedOut: boolean; checkInAtMs?: number; place?: string; dueToday: number; late: number; firstName: string }): Promise<{ running: boolean }>;
+  workday(o: {
+    checkedIn: boolean;
+    checkedOut: boolean;
+    checkInAtMs?: number;
+    place?: string;
+    dueToday: number;
+    late: number;
+    /** The end of office hours today, for the bar. */
+    endAtMs?: number;
+    firstName: string;
+  }): Promise<{ running: boolean }>;
   /** Projects and tasks in the iPhone's search (replaces what was there). */
   spotlightIndex(o: { items: SpotlightItem[] }): Promise<{ indexed: number }>;
   spotlightClear(): Promise<void>;
@@ -102,7 +112,87 @@ export interface NorthcroftNativePlugin {
   /** A small tap from the phone. */
   haptic(o: { style: "selection" | "light" | "medium" | "heavy" | "soft" | "rigid" | "success" | "warning" | "error" }): Promise<void>;
   /** A launch action arrived while the app was open: take it with takeLaunchAction. */
+  /** Tasks on the lock screen (up to 4), delivery-app style. Replaces what was there. */
+  liveTasks(o: { items: LiveTaskItem[] }): Promise<{ running: number }>;
+  /** A trip to a site: distance, arrival time, ends on arrival. */
+  tripStart(o: { placeId: string; placeName: string; lat: number; lng: number; radius: number; projectId?: string }): Promise<{ ok: boolean; reason?: string }>;
+  tripStop(): Promise<void>;
+  tripStatus(): Promise<{ running: boolean; placeId?: string; placeName?: string; startedAtMs?: number }>;
+  /** Notice arriving at and leaving these sites, even with the app closed (asks for location Always). */
+  siteWatch(o: { sites: SiteWatchItem[] }): Promise<{ status: string; watching: number }>;
+  siteStop(): Promise<void>;
+  /** Arrivals and departures noticed since the last call (then forgotten on the phone). */
+  siteTake(): Promise<{ events: SiteEvent[] }>;
+  /** What the phone allows Northcroft to do. Asks nothing. */
+  phoneStatus(): Promise<PhoneStatus>;
+  /** Northcroft's page in the Settings app (or its notifications page). */
+  openSettings(o?: { kind?: "app" | "notifications" }): Promise<void>;
+  /** Voice call sound: earpiece or loudspeaker, Bluetooth, screen off at the ear. */
+  callAudio(o: { active: boolean; speaker?: boolean }): Promise<{ route: "speaker" | "bluetooth" | "headphones" | "phone" }>;
   addListener(event: "launchAction", fn: () => void): Promise<PluginListenerHandle>;
+}
+
+export interface LiveTaskItem {
+  id: string;
+  title: string;
+  project?: string;
+  /** mine: I'm on it. given: I gave it to someone. */
+  role: "mine" | "given";
+  /** The other side: who gave it, or who is on it. */
+  person?: string;
+  stages: string[];
+  stage: number;
+  status: string;
+  dueAtMs?: number;
+  progress?: number;
+  held?: boolean;
+  /** Approved: shown for half an hour, then it goes. */
+  done?: boolean;
+}
+
+export interface SiteWatchItem {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  radius: number;
+  projectId?: string;
+}
+
+export interface SiteEvent {
+  kind: "arrive" | "leave";
+  placeId: string;
+  name: string;
+  projectId?: string;
+  atMs: number;
+  source: "gps" | "trip";
+}
+
+export type PermissionText = "on" | "off" | "notAsked" | "restricted" | "unknown";
+
+export interface PhoneStatus {
+  location?: "always" | "whenInUse" | "off" | "restricted" | "notAsked" | "unknown";
+  preciseLocation?: boolean;
+  locationServices?: boolean;
+  notifications?: "on" | "quiet" | "off" | "notAsked" | "unknown";
+  notificationAlerts?: boolean;
+  notificationSounds?: boolean;
+  lockScreen?: boolean;
+  timeSensitive?: boolean;
+  summary?: boolean;
+  liveActivities?: boolean;
+  calendar?: PermissionText | "addOnly";
+  camera?: PermissionText;
+  microphone?: PermissionText;
+  backgroundRefresh?: "on" | "off" | "restricted" | "unknown";
+  lowPower?: boolean;
+  battery?: number;
+  batteryState?: "charging" | "full" | "unplugged";
+  online?: boolean;
+  network?: "wifi" | "cellular" | "wired" | "none";
+  lowData?: boolean;
+  device?: string;
+  system?: string;
 }
 
 export const NorthcroftNative = registerPlugin<NorthcroftNativePlugin>("NorthcroftNative");

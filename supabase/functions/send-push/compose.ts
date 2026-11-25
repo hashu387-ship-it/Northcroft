@@ -71,6 +71,10 @@ export function compose(
   const count = opts.count ?? 1;
   const lines: string[] = [];
 
+  // Voice calls: "Saheeb" / "Calling you on Northcroft".
+  if (n.type === "call") return { title: name, body: "Calling you on Northcroft. Tap to answer." };
+  if (n.type === "missed_call") return { title: name, body: count > 1 ? `${count} missed voice calls` : "Missed voice call" };
+
   if (isChat(n) && opts.direct) {
     // One-to-one: the sender's name is the title, so the message stands on its own.
     lines.push((n.body ?? "").trim());

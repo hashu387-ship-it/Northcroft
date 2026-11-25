@@ -10,6 +10,10 @@ export const PREF = {
   calendar: "nc-calendar-sync",
   /** The workday Live Activity is on unless this is set. */
   liveActivityOff: "nc-live-activity-off",
+  /** Tasks on the lock screen are on unless this is set. */
+  liveTasksOff: "nc-live-tasks-off",
+  /** Log arrivals at and departures from project sites. */
+  siteLog: "nc-site-log",
 } as const;
 
 const EVENT = "nc-native-prefs";

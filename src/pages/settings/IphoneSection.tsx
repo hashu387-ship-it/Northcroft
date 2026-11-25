@@ -1,6 +1,7 @@
 // Settings > iPhone app (only inside the Northcroft iPhone app): Face ID lock, the check-in
-// reminder at the office, the workday Live Activity, the Northcroft calendar, the document scanner,
-// and how to use the widget, Siri, Control Center, Spotlight and the app icon.
+// reminder at the office, the workday and task Live Activities, the site visit log, what this phone
+// allows (This phone), the Northcroft calendar, the document scanner, and how to use the widget,
+// Siri, Control Center, Spotlight and the app icon.
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, ScanLine } from "lucide-react";
@@ -11,6 +12,7 @@ import { scanToShare } from "@/native/scan";
 import { PREF, setPref, usePref } from "@/native/prefs";
 import { Pill, Switch, useToast } from "@/components/ui";
 import { Section } from "./common";
+import { PhoneStatusSection } from "./PhoneStatus";
 
 export function IphoneSection() {
   const me = useMe();
@@ -20,6 +22,8 @@ export function IphoneSection() {
   const officeOn = usePref(PREF.officeWatch);
   const liveOn = !usePref(PREF.liveActivityOff);
   const calendarOn = usePref(PREF.calendar);
+  const tasksOn = !usePref(PREF.liveTasksOff);
+  const siteOn = usePref(PREF.siteLog);
   const [cal, setCal] = useState<CalendarPermission | null>(null);
   const [bio, setBio] = useState<{ available: boolean; type: string } | null>(null);
   const [loc, setLoc] = useState<LocationPermission | null>(null);
@@ -140,20 +144,59 @@ export function IphoneSection() {
         </Section>
       )}
 
-      {!me.attendance_exempt && (
-        <Section title="Lock screen and Dynamic Island">
+      <Section title="Lock screen and Dynamic Island">
+        {!me.attendance_exempt && (
           <div className="setting-row">
             <div className="grow">
               <b>Show my workday</b>
               <small>
-                From check-in until check-out, your lock screen and the Dynamic Island show when you checked in, the time since, and what's due today,
-                with a Check out button.
+                From check-in until check-out, like a delivery on its way: a bar filling up to the end of office hours, the time left, the time since you
+                checked in and what's due today, with a Check out button.
               </small>
             </div>
             <Switch checked={liveOn} onChange={(v) => setPref(PREF.liveActivityOff, !v)} label="Show my workday" />
           </div>
-        </Section>
-      )}
+        )}
+        <div className="setting-row">
+          <div className="grow">
+            <b>Show my tasks</b>
+            <small>
+              Tasks due today or tomorrow, the ones you gave that are handed in, and any you follow, with their stages (Assigned, In progress,
+              Submitted, Approved) and a countdown to the deadline. Up to three at a time. Follow any task from its page.
+            </small>
+          </div>
+          <Switch checked={tasksOn} onChange={(v) => setPref(PREF.liveTasksOff, !v)} label="Show my tasks" />
+        </div>
+        <div className="setting-row">
+          <div className="grow">
+            <b>Site trips</b>
+            <small>Start a trip to a project site on the Check in page: the distance and arrival time show on your lock screen and it ends when you arrive.</small>
+          </div>
+          <Link className="btn small" to="/attendance">
+            Open <ChevronRight size={14} />
+          </Link>
+        </div>
+      </Section>
+
+      <Section title="Site visit log">
+        <div className="setting-row">
+          <div className="grow">
+            <b>Log my site visits</b>
+            <small>
+              Your phone notes when you arrive at and leave a project site (the sites in Settings &gt; Places), even with the app closed. It doesn't
+              follow you around: it only notices crossing a site's boundary. Your visits show on the Check in page; managers see who was on site.
+            </small>
+            {siteOn && loc && loc !== "always" && (
+              <div style={{ marginTop: 6 }}>
+                <Pill tone="orange">Set Location to Always for Northcroft so visits are logged with the app closed</Pill>
+              </div>
+            )}
+          </div>
+          <Switch checked={siteOn} onChange={(v) => setPref(PREF.siteLog, v)} label="Log my site visits" />
+        </div>
+      </Section>
+
+      <PhoneStatusSection />
 
       <Section title="Calendar">
         <div className="setting-row">

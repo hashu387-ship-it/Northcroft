@@ -22,7 +22,7 @@ public enum LaunchActions {
     /// An action nobody picked up within this time is dropped, so it never fires by surprise later.
     private static let maxAge: TimeInterval = 10 * 60
     /// The pages Spotlight and the Calendar may open.
-    private static let pathPattern = "^/(tasks|projects|chats|attendance|my-tasks|calendar)(/[A-Za-z0-9-]+)?$"
+    private static let pathPattern = "^/(tasks|projects|chats|attendance|my-tasks|calendar|call|calls)(/[A-Za-z0-9-]+)?$"
 
     private static var store: UserDefaults { AppGroup.defaults ?? .standard }
 
@@ -63,6 +63,11 @@ public enum LaunchActions {
         switch url.host?.lowercased() {
         case "action":
             let name = parts.first?.lowercased() ?? ""
+            // End trip on the site trip's Live Activity: done here, nothing for the web app to do.
+            if name == "endtrip" {
+                SiteTrip.shared.stop()
+                return true
+            }
             guard all.contains(name), name != "open" else { return false }
             set(name)
             return true

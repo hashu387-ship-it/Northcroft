@@ -2,7 +2,8 @@ import Foundation
 import ActivityKit
 
 /// The workday Live Activity: on the lock screen and in the Dynamic Island from check-in until
-/// check-out (or midnight), with the time since check-in counting up and a Check out button.
+/// check-out (or midnight), delivery-app style: a bar filling from check-in to the end of office
+/// hours, the time left, the time since check-in and a Check out button.
 /// The widget extension draws it (ios/App/NorthcroftWidget/WorkdayLiveActivity.swift), with its own
 /// copy of these attributes: the two must stay field for field the same.
 public struct WorkdayAttributes: ActivityAttributes {
@@ -11,6 +12,8 @@ public struct WorkdayAttributes: ActivityAttributes {
         public var place: String?
         public var dueToday: Int
         public var late: Int
+        /// The end of office hours today (app settings); nil hides the bar.
+        public var endAt: Date?
     }
 
     public var firstName: String
@@ -21,13 +24,13 @@ enum LiveWorkday {
     static let zone = TimeZone(identifier: "Asia/Riyadh") ?? .current
 
     /// Starts, updates or ends the Live Activity to match today's check-in.
-    static func sync(checkedIn: Bool, checkedOut: Bool, checkInAt: Date?, place: String?, dueToday: Int, late: Int, firstName: String) async -> Bool {
+    static func sync(checkedIn: Bool, checkedOut: Bool, checkInAt: Date?, place: String?, dueToday: Int, late: Int, endAt: Date?, firstName: String) async -> Bool {
         let running = Activity<WorkdayAttributes>.activities
         guard checkedIn, !checkedOut, let at = checkInAt, ActivityAuthorizationInfo().areActivitiesEnabled else {
             for a in running { await a.end(nil, dismissalPolicy: .immediate) }
             return false
         }
-        let state = WorkdayAttributes.ContentState(checkInAt: at, place: place, dueToday: dueToday, late: late)
+        let state = WorkdayAttributes.ContentState(checkInAt: at, place: place, dueToday: dueToday, late: late, endAt: endAt.flatMap { $0 > at ? $0 : nil })
         let content = ActivityContent(state: state, staleDate: nextMidnight(after: Date()))
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = zone

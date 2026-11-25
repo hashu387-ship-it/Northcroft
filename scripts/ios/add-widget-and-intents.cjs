@@ -1,6 +1,8 @@
 // Adds to ios/App/App.xcodeproj:
 //   - the "NorthcroftWidget" target (the home screen and lock screen widget), embedded in the app
 //   - NorthcroftIntents.swift (Siri and Shortcuts) to the App target
+//   - the Live Activities (workday, tasks, site trips) and Control Center buttons, in the widget
+//   - the "NorthcroftWatch" Apple Watch app and the "NorthcroftNotify" notification extension
 //   - the NC_APP_GROUP build setting on every target, which names the shared app group in the
 //     entitlements and Info.plist files (so a test build can use its own group)
 // Already done and committed; kept to redo it if the iOS project is ever made again with
@@ -179,7 +181,7 @@ if (targetNamed(EXT)) {
 
   // The widget's own new files.
   const widgetGroupId = Object.keys(objects.PBXGroup).find((k) => !k.endsWith("_comment") && unq(objects.PBXGroup[k].path) === EXT);
-  for (const name of ["WorkdayLiveActivity.swift", "NorthcroftControls.swift"]) {
+  for (const name of ["WorkdayLiveActivity.swift", "NorthcroftControls.swift", "LiveActivityParts.swift", "TaskLiveActivity.swift", "TripLiveActivity.swift"]) {
     let ref = hasFile(name)?.[0];
     if (!ref) {
       ref = fileRef(name, "sourcecode.swift");
@@ -286,6 +288,85 @@ if (targetNamed(EXT)) {
     app.buildPhases.push({ value: embedId, comment: "Embed Watch Content" });
     const deps = app.dependencies ?? [];
     if (!deps.some((d) => objects.PBXTargetDependency?.[d.value]?.target === target.uuid)) proj.addTargetDependency(appEntry[0], [target.uuid]);
+  }
+}
+
+
+// --- Notifications with the sender's face ---------------------------------------------------------------
+// "NorthcroftNotify": a notification service extension that turns each notification with a person
+// behind it into a communication notification (their photo or initials), embedded next to the
+// share extension and the widget.
+{
+  const NOTIFY = "NorthcroftNotify";
+  if (!targetNamed(NOTIFY)) {
+    const target = proj.addTarget(NOTIFY, "app_extension", NOTIFY, `${APP_ID}.notify`);
+    const swiftRef = fileRef("NotificationService.swift", "sourcecode.swift");
+    const plistRef = fileRef("Info.plist", "text.plist.xml");
+    const groupId = proj.generateUuid();
+    objects.PBXGroup[groupId] = {
+      isa: "PBXGroup",
+      children: [
+        { value: swiftRef, comment: "NotificationService.swift" },
+        { value: plistRef, comment: "Info.plist" },
+      ],
+      path: NOTIFY,
+      sourceTree: q("<group>"),
+    };
+    objects.PBXGroup[`${groupId}_comment`] = NOTIFY;
+    const mainGroup = objects.PBXGroup[proj.getFirstProject().firstProject.mainGroup];
+    mainGroup.children.splice(mainGroup.children.length - 1, 0, { value: groupId, comment: NOTIFY });
+
+    proj.addBuildPhase([], "PBXSourcesBuildPhase", "Sources", target.uuid);
+    proj.addBuildPhase([], "PBXFrameworksBuildPhase", "Frameworks", target.uuid);
+    proj.addBuildPhase([], "PBXResourcesBuildPhase", "Resources", target.uuid);
+    addToSources(target.pbxNativeTarget, swiftRef, "NotificationService.swift");
+
+    const appRelease = configsOf(app).find((c) => c.name === "Release").buildSettings;
+    for (const c of configsOf(target.pbxNativeTarget)) {
+      const debug = c.name === "Debug";
+      c.buildSettings = {
+        CODE_SIGN_STYLE: "Automatic",
+        CURRENT_PROJECT_VERSION: appRelease.CURRENT_PROJECT_VERSION ?? 1,
+        GENERATE_INFOPLIST_FILE: "NO",
+        INFOPLIST_FILE: `${NOTIFY}/Info.plist`,
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0",
+        LD_RUNPATH_SEARCH_PATHS: q("$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"),
+        MARKETING_VERSION: appRelease.MARKETING_VERSION ?? "1.0",
+        PRODUCT_BUNDLE_IDENTIFIER: `${APP_ID}.notify`,
+        PRODUCT_NAME: q("$(TARGET_NAME)"),
+        SKIP_INSTALL: "YES",
+        SWIFT_EMIT_LOC_STRINGS: "YES",
+        SWIFT_VERSION: "5.0",
+        TARGETED_DEVICE_FAMILY: q("1,2"),
+        ...(debug ? { SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG", SWIFT_OPTIMIZATION_LEVEL: q("-Onone") } : { SWIFT_COMPILATION_MODE: "wholemodule", VALIDATE_PRODUCT: "YES" }),
+      };
+    }
+
+    const productRef = objects.PBXFileReference[target.pbxNativeTarget.productReference];
+    delete productRef.fileEncoding;
+    delete productRef.lastKnownFileType;
+
+    const deps = app.dependencies ?? [];
+    if (!deps.some((d) => objects.PBXTargetDependency?.[d.value]?.target === target.uuid)) proj.addTargetDependency(appEntry[0], [target.uuid]);
+
+    // Into "Embed Foundation Extensions" with the others (the library adds a second Copy Files step).
+    const copyPhases = app.buildPhases
+      .map((ph) => [ph, objects.PBXCopyFilesBuildPhase[ph.value]])
+      .filter(([, v]) => v && String(v.dstSubfolderSpec) === "13");
+    const embed = copyPhases.find(([ph]) => ph.comment === "Embed Foundation Extensions") ?? copyPhases[0];
+    for (const [ph, v] of copyPhases) {
+      if (ph === embed[0]) continue;
+      for (const f of v.files) {
+        const bf = objects.PBXBuildFile[f.value];
+        if (bf) bf.settings = { ATTRIBUTES: ["RemoveHeadersOnCopy"] };
+        f.comment = `${NOTIFY}.appex in Embed Foundation Extensions`;
+        objects.PBXBuildFile[`${f.value}_comment`] = f.comment;
+        embed[1].files.push(f);
+      }
+      delete objects.PBXCopyFilesBuildPhase[ph.value];
+      delete objects.PBXCopyFilesBuildPhase[`${ph.value}_comment`];
+      app.buildPhases.splice(app.buildPhases.indexOf(ph), 1);
+    }
   }
 }
 

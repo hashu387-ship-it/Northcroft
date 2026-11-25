@@ -28,6 +28,7 @@ const VoLogPage = lazy(() => import("@/pages/VoLogPage"));
 const Submissions = lazy(() => import("@/pages/Submissions"));
 const TimeReport = lazy(() => import("@/pages/TimeReport"));
 const WeeklyCheck = lazy(() => import("@/pages/WeeklyCheck"));
+const Calls = lazy(() => import("@/pages/Calls"));
 
 function Gate() {
   const { session, profile, loading } = useAuth();
@@ -72,6 +73,8 @@ export default function App() {
           <Route path="vo-log" element={<VoLogPage />} />
           <Route path="submissions" element={<Submissions />} />
           <Route path="time" element={<TimeReport />} />
+          <Route path="calls" element={<Calls />} />
+          <Route path="call/:id" element={<Calls />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

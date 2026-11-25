@@ -1,0 +1,197 @@
+/* The voice call screen: full screen, deep blue with a soft moving glow, round glass buttons. */
+.call-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 40px);
+  color: #fff;
+  background: radial-gradient(120% 80% at 50% 0%, #1d3b6e 0%, #0d1b33 55%, #070e1c 100%);
+  overflow: hidden;
+  animation: call-in 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+.call-screen.call-ended {
+  animation: call-out 0.5s ease 2s both;
+}
+@keyframes call-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+@keyframes call-out {
+  to {
+    opacity: 0;
+  }
+}
+.call-glow {
+  position: absolute;
+  inset: -30%;
+  background:
+    radial-gradient(40% 30% at 30% 30%, rgba(90, 160, 255, 0.35), transparent 70%),
+    radial-gradient(35% 28% at 75% 60%, rgba(140, 110, 255, 0.28), transparent 70%);
+  filter: blur(30px);
+  animation: call-drift 14s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes call-drift {
+  to {
+    transform: translate(6%, -4%) rotate(8deg);
+  }
+}
+.call-top {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.call-avatar {
+  position: relative;
+  border-radius: 50%;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 20px 60px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  margin-bottom: 14px;
+}
+.call-avatar.ringing::before,
+.call-avatar.ringing::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(140, 190, 255, 0.55);
+  animation: call-pulse 2s ease-out infinite;
+}
+.call-avatar.ringing::after {
+  animation-delay: 1s;
+}
+@keyframes call-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.call-name {
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.call-title {
+  font-size: 15px;
+  opacity: 0.7;
+}
+.call-status {
+  font-size: 17px;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+.call-route {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.call-actions {
+  position: relative;
+  display: grid;
+  gap: 28px;
+  width: min(360px, 100%);
+  justify-items: center;
+}
+.call-actions.two {
+  grid-template-columns: 1fr 1fr;
+}
+.call-actions.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.call-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.call-btn svg {
+  box-sizing: content-box;
+  width: 28px;
+  height: 28px;
+  padding: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition:
+    transform 0.25s cubic-bezier(0.3, 1.5, 0.5, 1),
+    background 0.2s;
+}
+.call-btn:active svg {
+  transform: scale(0.9);
+}
+.call-btn.on svg {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0d1b33;
+}
+.call-btn.end svg {
+  background: #ff3b30;
+}
+.call-btn.answer svg {
+  background: #34c759;
+  animation: call-nudge 1.4s ease-in-out infinite;
+}
+@keyframes call-nudge {
+  50% {
+    transform: translateY(-4px) rotate(-8deg);
+  }
+}
+.call-btn.plain {
+  padding: 14px 36px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  font-size: 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-screen,
+  .call-glow,
+  .call-avatar.ringing::before,
+  .call-avatar.ringing::after,
+  .call-btn.answer svg {
+    animation: none;
+  }
+}
+
+/* The Calls list. */
+.call-row .call-dir {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.call-row .call-dir.missed {
+  color: var(--red, #ff3b30);
+}

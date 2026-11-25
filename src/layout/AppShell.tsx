@@ -38,6 +38,7 @@ import ChangePassword from "@/pages/ChangePassword";
 import ProfileSetup from "@/pages/ProfileSetup";
 import { QsLogo, QsMark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
+import { CallHost } from "@/calls/CallScreen";
 import { CelebrationHost } from "@/components/Celebration";
 import { AppPopups } from "@/components/AppPopups";
 import { isNativeApp } from "@/native/platform";
@@ -364,6 +365,7 @@ export default function AppShell() {
         </NavLink>
       </nav>
       <PersonCardHost />
+      <CallHost />
       <CelebrationHost />
       <AppPopups />
       <SearchHost />

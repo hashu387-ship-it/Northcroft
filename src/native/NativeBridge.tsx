@@ -33,6 +33,8 @@ import { PREF, usePref } from "./prefs";
 import { refreshNativePushState, saveNativeToken, enableNativePush } from "./push";
 import { scanToShare } from "./scan";
 import { useCalendarSync, useHaptics, useLiveWorkday, useSpotlight } from "./sync";
+import { useLiveTasks } from "./liveTasks";
+import { useSiteVisitLog } from "./siteVisits";
 
 const ASKED_KEY = "nc-native-push-asked";
 
@@ -339,7 +341,11 @@ export default function NativeBridge() {
   const liveOff = usePref(PREF.liveActivityOff);
   const calendarOn = usePref(PREF.calendar);
   const projectName = useCallback((id: string | null) => projects.get(id)?.name, [projects]);
-  useLiveWorkday(widget, todayRec, !liveOff);
+  const liveTasksOff = usePref(PREF.liveTasksOff);
+  const siteLog = usePref(PREF.siteLog);
+  useLiveWorkday(widget, todayRec, !liveOff, settings?.work_end);
+  useLiveTasks(me.id, today, myOpen.data, settings, projectName, !liveTasksOff);
+  useSiteVisitLog(me.id, places.data, siteLog);
   useSpotlight(myOpen.data, projects.list, projectName);
   useCalendarSync(me.id, today, myOpen.data, projectName, calendarOn);
   useHaptics();

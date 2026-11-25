@@ -3,7 +3,7 @@
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { type Actor, compose, initials, isChat, type NotificationRow, tagFor } from "./compose.ts";
-import { apnsConfigured, type ApnsEnv, categoryFor, sendApns } from "./apns.ts";
+import { apnsConfigured, type ApnsEnv, categoryFor, levelFor, sendApns } from "./apns.ts";
 
 type PushConfig = {
   vapid_public_key: string;
@@ -140,19 +140,32 @@ Deno.serve(async (req) => {
 
   // The iPhone app's version: the same words, the unread count on the icon, and buttons where they
   // fit (Approve/Decline on missed check-in and leave requests, Reply on chats).
+  // With a person behind it, "mutable-content" lets the app's notification extension
+  // (NorthcroftNotify) add their face, WhatsApp style, from "sender"; "group" names a group chat.
+  // Calls and approvals are time-sensitive; digests and small changes arrive quietly.
   const { category, ref } = categoryFor(n.type, n.link, isChat(n));
+  const { level, relevance } = levelFor(n.type, isChat(n));
+  // The same name compose() puts in front of a group message ("Site team: ..."), so the phone can
+  // show it as the group's name instead.
+  const groupName = (conv?.name ?? project?.name)?.trim() || "Team chat";
+  const group = isChat(n) && conv?.kind !== "direct" ? groupName[0].toUpperCase() + groupName.slice(1) : null;
   const apnsPayload = {
     aps: {
       alert: { title: shown.title, body: shown.body },
       badge: count ?? 0,
-      sound: "default",
+      sound: level === "passive" ? undefined : "default",
       "thread-id": tag,
+      "interruption-level": level,
+      "relevance-score": relevance,
+      ...(person ? { "mutable-content": 1 } : {}),
       ...(category ? { category } : {}),
     },
     url: path,
     id: n.id,
     type: n.type,
     ...(ref ? { ref } : {}),
+    ...(person && n.actor_id ? { sender: { id: n.actor_id, ...person } } : {}),
+    ...(group ? { group } : {}),
   };
 
   // Preview the message without sending it (used to check the wording).

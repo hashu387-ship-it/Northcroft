@@ -3,8 +3,9 @@ import WidgetKit
 import SwiftUI
 
 // The workday Live Activity, from check-in until check-out (or midnight): on the lock screen and
-// in the Dynamic Island, with the time since check-in counting up and a Check out button. The app
-// starts, updates and ends it (WorkdayActivity.swift in native/northcroft-native).
+// in the Dynamic Island, delivery-app style: a bar filling from check-in to the end of office
+// hours, the time left, the time since check-in and a Check out button. The app starts, updates
+// and ends it (WorkdayActivity.swift in native/northcroft-native).
 
 /// Must stay field for field the same as WorkdayAttributes in native/northcroft-native.
 struct WorkdayAttributes: ActivityAttributes {
@@ -13,6 +14,7 @@ struct WorkdayAttributes: ActivityAttributes {
         var place: String?
         var dueToday: Int
         var late: Int
+        var endAt: Date?
     }
 
     var firstName: String
@@ -41,63 +43,70 @@ private extension WorkdayAttributes.ContentState {
     }
 }
 
-/// A capsule button in Northcroft red: Liquid Glass on iOS 26 and later.
-private struct GlassButtonLabel: View {
-    let title: String
-    let symbol: String
-
-    var body: some View {
-        let label = Label(title, systemImage: symbol)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-        if #available(iOS 26.0, *) {
-            label.glassEffect(.regular.tint(Color(red: 0.91, green: 0.17, blue: 0.20).opacity(0.75)), in: Capsule())
-        } else {
-            label.background(Color(red: 0.91, green: 0.17, blue: 0.20), in: Capsule())
-        }
-    }
-}
-
 private struct WorkdayLockScreen: View {
     let state: WorkdayAttributes.ContentState
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("NORTHCROFT")
-                    .font(.system(size: 10, weight: .bold))
-                    .kerning(1.2)
-                    .foregroundStyle(Color(red: 1, green: 0.42, blue: 0.45))
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color(red: 0.20, green: 0.78, blue: 0.45))
-                    Text("In since \(state.inAt)")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    NCEyebrow(text: "Northcroft · Workday")
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(NC.green)
+                        Text("In since \(state.inAt)")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                    if let place = state.place {
+                        Text(place)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .lineLimit(1)
+                    }
                 }
-                if let place = state.place {
-                    Text(place)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .lineLimit(1)
-                }
-                Text(state.dueLine)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(state.late > 0 ? Color(red: 1, green: 0.45, blue: 0.47) : .white.opacity(0.85))
-                    .contentTransition(.numericText())
-            }
-            Spacer(minLength: 0)
-            VStack(alignment: .trailing, spacing: 8) {
+                Spacer(minLength: 8)
                 Text(timerInterval: state.since, countsDown: false)
                     .font(.system(size: 26, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 120, alignment: .trailing)
+            }
+
+            if let end = state.endAt, end > state.checkInAt {
+                // Like a delivery on its way: the day filling up to the end of office hours.
+                VStack(alignment: .leading, spacing: 5) {
+                    ProgressView(timerInterval: state.checkInAt...end, countsDown: false) {
+                        EmptyView()
+                    } currentValueLabel: {
+                        EmptyView()
+                    }
+                    .progressViewStyle(.linear)
+                    .tint(NC.green)
+                    HStack(spacing: 4) {
+                        Text("Office hours end \(NC.time(end))")
+                        Spacer(minLength: 4)
+                        Text(timerInterval: Date()...max(end, Date()), countsDown: true)
+                            .monospacedDigit()
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 70, alignment: .trailing)
+                        Text("left")
+                    }
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.75))
+                }
+                .ncGlassPanel()
+            }
+
+            HStack {
+                Text(state.dueLine)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(state.late > 0 ? NC.softRed : .white.opacity(0.85))
+                    .contentTransition(.numericText())
+                Spacer(minLength: 8)
                 Link(destination: WorkdayLinks.checkout) {
-                    GlassButtonLabel(title: "Check out", symbol: "figure.walk.departure")
+                    NCGlassButton(title: "Check out", symbol: "figure.walk.departure")
                 }
             }
         }
@@ -109,7 +118,7 @@ struct WorkdayLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkdayAttributes.self) { context in
             WorkdayLockScreen(state: context.state)
-                .activityBackgroundTint(Color(red: 7 / 255, green: 23 / 255, blue: 51 / 255).opacity(0.55))
+                .activityBackgroundTint(NC.navy.opacity(0.55))
                 .activitySystemActionForegroundColor(.white)
                 .widgetURL(WorkdayLinks.attendance)
         } dynamicIsland: { context in
@@ -119,7 +128,7 @@ struct WorkdayLiveActivity: Widget {
                         Text("In \(context.state.inAt)").font(.system(size: 14, weight: .semibold))
                     } icon: {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color(red: 0.20, green: 0.78, blue: 0.45))
+                            .foregroundStyle(NC.green)
                     }
                     .padding(.leading, 4)
                 }
@@ -132,6 +141,17 @@ struct WorkdayLiveActivity: Widget {
                         .padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
+                    VStack(spacing: 8) {
+                    if let end = context.state.endAt, end > context.state.checkInAt {
+                        ProgressView(timerInterval: context.state.checkInAt...end, countsDown: false) {
+                            EmptyView()
+                        } currentValueLabel: {
+                            EmptyView()
+                        }
+                        .progressViewStyle(.linear)
+                        .tint(NC.green)
+                        .padding(.horizontal, 4)
+                    }
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             if let place = context.state.place {
@@ -145,14 +165,15 @@ struct WorkdayLiveActivity: Widget {
                         }
                         Spacer()
                         Link(destination: WorkdayLinks.checkout) {
-                            GlassButtonLabel(title: "Check out", symbol: "figure.walk.departure")
+                            NCGlassButton(title: "Check out", symbol: "figure.walk.departure")
                         }
                     }
                     .padding(.horizontal, 4)
+                    }
                 }
             } compactLeading: {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Color(red: 0.20, green: 0.78, blue: 0.45))
+                    .foregroundStyle(NC.green)
             } compactTrailing: {
                 Text(timerInterval: context.state.since, countsDown: false)
                     .monospacedDigit()
@@ -160,10 +181,10 @@ struct WorkdayLiveActivity: Widget {
                     .frame(maxWidth: 52)
             } minimal: {
                 Image(systemName: "briefcase.fill")
-                    .foregroundStyle(Color(red: 0.20, green: 0.78, blue: 0.45))
+                    .foregroundStyle(NC.green)
             }
             .widgetURL(WorkdayLinks.attendance)
-            .keylineTint(Color(red: 0.91, green: 0.17, blue: 0.20))
+            .keylineTint(NC.red)
         }
     }
 }

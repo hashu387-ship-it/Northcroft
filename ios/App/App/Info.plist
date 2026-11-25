@@ -65,17 +65,26 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Northcroft uses your location to check you in and out at the office.</string>
+	<string>Northcroft uses your location to check you in and out, and to show how far you are from a site during a site trip.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>So Northcroft can remind you to check in when you arrive at the office, even when the app is closed. The phone only notices arriving at the office; your location is not tracked.</string>
+	<string>So Northcroft can remind you to check in when you arrive at the office and, if you switch it on, log your visits to project sites, even when the app is closed. The phone only notices arriving at or leaving those places; you are not followed around. During a site trip you start, your location is used until you arrive.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock Northcroft with Face ID.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos and scan documents to add to tasks, chats and registers.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Record voice notes for tasks, chats and announcements.</string>
+	<string>Make Northcroft voice calls, and record voice notes for tasks, chats and announcements.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save photos and files from Northcroft to your Photos.</string>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>INSendMessageIntent</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>location</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>

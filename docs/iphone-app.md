@@ -17,14 +17,30 @@ so every change to the website reaches the app straight away. The shell adds wha
   Northcroft tasks", "Open Northcroft chats". Also in the Shortcuts app and on the Action button.
 - **App icon menu:** press and hold the icon for Check in, Scan a document, My tasks and Chats.
 - **Workday Live Activity:** from check-in until check-out, the lock screen and Dynamic Island show
-  the check-in time, the time since and what's due, with a Check out button.
+  a bar filling up to the end of office hours, the time left, the check-in time, the time since and
+  what's due, with a Check out button.
+- **Tasks on the lock screen:** like an order on its way, a task shows its stages (Assigned, In
+  progress, Submitted, First OK, Approved) with a countdown to the deadline, for the people on it
+  and for whoever gave it. Due today or tomorrow, handed in, or followed with Lock Screen on the task.
+  It updates while the app is open; with the app closed it needs Apple's push service (step 5).
+- **Site trips:** Start trip on the Check in page shows the distance, a moving car and the arrival
+  time from Apple Maps on the lock screen; it ends on arrival and logs the visit.
+- **Site visit log:** the phone notes arriving at and leaving project sites, even with the app closed
+  (Settings > iPhone app > Site visit log). Visits show on the Check in page.
+- **Voice calls:** Voice call on someone's card or in a one-to-one chat, WhatsApp style, earpiece or
+  loudspeaker, AirPods and Bluetooth headsets. Calls list at /calls. See "Voice calls" below.
+- **Notifications with faces:** chats, approvals and requests show the sender's photo (or initials),
+  calls and approvals are time-sensitive (they get through Focus), and digests arrive quietly.
+- **This phone:** Settings > iPhone app shows what the phone allows (location, notifications, Live
+  Activities, microphone, camera, calendar, background refresh, battery, network), with Fix buttons.
 - **Control Center:** Check in and Scan a document buttons (iOS 18 and later), also for the lock screen.
 - **Searchable scans:** scanned PDFs carry the text read on the phone, so they can be searched.
 - **Spotlight:** projects and your open tasks in the iPhone's search; a result opens straight to it.
 - **Calendar:** your task deadlines, site visits and meetings in a "Northcroft" calendar on the phone
   (Settings > iPhone app).
-- **Liquid Glass:** the iOS 26 look, with springy animations and haptics; the default in the iPhone
-  app, and a choice in Settings > Appearance everywhere else.
+- **Liquid Glass:** the iOS 26 and 27 look on every screen (headers, menus, rows, chat bubbles, chips,
+  tables, sheets), with springy animations, a highlight under the finger and haptics; the default in
+  the iPhone app, and a choice in Settings > Appearance everywhere else.
 - **Apple Watch:** today's check-in and tasks due, and a Check in button that finishes on the iPhone.
 
 Only the native parts (the folders `ios/` and `native/`) need a new version through Apple. Everything
@@ -183,6 +199,8 @@ automatically.
 - **Server:**
   - `supabase/migrations/0055_native_push.sql`: the `native_push_devices` table and
     `register_native_push`.
+  - `supabase/migrations/0056_calls_and_site_visits.sql`: voice calls and the site visit log.
+  - `supabase/migrations/0057_push_to_iphone_app.sql`: notifications for people who only use the app.
   - `supabase/functions/send-push/apns.ts`: sending through APNs.
 - **Share extension target:** if the iOS project is ever made again with `npx cap add ios`, run
   `npx -y -p xcode@3.0.1 node scripts/ios/add-share-extension.cjs` to add the share extension
@@ -201,7 +219,35 @@ automatically.
 - **Control Center:** `ios/App/NorthcroftWidget/NorthcroftControls.swift`, running the actions in
   `ios/App/Shared/NorthcroftActionIntents.swift` (built into both the app and the widget).
 - **Spotlight and Calendar:** `Spotlight.swift` and `CalendarSync.swift`, fed by `src/native/sync.ts`.
-- **Liquid Glass look:** `src/styles/liquidglass.css` and `src/lib/liquidglass.ts`.
+- **Liquid Glass look:** `src/styles/liquidglass.css` (tokens, bars, buttons, cards),
+  `src/styles/liquidglass-all.css` (every other component) and `src/lib/liquidglass.ts`.
+- **Task and trip Live Activities:** `TaskActivity.swift` (fed by `src/native/liveTasks.ts`) and
+  `SiteTrip.swift` (Core Location and Apple Maps arrival times), drawn by `TaskLiveActivity.swift` and
+  `TripLiveActivity.swift` in the widget, with shared pieces in `LiveActivityParts.swift`.
+- **Site visit log:** `SiteWatcher.swift` (region monitoring of the active sites, at most 8) keeps
+  arrivals and departures; `src/native/siteVisits.ts` saves them to `site_visits` (0056).
+- **This phone:** `PhoneStatus.swift` and `src/pages/settings/PhoneStatus.tsx`.
+- **Notifications with faces:** `ios/App/NorthcroftNotify` (a notification service extension) makes
+  each notification with a "sender" a communication notification. The app needs the Communication
+  Notifications and Time Sensitive Notifications capabilities (in `App.entitlements`).
+  `supabase/functions/send-push` sends `mutable-content`, `sender`, `group` and the interruption level.
+- **Voice calls:** `src/calls/` (WebRTC in the web view, signalling over a Supabase Realtime channel
+  per call), the `calls` table (0056) and the `call-ice` Edge Function for the connection helpers.
+  `CallAudio` in `PhoneStatus.swift` handles the earpiece, loudspeaker and Bluetooth.
+
+## Voice calls
+
+Calls go straight between the two phones; no audio passes through Northcroft's servers. To connect
+across mobile networks that block direct connections, add Cloudflare's free TURN relay (1,000 GB a
+month free, about 30,000 hours of calls):
+
+1. Sign in at dash.cloudflare.com (a free account is enough) > Realtime > TURN Server > Create.
+2. Copy the **Turn Token ID** and **API Token**.
+3. In Supabase > Edge Functions > Secrets, add `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_API_TOKEN`.
+
+Calls ring in the app while it's open. With the app closed, "Saheeb is calling" arrives as a
+time-sensitive notification once Apple's push service is set up (step 5); tapping it opens the call.
+Ringing on the lock screen like a phone call (CallKit) needs the paid Apple Developer account too.
 - **Apple Watch:** `ios/App/NorthcroftWatch` (SwiftUI, watchOS 10 and later), embedded in the iPhone
   app. `WatchBridge.swift` sends it the widget's copy and takes its Check in. Xcode needs its watchOS
   part (Xcode > Settings > Components) to build the project.

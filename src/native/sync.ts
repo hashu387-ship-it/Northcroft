@@ -12,8 +12,10 @@ import type { Attendance, CalendarEvent, Project, Task } from "@/lib/types";
 import { EVENT_KIND } from "@/lib/constants";
 import { NorthcroftNative, type CalendarEntry, type SpotlightItem, type WidgetSnapshot } from "./plugin";
 
+const RIYADH = "+03:00";
+
 /** Runs fn when the value's JSON changes (not on every render). */
-function useOnChange<T>(value: T | null, fn: (v: T) => void) {
+export function useOnChange<T>(value: T | null, fn: (v: T) => void) {
   const key = value == null ? "" : JSON.stringify(value);
   const last = useRef("");
   useEffect(() => {
@@ -25,7 +27,16 @@ function useOnChange<T>(value: T | null, fn: (v: T) => void) {
 }
 
 /* -------------------------------------------------------------- Live Activity */
-export function useLiveWorkday(snapshot: WidgetSnapshot | null, rec: Attendance | undefined, on: boolean) {
+/** "17:30:00" on 2026-11-26, Riyadh time, as a timestamp. */
+export function riyadhMs(day: string, time: string | null | undefined): number | undefined {
+  if (!time) return undefined;
+  const t = /^\d{2}:\d{2}(:\d{2})?$/.test(time) ? (time.length === 5 ? `${time}:00` : time) : null;
+  if (!t) return undefined;
+  const ms = Date.parse(`${day}T${t}${RIYADH}`);
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
+export function useLiveWorkday(snapshot: WidgetSnapshot | null, rec: Attendance | undefined, on: boolean, workEnd?: string) {
   const state = useMemo(() => {
     if (!snapshot) return null;
     const active = on && !snapshot.exempt && !!rec && !rec.check_out_at;
@@ -36,9 +47,11 @@ export function useLiveWorkday(snapshot: WidgetSnapshot | null, rec: Attendance 
       place: rec?.in_place_name ?? undefined,
       dueToday: snapshot.dueToday,
       late: snapshot.late,
+      // The bar fills from check-in to the end of office hours.
+      endAtMs: rec ? riyadhMs(rec.work_date, workEnd) : undefined,
       firstName: snapshot.firstName ?? "",
     };
-  }, [snapshot, rec, on]);
+  }, [snapshot, rec, on, workEnd]);
   useOnChange(state, (s) => void NorthcroftNative.workday(s).catch(() => undefined));
 }
 
@@ -77,7 +90,6 @@ export function useSpotlight(tasks: Task[] | undefined, projects: Project[], pro
 }
 
 /* -------------------------------------------------------------- Calendar */
-const RIYADH = "+03:00";
 
 function useMyEvents(meId: string, on: boolean, from: string, to: string) {
   return useQuery({

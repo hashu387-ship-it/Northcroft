@@ -12,6 +12,7 @@ import { PresenceBoard, PresenceMonthly } from "./attendance/Presence";
 import { LeaveFromLink, LeaveToApproveCard, MyLeaveCard, TeamLeaveCard } from "./attendance/Leave";
 import { useMyAttendance, usePlaces } from "./attendance/shared";
 import { FixesToAnswerCard, FixFromLink, MissedCheckinCard } from "./attendance/CheckinFix";
+import { SiteVisitsCard } from "./attendance/SiteVisits";
 import "@/styles/admin.css";
 
 export default function Attendance() {
@@ -94,6 +95,7 @@ export default function Attendance() {
           <BreakCard today={today} slot="after" />
           <MissedCheckinCard />
           <MyLeaveCard />
+          <SiteVisitsCard />
           <MyHistory rows={mine.data ?? []} loading={mine.isLoading} />
         </div>
         {canAssign && (

@@ -7,7 +7,7 @@ import { ConfirmProvider, ToastProvider } from "@/components/ui";
 import { startScrollHints } from "@/lib/scrollHints";
 import App from "./App";
 import { isNativeApp } from "@/native/platform";
-import { startLiquidGlassScroll } from "@/lib/liquidglass";
+import { startLiquidGlassLight, startLiquidGlassScroll } from "@/lib/liquidglass";
 import "./styles/index.css";
 import "./styles/polish.css";
 import "./styles/liquid.css";
@@ -21,6 +21,7 @@ import "./styles/onyx.css";
 import "./styles/aurora.css";
 import "./styles/motion.css";
 import "./styles/liquidglass.css";
+import "./styles/liquidglass-all.css";
 
 // Appearance preferences are per device. Onyx (the design system's look: soft charcoal clay, the
 // Northcroft world with grain, a red glow and the skyline, serif headings, puffy clay buttons and
@@ -61,6 +62,7 @@ try {
 
 startScrollHints();
 startLiquidGlassScroll();
+startLiquidGlassLight();
 
 const queryClient = new QueryClient({
   defaultOptions: {

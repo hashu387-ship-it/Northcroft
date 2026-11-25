@@ -18,6 +18,7 @@ import {
   RotateCcw,
   SearchX,
   Send,
+  Smartphone,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -44,6 +45,8 @@ import { TaskTimeCard, TrackedPanel } from "@/components/Tracked";
 import { useActivity, useWatchers } from "./project/api";
 import { useTaskMeeting } from "./calendar/ActionPoints";
 import { ProgressValue, TaskProgressCard } from "./updates/TaskProgress";
+import { isNativeApp } from "@/native/platform";
+import { setFollowed, useFollowedTasks } from "@/native/liveTasks";
 import "@/styles/tasks.css";
 import "@/styles/meeting.css";
 
@@ -53,6 +56,26 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
       <span>{label}</span>
       <span>{children}</span>
     </div>
+  );
+}
+
+/** iPhone app: keep this task on the lock screen and in the Dynamic Island, like an order on its way. */
+function LockScreenButton({ id }: { id: string }) {
+  const followed = useFollowedTasks().includes(id);
+  const toast = useToast();
+  return (
+    <button
+      className="btn small ghost"
+      onClick={() => {
+        setFollowed(id, !followed);
+        toast(followed ? "Removed from your lock screen." : "On your lock screen: its stages and the time to the deadline.");
+      }}
+      aria-pressed={followed}
+      title={followed ? "Shown on your lock screen. Tap to remove." : "Show this task on your lock screen"}
+      style={{ height: 28, padding: "0 10px" }}
+    >
+      <Smartphone /> {followed ? "On Lock Screen" : "Lock Screen"}
+    </button>
   );
 }
 
@@ -412,6 +435,7 @@ export default function TaskDetail() {
               >
                 {following ? <BellRing /> : <Bell />} {following ? "Following" : "Follow"}
               </button>
+              {isNativeApp() && t.status !== "done" && !t.approval && <LockScreenButton id={t.id} />}
             </div>
             <h1 className="td-title">{t.title}</h1>
 

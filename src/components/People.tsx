@@ -4,7 +4,7 @@ import "@/styles/people.css";
 import { useState, useSyncExternalStore } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { Mail, MessageCircle, Phone, UserPen } from "lucide-react";
+import { Mail, MessageCircle, Phone, PhoneCall, UserPen } from "lucide-react";
 import { usePeople } from "@/lib/api";
 import { startDirectChat } from "@/lib/chats";
 import { errorMessage } from "@/lib/supabase";
@@ -14,6 +14,7 @@ import type { Profile } from "@/lib/types";
 import { Avatar, Pill, Sheet, useToast } from "./ui";
 import { showsManagerLabel } from "@/lib/people";
 import { useOnlineLine } from "@/lib/online";
+import { useStartCall } from "@/calls/CallScreen";
 
 /* ---------------------------------------------------------------- WhatsApp */
 export function WhatsAppIcon({ size = 18 }: { size?: number }) {
@@ -154,6 +155,7 @@ export function PersonCardHost() {
   const navigate = useNavigate();
   const toast = useToast();
   const [opening, setOpening] = useState(false);
+  const startCall = useStartCall();
 
   async function message() {
     if (!p || opening) return;
@@ -186,11 +188,23 @@ export function PersonCardHost() {
               <button className="btn primary" type="button" onClick={message} disabled={opening}>
                 <MessageCircle /> Message
               </button>
+              {p.active && (
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => {
+                    close();
+                    void startCall(p.id);
+                  }}
+                >
+                  <PhoneCall /> Voice call
+                </button>
+              )}
               {p.phone ? (
                 <>
                   <WhatsAppButton person={p} variant="button" />
                   <a className="btn" href={`tel:${p.phone}`}>
-                    <Phone /> Call
+                    <Phone /> Mobile
                   </a>
                 </>
               ) : null}

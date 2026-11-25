@@ -16,6 +16,11 @@ import UserNotifications
 ///   spotlightIndex, spotlightClear   projects and tasks in the iPhone's search (Spotlight)
 ///   calendarStatus, calendarEnable, calendarSync, calendarDisable   the Northcroft calendar (CalendarSync)
 ///   haptic         a small tap from the phone (Haptics)
+///   liveTasks      tasks on the lock screen, delivery-app style (TaskActivity)
+///   tripStart, tripStop, tripStatus   a trip to a site with distance and arrival time (SiteTrip)
+///   siteWatch, siteStop, siteTake   the site visit log from arrivals and departures (SiteWatcher)
+///   phoneStatus, openSettings   what the phone allows Northcroft to do (PhoneStatus)
+///   callAudio      earpiece, loudspeaker and Bluetooth during a voice call (CallAudio)
 @objc(NorthcroftNativePlugin)
 public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "NorthcroftNativePlugin"
@@ -44,7 +49,17 @@ public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "calendarEnable", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "calendarSync", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "calendarDisable", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "haptic", returnType: CAPPluginReturnNone)
+        CAPPluginMethod(name: "haptic", returnType: CAPPluginReturnNone),
+        CAPPluginMethod(name: "liveTasks", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "tripStart", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "tripStop", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "tripStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "siteWatch", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "siteStop", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "siteTake", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "phoneStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openSettings", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "callAudio", returnType: CAPPluginReturnPromise)
     ]
 
     private var launchObserver: NSObjectProtocol?
@@ -272,7 +287,14 @@ extension NorthcroftNativePlugin {
     @objc func clearWidget(_ call: CAPPluginCall) {
         WidgetData.clear()
         Task {
-            if #available(iOS 16.2, *) { await LiveWorkday.endAll() }
+            if #available(iOS 16.2, *) {
+                await LiveWorkday.endAll()
+                await LiveTasks.endAll()
+            }
+        }
+        DispatchQueue.main.async {
+            SiteTrip.shared.stop()
+            SiteWatcher.shared.stop()
         }
         SpotlightIndex.clear()
         call.resolve()
@@ -292,8 +314,9 @@ extension NorthcroftNativePlugin {
         let due = call.getInt("dueToday") ?? 0
         let late = call.getInt("late") ?? 0
         let name = call.getString("firstName") ?? ""
+        let endAt = call.getDouble("endAtMs").map { Date(timeIntervalSince1970: $0 / 1000) }
         Task {
-            let running = await LiveWorkday.sync(checkedIn: checkedIn, checkedOut: checkedOut, checkInAt: at, place: place, dueToday: due, late: late, firstName: name)
+            let running = await LiveWorkday.sync(checkedIn: checkedIn, checkedOut: checkedOut, checkInAt: at, place: place, dueToday: due, late: late, endAt: endAt, firstName: name)
             call.resolve(["running": running])
         }
     }
@@ -350,6 +373,117 @@ extension NorthcroftNativePlugin {
 
     @objc func haptic(_ call: CAPPluginCall) {
         Haptics.play(call.getString("style") ?? "light")
+    }
+
+    // MARK: - Tasks on the lock screen, site trips and the site visit log
+
+    @objc func liveTasks(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else {
+            call.resolve(["running": 0])
+            return
+        }
+        let items = Self.plainList(call.getArray("items"))
+        Task {
+            let n = await LiveTasks.sync(items)
+            call.resolve(["running": n])
+        }
+    }
+
+    @objc func tripStart(_ call: CAPPluginCall) {
+        guard let id = call.getString("placeId"), let lat = call.getDouble("lat"), let lng = call.getDouble("lng") else {
+            call.reject("placeId, lat and lng are needed")
+            return
+        }
+        let name = call.getString("placeName") ?? "Site"
+        let radius = call.getDouble("radius") ?? 200
+        let project = call.getString("projectId")
+        DispatchQueue.main.async {
+            SiteTrip.shared.start(id: id, name: name, lat: lat, lng: lng, radius: radius, projectId: project) { problem in
+                if let problem { call.resolve(["ok": false, "reason": problem]) } else { call.resolve(["ok": true]) }
+            }
+        }
+    }
+
+    @objc func tripStop(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            SiteTrip.shared.stop()
+            call.resolve()
+        }
+    }
+
+    @objc func tripStatus(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            if let r = SiteTrip.shared.running {
+                var out: JSObject = ["running": true]
+                for (k, v) in r {
+                    if let s = v as? String { out[k] = s } else if let d = v as? Double { out[k] = d }
+                }
+                call.resolve(out)
+            } else {
+                call.resolve(["running": false])
+            }
+        }
+    }
+
+    @objc func siteWatch(_ call: CAPPluginCall) {
+        let list = (call.getArray("sites") ?? []).compactMap { $0 as? JSObject }
+        let sites: [SiteWatcher.Site] = list.compactMap { o in
+            guard let id = o["id"] as? String, let lat = o["lat"] as? Double, let lng = o["lng"] as? Double else { return nil }
+            let radius = (o["radius"] as? Double) ?? Double((o["radius"] as? Int) ?? 200)
+            return SiteWatcher.Site(id: id, name: (o["name"] as? String) ?? "Site", lat: lat, lng: lng, radius: radius, projectId: o["projectId"] as? String)
+        }
+        DispatchQueue.main.async {
+            OfficeWatcher.shared.requestAlways { status in
+                guard status == "always" || status == "whenInUse" else {
+                    call.resolve(["status": status, "watching": 0])
+                    return
+                }
+                let n = SiteWatcher.shared.watch(sites)
+                call.resolve(["status": status, "watching": n])
+            }
+        }
+    }
+
+    @objc func siteStop(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            SiteWatcher.shared.stop()
+            call.resolve()
+        }
+    }
+
+    @objc func siteTake(_ call: CAPPluginCall) {
+        let events: JSArray = SiteVisits.take().map { e in
+            var o: JSObject = [:]
+            for (k, v) in e {
+                if let s = v as? String { o[k] = s } else if let d = v as? Double { o[k] = d }
+            }
+            return o
+        }
+        call.resolve(["events": events])
+    }
+
+    // MARK: - This phone, and voice calls
+
+    @objc func phoneStatus(_ call: CAPPluginCall) {
+        PhoneStatus.read { info in
+            var out: JSObject = [:]
+            for (k, v) in info {
+                if let b = v as? Bool { out[k] = b } else if let i = v as? Int { out[k] = i } else if let s = v as? String { out[k] = s }
+            }
+            call.resolve(out)
+        }
+    }
+
+    @objc func openSettings(_ call: CAPPluginCall) {
+        PhoneStatus.openSettings(call.getString("kind"))
+        call.resolve()
+    }
+
+    @objc func callAudio(_ call: CAPPluginCall) {
+        CallAudio.set(active: call.getBool("active") ?? false, speaker: call.getBool("speaker") ?? false)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            call.resolve(["route": CallAudio.route])
+        }
     }
 }
 

@@ -2,11 +2,12 @@ import Foundation
 import UserNotifications
 
 /// Called once from AppDelegate at every launch, including when iOS wakes the app in the background
-/// because someone arrived at the office: it starts the office watcher (so the arrival reaches it)
+/// because someone arrived at the office or a site: it starts the watchers (so the arrival reaches them)
 /// and registers the buttons shown on notifications.
 public enum NorthcroftSetup {
     public static func start() {
         OfficeWatcher.shared.activate()
+        SiteWatcher.shared.activate()
         NotificationButtons.register()
         WatchBridge.shared.activate()
     }

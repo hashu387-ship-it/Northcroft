@@ -29,3 +29,23 @@ export function startLiquidGlassScroll() {
   // A new page starts with the full bar.
   window.addEventListener("popstate", () => set(false));
 }
+
+// Liquid Glass look: the light on a pressed button sits where the finger is, like iOS 26 and 27.
+// Sets --lg-x and --lg-y on the control (styles/liquidglass-all.css draws the highlight).
+const LIT = ".btn, .icon-btn, .chip-toggle, .fab, .segmented button, .tabs a, .tabs button";
+export function startLiquidGlassLight() {
+  const root = document.documentElement;
+  document.addEventListener(
+    "pointerdown",
+    (ev) => {
+      if (root.dataset.palette !== "liquid") return;
+      const el = (ev.target as Element | null)?.closest?.(LIT) as HTMLElement | null;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      el.style.setProperty("--lg-x", `${(((ev.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
+      el.style.setProperty("--lg-y", `${(((ev.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
+    },
+    { capture: true, passive: true },
+  );
+}

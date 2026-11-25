@@ -70,6 +70,22 @@ export async function sendApns(
   return { ok: false, status: res.status, reason };
 }
 
+/**
+ * How the phone treats it (iOS interruption levels):
+ *   time-sensitive  calls and things waiting on you now: they get through Focus and stay on the lock screen
+ *   passive         digests and small changes: quietly into the list (and the Scheduled Summary, if on)
+ *   active          everything else, as before
+ * relevance-score decides which shows on top in a Scheduled Summary.
+ */
+const URGENT = new Set(["call", "checkin_request", "leave_request", "task_request", "overdue", "checkin_reminder"]);
+const QUIET = new Set(["review_digest", "weekly_check", "weekly_checked", "weekly_update", "weekly_updates", "leave_days", "task_time_logs", "group_added", "leave_cancelled"]);
+
+export function levelFor(type: string, chat: boolean): { level: "time-sensitive" | "active" | "passive"; relevance: number } {
+  if (URGENT.has(type)) return { level: "time-sensitive", relevance: 1 };
+  if (QUIET.has(type)) return { level: "passive", relevance: 0.2 };
+  return { level: "active", relevance: chat ? 0.8 : 0.5 };
+}
+
 /** Which buttons the notification shows on the phone (see NotificationButtons in the app). */
 export function categoryFor(type: string, link: string | null, chat: boolean): { category?: string; ref?: string } {
   if (type === "checkin_request" && link?.includes("fix=")) return { category: "CHECKIN_REQUEST", ref: link.split("fix=")[1].split("&")[0] };

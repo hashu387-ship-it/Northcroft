@@ -16,6 +16,7 @@ import {
   MessageSquarePlus,
   Mic,
   Pencil,
+  PhoneCall,
   Search,
   ShieldCheck,
   UserMinus,
@@ -25,6 +26,7 @@ import {
 import { useInvalidate, usePeople, useProjectMap } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { useOnlineLine } from "@/lib/online";
+import { useStartCall } from "@/calls/CallScreen";
 import {
   addGroupMembers,
   createGroup,
@@ -230,6 +232,7 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
   const people = usePeople();
   const conv = useConversation(sel.kind === "conversation" ? sel.id : undefined);
   const [info, setInfo] = useState(false);
+  const startCall = useStartCall();
 
   let scope: Scope | null = null;
   let head: ReactNode = null;
@@ -307,6 +310,17 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
         <Info className="faint" size={18} />
       </button>
     );
+    if (direct && other?.active) {
+      const callHead = head;
+      head = (
+        <>
+          {callHead}
+          <button type="button" className="btn icon chat-call" onClick={() => void startCall(other.id)} aria-label={`Voice call ${other.short_name}`} title="Voice call">
+            <PhoneCall size={18} />
+          </button>
+        </>
+      );
+    }
   }
 
   return (

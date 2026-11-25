@@ -1946,3 +1946,7 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .faceid-lock p { margin: 0; font-size: 17px; font-weight: 600; }
 .faceid-lock .faceid-why { font-size: 14px; font-weight: 400; color: #c8d3e6; max-width: 300px; }
 .faceid-lock .btn { margin-top: 10px; }
+
+/* Site visits card (Check in page). */
+.site-visits .section-label { margin: 4px 0 6px; }
+.site-visits .trip-banner { margin-bottom: 12px; }

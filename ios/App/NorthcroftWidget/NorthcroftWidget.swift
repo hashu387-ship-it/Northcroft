@@ -215,6 +215,7 @@ struct SmallView: View {
 
 struct MediumView: View {
     let entry: DayEntry
+    @Environment(\.widgetRenderingMode) private var renderingMode
 
     var body: some View {
         let exempt = entry.snap?.exempt ?? false
@@ -267,7 +268,22 @@ struct MediumView: View {
                     Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .modifier(TaskPanel(on: renderingMode == .fullColor))
             }
+        }
+    }
+}
+
+/// The due-today list sits on a pane of Liquid Glass (full colour only; tinted and clear home
+/// screens already put their own glass behind the widget).
+private struct TaskPanel: ViewModifier {
+    let on: Bool
+
+    func body(content: Content) -> some View {
+        if on {
+            content.ncGlassPanel()
+        } else {
+            content
         }
     }
 }
@@ -381,6 +397,8 @@ struct NorthcroftWidgets: WidgetBundle {
     var body: some Widget {
         NorthcroftTodayWidget()
         WorkdayLiveActivity()
+        TaskLiveActivity()
+        TripLiveActivity()
         if #available(iOS 18.0, *) {
             CheckInControl()
         }
