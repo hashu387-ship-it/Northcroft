@@ -62,14 +62,16 @@ end $$;
 drop trigger if exists calls_notify on public.calls;
 create trigger calls_notify after insert or update of status on public.calls
   for each row execute function public.notify_call();
+revoke execute on function public.notify_call() from public, anon, authenticated;
 
 -- A call left ringing for more than a minute (the caller's phone lost signal, say) counts as missed.
+-- For a scheduled job; the app marks its own unanswered calls missed after 45 seconds.
 create or replace function public.expire_ringing_calls() returns void
 language sql security definer set search_path = public as $$
   update public.calls set status = 'missed', ended_at = now()
   where status = 'ringing' and created_at < now() - interval '1 minute';
 $$;
-grant execute on function public.expire_ringing_calls() to authenticated;
+revoke execute on function public.expire_ringing_calls() from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------- site visits
 create table if not exists public.site_visits (
