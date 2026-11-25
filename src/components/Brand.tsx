@@ -45,19 +45,16 @@ export function LogoMark({ size = 32, variant = "tile", style, className }: { si
 }
 
 /**
- * The QS Team logo comes in one colour per look (scripts/tint-logos.py makes them from the original):
- * blue for Northcroft navy, Aurora, QS Team glass and Dark; gold for Onyx; violet for Purple glass;
- * and ink (navy lettering, no dark glow) for the light looks. Red accents stay red in all of them.
+ * The QS Team logo comes in a few colours (scripts/tint-logos.py makes them from the original). The
+ * app uses blue in dark mode (and wherever the logo sits on something dark) and ink (navy lettering,
+ * no dark glow) in light mode. Red accents stay red in all of them.
  */
 export type LogoTone = "blue" | "gold" | "violet" | "ink";
 
 /** The tone for the current look. `onDark`: the logo always sits on a dark background there. */
 function readTone(onDark: boolean): LogoTone {
   if (typeof document === "undefined") return "blue";
-  const root = document.documentElement;
-  if (root.dataset.palette === "onyx") return "gold";
-  if (root.dataset.palette === "purple") return "violet";
-  const theme = root.dataset.theme;
+  const theme = document.documentElement.dataset.theme;
   const dark = theme ? theme === "dark" : window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? true;
   return dark || onDark ? "blue" : "ink";
 }

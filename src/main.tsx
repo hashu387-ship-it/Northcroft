@@ -6,63 +6,26 @@ import { AuthProvider } from "@/lib/auth";
 import { ConfirmProvider, ToastProvider } from "@/components/ui";
 import { startScrollHints } from "@/lib/scrollHints";
 import App from "./App";
-import { isNativeApp } from "@/native/platform";
-import { startLiquidGlassLight, startLiquidGlassScroll } from "@/lib/liquidglass";
+import { applyAppearance, migrateAppearance } from "@/lib/appearance";
+import { startChrome } from "@/lib/chrome";
+import "./styles/core.css";
 import "./styles/index.css";
 import "./styles/polish.css";
-import "./styles/liquid.css";
-import "./styles/brandfont.css";
-import "./styles/menu.css";
-import "./styles/purple.css";
 import "./styles/feel.css";
-import "./styles/clay.css";
-import "./styles/qs.css";
-import "./styles/onyx.css";
-import "./styles/aurora.css";
 import "./styles/motion.css";
-import "./styles/liquidglass.css";
-import "./styles/liquidglass-all.css";
 
-// Appearance preferences are per device. Onyx (the design system's look: soft charcoal clay, the
-// Northcroft world with grain, a red glow and the skyline, serif headings, puffy clay buttons and
-// thick clay rows in every table) is the default; Pearl (the same clay in warm light grey), QS
-// Team glass, Light, Dark, Purple glass, Clay glass or Automatic (follow the phone) only when
-// someone chooses it in Settings > Appearance. Onyx, QS Team glass and Purple glass are the dark
-// theme with a palette on top (data-palette="onyx" / "qs" / "purple"); Pearl and Clay glass are
-// the light theme with a palette on top (data-palette="pearl" / "clay").
-// Northcroft navy (the same clay in the company's colours: deep navy, white text, the Northcroft red
-// main button and soft blue highlights) is now the default. Each time a new default came in every
-// device switched to it once ("nc-look-onyx", then "nc-look-navy"); after that, whatever someone picks
-// in Settings stays. The short-lived Dusk look is folded into Northcroft navy.
-// Glass is the default for everyone. Solid surfaces only come on when switched on again in
-// Settings > Appearance; the old setting ("nc-solid") is cleared so every phone starts on glass.
+// Appearance (Settings > Appearance) is per device: Automatic, Light or Dark, how see-through the
+// glass is, text size and list density. The new Apple-standard design replaced the eight older
+// looks; every device moves to Automatic once (migrateAppearance).
 try {
-  if (!localStorage.getItem("nc-look-navy") || localStorage.getItem("nc-theme") === "dusk") {
-    localStorage.setItem("nc-theme", "navy");
-    localStorage.setItem("nc-look-navy", "1");
-    localStorage.setItem("nc-look-onyx", "1");
-  }
-  // Liquid Glass (the look of iOS 26) is the default inside the iPhone app: every iPhone switches to
-  // it once ("nc-look-liquid"); after that, whatever someone picks in Settings stays.
-  if (isNativeApp() && !localStorage.getItem("nc-look-liquid")) {
-    localStorage.setItem("nc-theme", "liquid");
-    localStorage.setItem("nc-look-liquid", "1");
-  }
-  const theme = localStorage.getItem("nc-theme") || "navy";
-  if (theme === "dark" || theme === "purple" || theme === "qs" || theme === "onyx" || theme === "navy" || theme === "aurora") document.documentElement.dataset.theme = "dark";
-  else if (theme !== "system" && theme !== "liquid") document.documentElement.dataset.theme = "light";
-  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx" || theme === "pearl" || theme === "navy" || theme === "aurora" || theme === "liquid") document.documentElement.dataset.palette = theme;
-  localStorage.removeItem("nc-solid");
-  if (localStorage.getItem("nc-solid-v2") === "true") document.documentElement.dataset.solid = "true";
+  migrateAppearance();
 } catch {
-  /* storage can be blocked; the Northcroft navy default still applies */
-  document.documentElement.dataset.theme = "dark";
-  document.documentElement.dataset.palette = "navy";
+  /* storage can be blocked */
 }
+applyAppearance();
 
 startScrollHints();
-startLiquidGlassScroll();
-startLiquidGlassLight();
+startChrome();
 
 const queryClient = new QueryClient({
   defaultOptions: {

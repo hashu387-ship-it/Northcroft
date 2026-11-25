@@ -25,7 +25,7 @@ body {
 :is(.small, .chat-item .preview, .page-head .sub) { letter-spacing: -0.003em; }
 :is(.chat-item .name, .notif .content .t, .sheet-body .input, .sheet-body textarea) { letter-spacing: -0.009em; }
 /* The condensed headings: a touch tighter when big, a touch looser when small. */
-:root:root :is(.page-head h1, .home-banner h1, .td-title, .celebrate-headline, .project-hero h1) { letter-spacing: -0.006em; text-wrap: balance; }
+:root:root :is(.page-head h1, .home-title h1, .td-title, .celebrate-headline, .project-hero h1) { letter-spacing: -0.006em; text-wrap: balance; }
 :root:root :is(.card-head h2, .card-head h3, .sheet-head h2) { letter-spacing: 0.004em; }
 /* Long text breaks lines more evenly, without a lone word on the last line. */
 p,
@@ -233,52 +233,37 @@ button.glass.card:active,
   .main.edge-swiping .main-inner { box-shadow: none; }
 }
 
-/* Reduce transparency: the glass stays, but frostier, with less colour coming through. Turn on
-   "Solid surfaces" in Settings > Appearance to switch the glass off completely. */
+/* Reduce transparency (the phone's setting): the floating glass turns frosted almost solid. Turn on
+   "Reduce transparency" in Settings > Appearance to switch it off completely. */
 @media (prefers-reduced-transparency: reduce) {
-  :root:not([data-solid="true"]) :is(.glass, .glass-strong):not(.sidebar):not(.topbar):not(.tabbar) {
-    background-color: color-mix(in srgb, var(--glass-strong) 25%, var(--solid));
-  }
-  .sidebar.glass,
-  .topbar.glass,
-  .tabbar.glass-strong { background-color: var(--navy-solid); }
-  .wallpaper .blob { opacity: 0.35; }
-  .sheet-backdrop {
-    background: rgba(10, 14, 30, 0.42);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
+  :root { --glass-alpha: 0.92; }
+  .sheet-backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
-/* Increase contrast: stronger lines and edges, darker secondary text. */
+/* Increase contrast: stronger hairlines, darker secondary text, a firmer glass edge. */
 @media (prefers-contrast: more) {
   :root:not([data-theme="dark"]) {
-    --separator: rgba(15, 23, 42, 0.22);
-    --glass-border: rgba(15, 23, 42, 0.26);
-    --btn-glass-border: rgba(15, 23, 42, 0.3);
-    --text-2: #13295a;
-    --text-3: #233a6b;
-  }
-  :is(.glass, .glass-strong):not(.sidebar):not(.topbar):not(.tabbar) {
-    background-color: color-mix(in srgb, var(--glass-strong) 45%, var(--solid));
+    --separator: rgba(60, 60, 67, 0.36);
+    --glass-border: rgba(0, 0, 0, 0.22);
+    --text-2: rgba(60, 60, 67, 0.85);
+    --text-3: rgba(60, 60, 67, 0.7);
+    --glass-alpha: 0.85;
   }
   .swipe-act { opacity: 1; }
 }
 @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --separator: rgba(255, 255, 255, 0.3);
-    --glass-border: rgba(255, 255, 255, 0.32);
-    --btn-glass-border: rgba(255, 255, 255, 0.34);
-    --text-2: #e3ebff;
-    --text-3: #c9d7f5;
+    --separator: rgba(255, 255, 255, 0.32);
+    --glass-border: rgba(255, 255, 255, 0.34);
+    --text-2: rgba(235, 235, 245, 0.85);
+    --text-3: rgba(235, 235, 245, 0.7);
   }
 }
 @media (prefers-contrast: more) {
   :root[data-theme="dark"] {
-    --separator: rgba(255, 255, 255, 0.3);
-    --glass-border: rgba(255, 255, 255, 0.32);
-    --btn-glass-border: rgba(255, 255, 255, 0.34);
-    --text-2: #e3ebff;
-    --text-3: #c9d7f5;
+    --separator: rgba(255, 255, 255, 0.32);
+    --glass-border: rgba(255, 255, 255, 0.34);
+    --text-2: rgba(235, 235, 245, 0.85);
+    --text-3: rgba(235, 235, 245, 0.7);
   }
 }

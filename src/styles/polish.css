@@ -1,165 +1,105 @@
-/* Polish layer, loaded after index.css:
-   Northcroft red accents, coloured icon tiles, the Home banner, empty-screen drawings
-   and subtle motion. Navy stays the main colour; red only marks what matters.
-   Everything respects the phone's reduce-motion setting (see index.css). */
+/* Polish layer, loaded after index.css: icon colours, the Home header and shortcuts, empty-screen
+   drawings, celebrations, project covers and subtle motion. Everything respects the phone's
+   reduce-motion setting (see core.css). */
 
-/* ------------------------------------------------------------------ red accents */
-.nav a { position: relative; }
-.nav a.active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--brand-red);
-}
-.nav .count,
-.tabbar .dot,
-.icon-btn .dot {
-  background: var(--brand-red);
-  box-shadow: 0 2px 6px rgba(232, 52, 62, 0.35);
-}
-.tabbar a.active::before {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  width: 18px;
-  height: 3px;
-  margin-left: -9px;
-  border-radius: 2px;
-  background: var(--brand-red);
-  animation: grow-x 0.3s var(--ease);
-}
-@keyframes grow-x { from { transform: scaleX(0); } }
-
-/* Red call-to-action, used for "New task". */
-.btn.brand {
-  background: linear-gradient(180deg, var(--brand-red), var(--brand-red-2));
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.14), 0 4px 14px rgba(232, 52, 62, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
-}
-.btn.brand:hover { background: linear-gradient(180deg, color-mix(in srgb, var(--brand-red) 90%, #fff), var(--brand-red-2)); }
-.fab {
-  background: linear-gradient(160deg, var(--brand-red), var(--brand-red-2));
-  box-shadow: 0 10px 24px rgba(232, 52, 62, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  transition: transform 0.18s var(--ease);
-}
-.fab:active { transform: scale(0.92); }
-
-/* Buttons on dark photo backgrounds. */
-.btn.on-dark {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.24);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-.btn.on-dark:hover { background: rgba(255, 255, 255, 0.24); }
-
-/* ------------------------------------------------------------------ coloured icon tiles */
+/* ------------------------------------------------------------------ icons in cards and stats */
+/* Card titles and stat labels carry their icon in its meaning's colour, plain (no tile behind it),
+   the way Health and Fitness label their summaries. */
 .card-head h2 > svg:first-child,
-.card-head h3 > svg:first-child {
-  width: 28px;
-  height: 28px;
-  padding: 6px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  background: var(--tile-bg, var(--brand-soft));
-  color: var(--tile-fg, var(--brand));
-  stroke-width: 2;
-}
-.stat .label svg {
-  width: 22px;
-  height: 22px;
-  padding: 4px;
-  border-radius: 6px;
-  flex-shrink: 0;
-  background: var(--tile-bg, var(--brand-soft));
-  color: var(--tile-fg, var(--brand));
-}
-.tone-red { --tile-bg: var(--brand-red-soft); --tile-fg: var(--brand-red); }
-.tone-green { --tile-bg: var(--green-soft); --tile-fg: var(--green); }
-.tone-purple { --tile-bg: var(--purple-soft); --tile-fg: var(--purple); }
-.tone-orange { --tile-bg: var(--orange-soft); --tile-fg: var(--orange); }
+.card-head h3 > svg:first-child,
+.stat .label svg { color: var(--tile-fg, var(--accent)); }
+.tone-red { --tile-bg: var(--red-soft); --tile-fg: var(--red-fill); }
+.tone-green { --tile-bg: var(--green-soft); --tile-fg: var(--green-fill); }
+.tone-purple { --tile-bg: var(--purple-soft); --tile-fg: var(--purple-fill); }
+.tone-orange { --tile-bg: var(--orange-soft); --tile-fg: var(--orange-fill); }
 .tone-blue { --tile-bg: var(--accent-soft); --tile-fg: var(--accent); }
-.tone-teal { --tile-bg: var(--teal-soft); --tile-fg: var(--teal); }
-.tone-indigo { --tile-bg: rgba(94, 92, 230, 0.14); --tile-fg: #5e5ce6; }
-.tone-pink { --tile-bg: rgba(233, 30, 99, 0.12); --tile-fg: #e91e63; }
-.tone-sky { --tile-bg: rgba(15, 163, 177, 0.13); --tile-fg: #0e93a0; }
-.tone-amber { --tile-bg: rgba(201, 162, 39, 0.16); --tile-fg: #a8800c; }
+.tone-teal { --tile-bg: var(--teal-soft); --tile-fg: var(--teal-fill); }
+.tone-indigo { --tile-bg: rgba(88, 86, 214, 0.14); --tile-fg: var(--indigo); }
+.tone-pink { --tile-bg: rgba(255, 45, 85, 0.12); --tile-fg: var(--pink); }
+.tone-sky { --tile-bg: rgba(50, 173, 230, 0.14); --tile-fg: #32ade6; }
+.tone-amber { --tile-bg: var(--yellow-soft); --tile-fg: var(--orange-fill); }
 
-/* ------------------------------------------------------------------ Home banner */
-.home-banner {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  border-radius: var(--r-lg);
-  min-height: 176px;
-  margin: 4px 0 14px;
-  color: #fff;
-  background: #0b1d46;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(1, 32, 97, 0.22);
+/* ------------------------------------------------------------------ Home: today */
+.home-title {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin: 2px 2px 12px;
 }
-.home-banner .hb-photo {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  /* Mirrored so the tower sits on the right, away from the greeting. */
-  background: url("/brand/tower.jpg") left center / cover no-repeat;
-  transform: scaleX(-1);
-  animation: hb-zoom 16s ease-out both;
-}
-.home-banner .hb-shade {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(90deg, rgba(1, 20, 60, 0.96) 0%, rgba(1, 32, 97, 0.86) 34%, rgba(1, 32, 97, 0.3) 66%, rgba(1, 32, 97, 0.05) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%);
-}
-.home-banner::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-.hb-body { position: relative; padding: 22px 26px 22px; max-width: 600px; }
-.hb-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11.5px;
-  font-weight: 650;
-  letter-spacing: 0.07em;
+.home-title .grow { flex: 1; min-width: 0; }
+.home-title .eyebrow {
+  display: block;
+  font-size: var(--t-foot);
+  font-weight: 600;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0.03em;
+  color: var(--text-2);
 }
-.hb-bar { width: 18px; height: 3px; border-radius: 2px; background: var(--brand-red); display: inline-block; }
-.home-banner h1 { font-size: 27px; line-height: 1.15; font-weight: 650; letter-spacing: -0.02em; margin-top: 8px; color: #fff; }
-.home-banner p { color: rgba(255, 255, 255, 0.82); margin-top: 6px; font-size: 14px; }
-.hb-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-@keyframes hb-zoom { from { transform: scaleX(-1) scale(1.08); } to { transform: scaleX(-1) scale(1); } }
+.home-title h1 {
+  font-family: var(--font-display);
+  font-size: var(--t-large);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  margin-top: 2px;
+}
+.home-title p { color: var(--text-2); font-size: var(--t-sub); margin-top: 5px; max-width: 64ch; }
+.home-me { border: 0; padding: 0; background: none; border-radius: 50%; transition: transform 0.35s var(--spring); }
+.home-me:active { transform: scale(0.94); }
+.home-actions { display: flex; gap: 8px; margin: 0 2px 18px; flex-wrap: wrap; }
+
+/* The places that aren't in the tab bar: a row of tiles. */
+.home-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 18px;
+}
+.hs-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 6px 11px;
+  border-radius: var(--r-lg);
+  background: var(--solid);
+  color: var(--text);
+  font-size: var(--t-cap);
+  font-weight: 500;
+  text-align: center;
+  transition: transform 0.4s var(--spring), background 0.2s;
+}
+.hs-tile:hover { background: var(--solid-2); }
+.hs-tile:active { transform: scale(0.94); }
+.hs-tile .tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
+}
+.hs-tile .tile svg { width: 22px; height: 22px; stroke-width: 2; }
 @media (max-width: 899px) {
-  .home-banner { min-height: 156px; margin-top: 2px; }
-  .hb-body { padding: 18px 18px 18px; }
-  .home-banner h1 { font-size: 22px; }
-  .home-banner .hb-shade {
-    background: linear-gradient(90deg, rgba(1, 20, 60, 0.95) 0%, rgba(1, 32, 97, 0.78) 58%, rgba(1, 32, 97, 0.4) 100%);
+  .home-shortcuts {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 calc(var(--pad) * -1) 18px;
+    padding: 0 var(--pad);
+    scroll-snap-type: x proximity;
   }
+  .home-shortcuts::-webkit-scrollbar { display: none; }
+  .hs-tile { flex: 0 0 84px; scroll-snap-align: start; }
 }
 
 /* ------------------------------------------------------------------ empty-screen drawings */
-:root { --illo-line: #1b3570; --illo-soft: #c3cde0; }
+:root { --illo-line: #3a3a3c; --illo-soft: #d1d1d6; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --illo-line: #a9c1f2; --illo-soft: rgba(169, 193, 242, 0.32); }
+  :root:not([data-theme="light"]) { --illo-line: #aeaeb2; --illo-soft: rgba(174, 174, 178, 0.3); }
 }
-:root[data-theme="dark"] { --illo-line: #a9c1f2; --illo-soft: rgba(169, 193, 242, 0.32); }
+:root[data-theme="dark"] { --illo-line: #aeaeb2; --illo-soft: rgba(174, 174, 178, 0.3); }
 .empty svg.illo {
   width: 118px;
   height: auto;
@@ -241,8 +181,8 @@
   isolation: isolate;
   flex-shrink: 0;
   background:
-    radial-gradient(120% 150% at 88% 0%, color-mix(in srgb, var(--pc, #0a84ff) 55%, transparent), transparent 62%),
-    linear-gradient(135deg, #0b1d46 0%, #012061 60%, #0a2a6e 100%);
+    radial-gradient(120% 150% at 88% 0%, color-mix(in srgb, var(--pc, #0a84ff) 70%, #fff), transparent 62%),
+    linear-gradient(135deg, color-mix(in srgb, var(--pc, #0a84ff) 80%, #000) 0%, color-mix(in srgb, var(--pc, #0a84ff) 55%, #000) 100%);
 }
 .project-cover.card { height: 104px; margin: -18px -18px 2px; }
 .project-cover.hero { height: 156px; margin: -20px -20px 2px; }
@@ -420,28 +360,4 @@
 :root[data-theme="dark"] .early-text { color: #ffd84d; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .early-text { color: #ffd84d; } }
 
-/* The signed-in person's photo in the Home banner, before the greeting. */
-.home-banner .hb-body { display: flex; align-items: center; gap: 20px; max-width: 720px; }
-.home-banner .hb-text { min-width: 0; }
-.hb-me {
-  flex: none;
-  display: grid;
-  place-items: center;
-  line-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92), 0 0 0 5px rgba(234, 28, 45, 0.85), 0 12px 28px rgba(0, 0, 0, 0.4);
-  animation: hb-me-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-  transition: transform 0.2s;
-}
-.hb-me:hover { transform: scale(1.04); }
-.hb-me:focus-visible { outline: 2px solid #fff; outline-offset: 6px; }
-.hb-me .avatar { box-shadow: none; }
-@keyframes hb-me-in { from { opacity: 0; transform: scale(0.7); } }
-@media (max-width: 899px) {
-  .home-banner .hb-body { gap: 14px; align-items: flex-start; }
-  .hb-me .avatar, .hb-me .avatar-on { --size: 58px !important; width: 58px; height: 58px; }
-}
+

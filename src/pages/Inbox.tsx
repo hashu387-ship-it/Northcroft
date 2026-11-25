@@ -2,10 +2,12 @@ import "@/styles/comms.css";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { Archive, ArchiveRestore, AtSign, Bell, BellRing, Building2, CalendarClock, CalendarDays, CalendarRange, CheckCheck, CircleCheck, ClipboardCheck, ClipboardList, Clock, ClockAlert, Coffee, FileClock, FileText, Hourglass, Inbox as InboxIcon, Layers, ListChecks, LogIn, LogOut, Mail, MailOpen, MapPin, Megaphone, MessageCircle, MessagesSquare, Pause, RotateCcw, Send, SquareCheckBig, TreePalm, TriangleAlert, type LucideIcon } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowUpRight, AtSign, Bell, BellRing, Building2, CalendarClock, CalendarDays, CalendarRange, CheckCheck, CircleCheck, ClipboardCheck, ClipboardList, Clock, ClockAlert, Coffee, FileClock, FileText, Hourglass, Inbox as InboxIcon, Layers, ListChecks, LogIn, LogOut, Mail, MailOpen, MapPin, Megaphone, MessageCircle, MessagesSquare, Pause, RotateCcw, Send, Sparkles, SquareCheckBig, TreePalm, TriangleAlert, type LucideIcon } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { SwipeRow } from "@/components/Swipe";
-import { Avatar, Empty, Loading, Segmented, useToast } from "@/components/ui";
+import { MenuTarget } from "@/components/ContextMenu";
+import { CatchUpSheet } from "@/components/CatchUp";
+import { Avatar, Empty, Loading, matchesSearch, SearchField, Segmented, useToast } from "@/components/ui";
 import { useInvalidate, usePeople, useTasks } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { errorMessage, supabase } from "@/lib/supabase";
@@ -87,6 +89,8 @@ export default function Inbox() {
   const toast = useToast();
   const invalidate = useInvalidate();
   const [view, setView] = useState<View>("all");
+  const [catchUpOpen, setCatchUp] = useState(false);
+  const [search, setSearch] = useState("");
   const q = useNotifications(me.id);
   const createdByMe = useTasks({ createdBy: me.id });
   const myTaskIds = useMemo(() => new Set((createdByMe.data ?? []).map((t) => t.id)), [createdByMe.data]);
@@ -96,6 +100,7 @@ export default function Inbox() {
   const unreadCount = live.filter((n) => !n.read_at).length;
 
   const list = useMemo(() => {
+    const pick = () => {
     switch (view) {
       case "unread":
         return live.filter((n) => !n.read_at);
@@ -110,7 +115,11 @@ export default function Inbox() {
       default:
         return live;
     }
-  }, [view, all, live, myTaskIds]);
+    };
+    // Searching looks through the inbox and the archive.
+    if (search.trim()) return all.filter((n) => matchesSearch(search, n.title, n.body, people.get(n.actor_id)?.full_name));
+    return pick();
+  }, [view, all, live, myTaskIds, search, people]);
 
   const groups = useMemo(() => {
     const today = todayISO();
@@ -159,15 +168,26 @@ export default function Inbox() {
         sub={unreadCount ? `${unreadCount} unread` : "You're all caught up"}
         actions={
           unreadCount > 0 && (
-            <button className="btn glassy" onClick={markAllRead}>
-              <CheckCheck /> Mark all read
-            </button>
+            <div className="row" style={{ gap: 8 }}>
+              {unreadCount >= 2 && (
+                <button className="btn glassy" onClick={() => setCatchUp(true)}>
+                  <Sparkles /> Catch up
+                </button>
+              )}
+              <button className="btn glassy" onClick={markAllRead} aria-label="Mark all read" title="Mark all read">
+                <CheckCheck /> <span className="hide-phone">Mark all read</span>
+              </button>
+            </div>
           )
         }
       />
-      <div className="inbox-toolbar">
-        <Segmented value={view} onChange={setView} options={options} />
-      </div>
+      <CatchUpSheet target={catchUpOpen ? { kind: "inbox" } : null} onClose={() => setCatchUp(false)} />
+      <SearchField value={search} onChange={setSearch} placeholder="Search notifications" />
+      {!search.trim() && (
+        <div className="inbox-toolbar">
+          <Segmented value={view} onChange={setView} options={options} />
+        </div>
+      )}
 
       <div className="glass card" style={{ padding: 8 }}>
         {q.isLoading ? (
@@ -214,6 +234,24 @@ export default function Inbox() {
                         update([n.id], n.archived_at ? { archived_at: null } : { archived_at: new Date().toISOString(), read_at: n.read_at ?? new Date().toISOString() }),
                     }}
                   >
+                    <MenuTarget
+                      title={n.title}
+                      items={() => [
+                        { label: "Open", icon: <ArrowUpRight />, run: () => open(n) },
+                        !n.archived_at && {
+                          label: readNow ? "Mark as read" : "Mark as unread",
+                          icon: readNow ? <MailOpen /> : <Mail />,
+                          run: () => update([n.id], { read_at: readNow ? new Date().toISOString() : null }),
+                        },
+                        null,
+                        {
+                          label: n.archived_at ? "Move back to inbox" : "Archive",
+                          icon: n.archived_at ? <ArchiveRestore /> : <Archive />,
+                          run: () =>
+                            update([n.id], n.archived_at ? { archived_at: null } : { archived_at: new Date().toISOString(), read_at: n.read_at ?? new Date().toISOString() }),
+                        },
+                      ]}
+                    >
                     <div
                       className={clsx("notif", !n.read_at && !n.archived_at && "unread")}
                       role="button"
@@ -273,6 +311,7 @@ export default function Inbox() {
                         </span>
                       </span>
                     </div>
+                    </MenuTarget>
                   </SwipeRow>
                 );
               })}

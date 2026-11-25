@@ -11,7 +11,7 @@ import { sar } from "@/lib/format";
 import { todayISO } from "@/lib/time";
 import type { Project } from "@/lib/types";
 import { PageHead } from "@/components/PageHead";
-import { AvatarStack, Empty, Loading, Pill, Progress, Segmented, useConfirm, useToast } from "@/components/ui";
+import { AvatarStack, Empty, Loading, matchesSearch, Pill, Progress, SearchField, Segmented, useConfirm, useToast } from "@/components/ui";
 import { ProjectCover } from "@/components/ProjectCover";
 import { ProjectForm } from "./project/ProjectForm";
 import { useVariations, voTotals } from "./project/api";
@@ -26,6 +26,7 @@ export default function Projects() {
   const vos = useVariations().data ?? [];
   const [filter, setFilter] = useState<Filter>("active");
   const [formOpen, setFormOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const me = useMe();
   const people = usePeople();
   const { isManager } = useAuth();
@@ -81,7 +82,8 @@ export default function Projects() {
   const teams = useProjectTeams();
   const mine = new Set(teams.projectsOf(me.id));
   const shown = projects
-    .filter((p) => p.status === filter)
+    // Searching looks through every project, whatever its status.
+    .filter((p) => (search.trim() ? matchesSearch(search, p.name, p.code, p.client, p.city) : p.status === filter))
     .sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || a.name.localeCompare(b.name));
 
   return (
@@ -109,7 +111,8 @@ export default function Projects() {
           </button>
         </div>
       )}
-      <div style={{ marginBottom: 16 }}>
+      <SearchField value={search} onChange={setSearch} placeholder="Search projects" />
+      <div style={{ marginBottom: 16, display: search.trim() ? "none" : undefined }}>
         <Segmented<Filter>
           value={filter}
           onChange={setFilter}

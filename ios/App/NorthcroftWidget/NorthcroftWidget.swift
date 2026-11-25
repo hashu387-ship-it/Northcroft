@@ -102,13 +102,9 @@ struct Provider: TimelineProvider {
 }
 
 // MARK: - Look
-
-private extension Color {
-    static let ncNavy = Color(red: 7 / 255, green: 23 / 255, blue: 51 / 255)
-    static let ncNavyLight = Color(red: 22 / 255, green: 48 / 255, blue: 92 / 255)
-    static let ncRed = Color(red: 0.91, green: 0.17, blue: 0.20)
-    static let ncGreen = Color(red: 0.20, green: 0.78, blue: 0.45)
-}
+// Apple's own widget style (Reminders, Calendar): white in light mode, dark grey in dark mode, black
+// text, Apple blue for Northcroft's name and buttons, red only for what's late. In StandBy and on
+// tinted or clear Home Screens the system takes over the background and colours.
 
 private enum Links {
     static let checkin = URL(string: "northcroft://action/checkin")!
@@ -124,33 +120,45 @@ private struct CheckInBlock: View {
         let s = entry.snap
         let checkedIn = entry.current && (s?.checkedIn ?? false)
         let out = entry.current && (s?.checkedOut ?? false)
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Image(systemName: checkedIn ? "checkmark.circle.fill" : "mappin.circle.fill")
-                    .foregroundStyle(checkedIn ? Color.ncGreen : Color.ncRed)
-                    .font(.system(size: compact ? 16 : 20, weight: .semibold))
+                Image(systemName: out ? "figure.walk.departure" : checkedIn ? "checkmark.circle.fill" : "mappin.circle.fill")
+                    .foregroundStyle(checkedIn ? Color.green : Color.orange)
+                    .font(.system(size: compact ? 16 : 19, weight: .semibold))
                     .widgetAccentable()
                     .contentTransition(.symbolEffect(.replace))
                 Text(out ? "Checked out" : checkedIn ? "Checked in" : "Not checked in")
-                    .font(.system(size: compact ? 14 : 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: compact ? 14 : 15, weight: .semibold))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             if checkedIn, let t = out ? s?.checkOutAt : s?.checkInAt {
                 Text([t, s?.place].compactMap { $0 }.joined(separator: " · "))
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(.secondary)
                     .lineLimit(2)
-            } else if !checkedIn {
-                Text("Tap to check in")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.75))
             }
         }
         // Checking in or out slides the new state in.
         .id(out ? 2 : checkedIn ? 1 : 0)
         .transition(.push(from: .bottom))
+    }
+}
+
+/// The Check in button on the widget itself (iOS 17): opens Northcroft and checks in, with the same
+/// office rule as the app's button.
+private struct CheckInButton: View {
+    var body: some View {
+        Button(intent: CheckInIntent()) {
+            Label("Check in", systemImage: "mappin.and.ellipse")
+                .font(.system(size: 13, weight: .semibold))
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.capsule)
+        .tint(.blue)
+        .widgetAccentable()
     }
 }
 
@@ -162,11 +170,11 @@ private struct DueLine: View {
         if let s = entry.snap, entry.current {
             HStack(spacing: 4) {
                 Text(s.dueToday == 0 ? "Nothing due today" : "\(s.dueToday) due today")
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.secondary)
                     .contentTransition(.numericText())
                 if s.late > 0 {
                     Text("· \(s.late) late")
-                        .foregroundStyle(Color.ncRed)
+                        .foregroundStyle(Color.red)
                         .widgetAccentable()
                         .contentTransition(.numericText())
                 }
@@ -177,18 +185,39 @@ private struct DueLine: View {
         } else {
             Text("Open Northcroft to refresh")
                 .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
         }
     }
 }
 
 private struct Brand: View {
     var body: some View {
-        Text("NORTHCROFT")
-            .font(.system(size: 10, weight: .bold))
-            .kerning(1.2)
-            .foregroundStyle(Color.ncRed)
+        Text("Northcroft")
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Color.blue)
             .widgetAccentable()
+    }
+}
+
+/// One task: a ring like Reminders, the title, and the project and when it's due.
+private struct TaskLine: View {
+    let t: Snapshot.Item
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "circle")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle((t.late ?? false) ? Color.red : Color.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(t.title)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text([t.project, t.due].compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 11))
+                    .foregroundStyle((t.late ?? false) ? Color.red : Color.secondary)
+                    .lineLimit(1)
+            }
+        }
     }
 }
 
@@ -197,16 +226,23 @@ struct SmallView: View {
 
     var body: some View {
         let exempt = entry.snap?.exempt ?? false
-        VStack(alignment: .leading, spacing: 8) {
+        let checkedIn = entry.current && (entry.snap?.checkedIn ?? false)
+        VStack(alignment: .leading, spacing: 6) {
             Brand()
             Spacer(minLength: 0)
             if entry.snap == nil {
                 Text("Open Northcroft to sign in")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
-            } else {
-                if !exempt { CheckInBlock(entry: entry) }
+            } else if exempt {
+                let n = entry.current ? (entry.snap?.dueToday ?? 0) : 0
+                Text("\(n)")
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .contentTransition(.numericText())
                 DueLine(entry: entry)
+            } else {
+                CheckInBlock(entry: entry)
+                DueLine(entry: entry)
+                if !checkedIn && entry.current { CheckInButton().padding(.top, 2) }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -215,76 +251,91 @@ struct SmallView: View {
 
 struct MediumView: View {
     let entry: DayEntry
-    @Environment(\.widgetRenderingMode) private var renderingMode
 
     var body: some View {
         let exempt = entry.snap?.exempt ?? false
+        let checkedIn = entry.current && (entry.snap?.checkedIn ?? false)
         HStack(alignment: .top, spacing: 14) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Brand()
                 Spacer(minLength: 0)
                 if entry.snap == nil {
                     Text("Open Northcroft to sign in")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
                 } else {
-                    if !exempt {
-                        Link(destination: Links.checkin) { CheckInBlock(entry: entry, compact: true) }
-                    }
+                    if !exempt { Link(destination: Links.checkin) { CheckInBlock(entry: entry, compact: true) } }
                     DueLine(entry: entry)
+                    if !exempt && !checkedIn && entry.current { CheckInButton().padding(.top, 2) }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             Link(destination: Links.tasks) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 7) {
                     Text("Due today")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
                     let tasks = entry.current ? (entry.snap?.tasks ?? []) : []
                     if tasks.isEmpty {
-                        Text(entry.current ? "You're all clear" : "—")
+                        Text(entry.current ? "You're all clear" : "Open Northcroft")
                             .font(.system(size: 13))
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.secondary)
                     }
-                    ForEach(tasks.prefix(3)) { t in
-                        HStack(alignment: .top, spacing: 6) {
-                            Circle()
-                                .fill((t.late ?? false) ? Color.ncRed : Color.white.opacity(0.6))
-                                .frame(width: 6, height: 6)
-                                .padding(.top, 5)
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text(t.title)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(.white)
-                                    .lineLimit(1)
-                                Text([t.project, t.due].compactMap { $0 }.joined(separator: " · "))
-                                    .font(.system(size: 11))
-                                    .foregroundStyle((t.late ?? false) ? Color.ncRed : .white.opacity(0.6))
-                                    .lineLimit(1)
-                            }
-                        }
-                    }
+                    ForEach(tasks.prefix(3)) { t in TaskLine(t: t) }
                     Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .modifier(TaskPanel(on: renderingMode == .fullColor))
             }
         }
     }
 }
 
-/// The due-today list sits on a pane of Liquid Glass (full colour only; tinted and clear home
-/// screens already put their own glass behind the widget).
-private struct TaskPanel: ViewModifier {
-    let on: Bool
+/// The large widget: check-in on top, then up to five tasks, like a Reminders list.
+struct LargeView: View {
+    let entry: DayEntry
 
-    func body(content: Content) -> some View {
-        if on {
-            content.ncGlassPanel()
-        } else {
-            content
+    var body: some View {
+        let exempt = entry.snap?.exempt ?? false
+        let checkedIn = entry.current && (entry.snap?.checkedIn ?? false)
+        let tasks = entry.current ? (entry.snap?.tasks ?? []) : []
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Brand()
+                Spacer()
+                if let name = entry.snap?.firstName { Text(name).font(.system(size: 13)).foregroundStyle(.secondary) }
+            }
+            if entry.snap == nil {
+                Spacer()
+                Text("Open Northcroft to sign in").font(.system(size: 15, weight: .semibold))
+                Spacer()
+            } else {
+                if !exempt {
+                    HStack(alignment: .center) {
+                        Link(destination: Links.checkin) { CheckInBlock(entry: entry) }
+                        Spacer(minLength: 8)
+                        if !checkedIn && entry.current { CheckInButton().frame(width: 120) }
+                    }
+                    Divider()
+                }
+                Link(destination: Links.tasks) {
+                    VStack(alignment: .leading, spacing: 9) {
+                        HStack {
+                            Text("Due today").font(.system(size: 15, weight: .semibold))
+                            Spacer()
+                            DueLine(entry: entry)
+                        }
+                        if tasks.isEmpty {
+                            Text(entry.current ? "You're all clear" : "Open Northcroft to refresh")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(tasks.prefix(5)) { t in TaskLine(t: t) }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
@@ -337,9 +388,25 @@ struct InlineView: View {
     }
 }
 
+/// Lock screen: a round gauge with the number due today.
+struct CircularView: View {
+    let entry: DayEntry
+
+    var body: some View {
+        let n = entry.current ? (entry.snap?.dueToday ?? 0) : 0
+        let late = entry.current ? (entry.snap?.late ?? 0) : 0
+        ZStack {
+            AccessoryWidgetBackground()
+            VStack(spacing: -2) {
+                Text("\(n)").font(.system(size: 20, weight: .bold, design: .rounded))
+                Text(late > 0 ? "\(late) late" : "due").font(.system(size: 10, weight: .medium))
+            }
+        }
+    }
+}
+
 struct NorthcroftWidgetView: View {
     @Environment(\.widgetFamily) var family
-    @Environment(\.widgetRenderingMode) var renderingMode
     let entry: DayEntry
 
     var body: some View {
@@ -352,27 +419,20 @@ struct NorthcroftWidgetView: View {
             InlineView(entry: entry)
                 .widgetURL(Links.tasks)
                 .containerBackground(for: .widget) { Color.clear }
+        case .accessoryCircular:
+            CircularView(entry: entry)
+                .widgetURL(Links.tasks)
+                .containerBackground(for: .widget) { Color.clear }
+        case .systemLarge:
+            LargeView(entry: entry)
+                .containerBackground(for: .widget) { Color(.systemBackground) }
         case .systemMedium:
             MediumView(entry: entry)
-                .containerBackground(for: .widget) { background }
+                .containerBackground(for: .widget) { Color(.systemBackground) }
         default:
             SmallView(entry: entry)
                 .widgetURL(entry.current && (entry.snap?.checkedIn ?? false) || (entry.snap?.exempt ?? false) ? Links.tasks : Links.checkin)
-                .containerBackground(for: .widget) { background }
-        }
-    }
-
-    /// Northcroft navy in full colour. With tinted or clear (Liquid Glass) home screens the system
-    /// puts its own glass behind the widget, so ours steps back.
-    @ViewBuilder private var background: some View {
-        if renderingMode == .fullColor {
-            ZStack {
-                LinearGradient(colors: [.ncNavyLight, .ncNavy], startPoint: .topLeading, endPoint: .bottomTrailing)
-                // A soft highlight across the top, like light on glass.
-                LinearGradient(colors: [.white.opacity(0.14), .clear], startPoint: .top, endPoint: .center)
-            }
-        } else {
-            Color.clear
+                .containerBackground(for: .widget) { Color(.systemBackground) }
         }
     }
 }
@@ -388,7 +448,7 @@ struct NorthcroftTodayWidget: Widget {
         }
         .configurationDisplayName("Northcroft today")
         .description("Whether you've checked in, and your tasks due today.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryInline])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }
 

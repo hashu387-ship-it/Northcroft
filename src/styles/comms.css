@@ -164,8 +164,6 @@
   background: var(--separator);
 }
 .notif:hover { background: var(--fill); }
-.notif.unread { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-.notif.unread:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .notif .lead { position: relative; flex-shrink: 0; }
 .notif .lead .type {
   position: absolute;
@@ -211,7 +209,8 @@
 .notif .side .when { font-size: 12px; color: var(--text-3); white-space: nowrap; }
 .notif .acts { display: flex; gap: 2px; opacity: 0.55; transition: opacity 0.2s; }
 .notif:hover .acts, .notif:focus-within .acts { opacity: 1; }
-@media (hover: none) { .notif .acts { opacity: 0.8; } }
+/* Phones swipe a row to mark it read or archive it (like Mail), so the buttons only show with a mouse. */
+@media (hover: none) { .notif .acts { display: none; } }
 
 /* ---------------------------------------------------------------- announcements */
 .ann-card { padding: 18px; scroll-margin-top: 90px; transition: box-shadow 0.4s var(--ease); }

@@ -11,6 +11,7 @@ import {
   History,
   Hourglass,
   MessageCircle,
+  Sparkles,
   Paperclip,
   Pause,
   Pencil,
@@ -37,6 +38,7 @@ import type { Task, TaskStatus } from "@/lib/types";
 import { Attachments } from "@/components/Attachments";
 import { DriveLinks } from "@/components/DriveLinks";
 import { CommentThread } from "@/components/CommentThread";
+import { CatchUpSheet } from "@/components/CatchUp";
 import { TaskForm } from "@/components/TaskForm";
 import { DueLabel, EarlyBadge, Empty, Loading, PriorityFlag, ProjectTag, Sheet, StatusPill, useConfirm, useToast, PersonName } from "@/components/ui";
 import { ActivityFeed } from "./project/ActivityFeed";
@@ -98,6 +100,7 @@ export default function TaskDetail() {
   useMarkSeen(id ? { taskId: id } : null);
 
   const [editOpen, setEditOpen] = useState(false);
+  const [catchUpOpen, setCatchUp] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [changesOpen, setChangesOpen] = useState(false);
   // Turning down a team member's task, or a hold: ask, put on, or keep it going (each with a note).
@@ -623,8 +626,12 @@ export default function TaskDetail() {
               <h3>
                 <MessageCircle /> Comments
               </h3>
+              <button type="button" className="btn small glassy" onClick={() => setCatchUp(true)} title="A short summary of this task and its comments">
+                <Sparkles /> Summary
+              </button>
             </div>
             <CommentThread scope={{ kind: "task", taskId: t.id, projectId: t.project_id }} />
+            <CatchUpSheet target={catchUpOpen ? { kind: "task", id: t.id, title: t.title } : null} onClose={() => setCatchUp(false)} />
           </div>
         </div>
 

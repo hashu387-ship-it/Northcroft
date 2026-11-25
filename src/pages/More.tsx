@@ -1,6 +1,26 @@
+// Account: opened from your photo at the top right (and the bottom of the side menu). Laid out like
+// iOS Settings: your profile on top, then everything that isn't in the tab bar, in groups, each
+// with its coloured tile, and Sign out at the end.
 import "@/styles/comms.css";
 import { Link, useNavigate } from "react-router-dom";
-import { BarChart3, CalendarDays, ClipboardList, FileClock, FileSpreadsheet, LogOut, MapPin, Megaphone, MessagesSquare, ScanLine, Settings, Sparkles, Timer, type LucideIcon } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
+  FileClock,
+  FileSpreadsheet,
+  FolderKanban,
+  IdCard,
+  MapPin,
+  Megaphone,
+  Phone,
+  ScanLine,
+  Settings,
+  Sparkles,
+  Timer,
+  type LucideIcon,
+} from "lucide-react";
 import { PageHead } from "@/components/PageHead";
 import { Avatar, useConfirm, useToast } from "@/components/ui";
 import { useAuth, useMe } from "@/lib/auth";
@@ -10,17 +30,54 @@ import { needsMyAck, useAnnouncementsWithAcks } from "./home/data";
 import { showsManagerLabel } from "@/lib/people";
 import { MENU_COLOR, tileStyle } from "@/lib/menu";
 import { useSubmissionsDue } from "@/lib/submissions";
-import { QsLogo } from "@/components/Brand";
 import { isNativeApp } from "@/native/platform";
 import { scanToShare } from "@/native/scan";
+import { addStaffPass } from "@/native/wallet";
 
-interface Tile {
+interface Row {
   to: string;
   label: string;
-  hint: string;
+  hint?: string;
   icon: LucideIcon;
   color: string;
   count?: number;
+  onClick?: () => void;
+}
+
+function Group({ title, rows }: { title?: string; rows: Row[] }) {
+  if (!rows.length) return null;
+  return (
+    <>
+      {title && <div className="group-title">{title}</div>}
+      <div className="group">
+        {rows.map((r) => (
+          <Link
+            key={r.label}
+            to={r.to}
+            className="group-row"
+            onClick={
+              r.onClick
+                ? (e) => {
+                    e.preventDefault();
+                    r.onClick!();
+                  }
+                : undefined
+            }
+          >
+            <span className="tile" style={tileStyle(r.color)}>
+              <r.icon />
+            </span>
+            <span className="label">
+              {r.label}
+              {r.hint && <small>{r.hint}</small>}
+            </span>
+            {!!r.count && <span className="badge">{r.count}</span>}
+            <ChevronRight className="chev" />
+          </Link>
+        ))}
+      </div>
+    </>
+  );
 }
 
 export default function More() {
@@ -33,24 +90,44 @@ export default function More() {
   const unacked = anns.data.filter((a) => needsMyAck(a, me.id)).length;
   const subsLate = useSubmissionsDue();
 
-  const tiles: Tile[] = [
-    { to: "/announcements", label: "Announcements", hint: unacked ? `${unacked} to acknowledge` : "Team news", icon: Megaphone, color: MENU_COLOR.announcements, count: unacked },
-    { to: "/calendar", label: "Calendar", hint: "Deadlines and visits", icon: CalendarDays, color: MENU_COLOR.calendar },
-    { to: "/chats", label: "Chats", hint: "Team, projects, groups", icon: MessagesSquare, color: MENU_COLOR.chats },
-    { to: "/vo-log", label: "VO log", hint: "Every project's VOs", icon: FileSpreadsheet, color: MENU_COLOR.volog },
-    { to: "/submissions", label: "Submissions", hint: subsLate ? `${subsLate} late or due today` : "What's due, and when", icon: FileClock, color: MENU_COLOR.submissions, count: subsLate },
+  const work: Row[] = [
+    { to: "/projects", label: "Projects", icon: FolderKanban, color: MENU_COLOR.projects },
+    { to: "/submissions", label: "Submissions", hint: subsLate ? `${subsLate} late or due today` : undefined, icon: FileClock, color: MENU_COLOR.submissions, count: subsLate },
+    { to: "/vo-log", label: "VO log", icon: FileSpreadsheet, color: MENU_COLOR.volog },
+    ...(sendsDailyUpdate(me) || canAssign ? [{ to: "/updates", label: "Daily updates", icon: ClipboardList, color: MENU_COLOR.updates }] : []),
+    { to: "/time", label: "Time report", icon: Timer, color: MENU_COLOR.time },
+    ...(canAssign ? [{ to: "/workload", label: "Workload", icon: BarChart3, color: MENU_COLOR.workload }] : []),
+  ];
+  const team: Row[] = [
     ...(!me.attendance_exempt
-      ? [{ to: "/attendance", label: "Check in", hint: "Arrive and leave", icon: MapPin, color: MENU_COLOR.attendance }]
+      ? [{ to: "/attendance", label: "Check in", icon: MapPin, color: MENU_COLOR.attendance }]
       : canAssign
-        ? [{ to: "/attendance", label: "Attendance", hint: "The team's day", icon: MapPin, color: MENU_COLOR.attendance }]
+        ? [{ to: "/attendance", label: "Attendance", icon: MapPin, color: MENU_COLOR.attendance }]
         : []),
-    ...(sendsDailyUpdate(me) || canAssign
-      ? [{ to: "/updates", label: "Daily updates", hint: sendsDailyUpdate(me) ? "What you did today" : "What the team did", icon: ClipboardList, color: MENU_COLOR.updates }]
+    { to: "/calendar", label: "Calendar", icon: CalendarDays, color: MENU_COLOR.calendar },
+    { to: "/announcements", label: "Announcements", hint: unacked ? `${unacked} to acknowledge` : undefined, icon: Megaphone, color: MENU_COLOR.announcements, count: unacked },
+    { to: "/calls", label: "Calls", icon: Phone, color: MENU_COLOR.calls },
+  ];
+  const app: Row[] = [
+    ...(isNativeApp()
+      ? [
+          { to: "/share", label: "Scan a document", icon: ScanLine, color: MENU_COLOR.scan, onClick: () => void scanToShare(navigate, toast) },
+          {
+            to: "/more",
+            label: "Staff pass in Wallet",
+            hint: "Your Northcroft staff card, always on your iPhone",
+            icon: IdCard,
+            color: "#1C1C1E",
+            onClick: () =>
+              void addStaffPass().then((r) => {
+                if (!r.ok) toast(r.message, "info");
+                else if (r.message) toast(r.message);
+              }),
+          },
+        ]
       : []),
-    ...(canAssign ? [{ to: "/workload", label: "Workload", hint: "Who has what", icon: BarChart3, color: MENU_COLOR.workload }] : []),
-    { to: "/time", label: "Time report", hint: canAssign ? "Hours on each task" : "Your hours on tasks", icon: Timer, color: MENU_COLOR.time },
-    { to: "/more?whatsnew=1", label: "What's new", hint: "Latest changes to the app", icon: Sparkles, color: "#FF9F0A" },
-    { to: "/settings", label: "Settings", hint: "Notifications, password", icon: Settings, color: MENU_COLOR.settings },
+    { to: "/more?whatsnew=1", label: "What's new", icon: Sparkles, color: MENU_COLOR.whatsnew },
+    { to: "/settings", label: "Settings", icon: Settings, color: MENU_COLOR.settings },
   ];
 
   async function out() {
@@ -60,59 +137,31 @@ export default function More() {
     }
   }
 
+  const role = me.role === "manager" ? (showsManagerLabel(me) ? "Manager" : "") : me.can_assign ? "Can assign tasks" : "";
+
   return (
-    <div className="page">
-      <PageHead title="More" />
-      <div className="glass logo-card">
-        <QsLogo size={120} />
-      </div>
-      <Link to="/settings" className="glass me-card">
-        <Avatar person={me} size={52} />
-        <span className="grow">
-          <b>{me.full_name}</b>
-          <span className="muted small" style={{ display: "block" }}>
-            {me.title}
-            {me.role === "manager" ? (showsManagerLabel(me) ? " · Manager" : "") : me.can_assign ? " · Can assign tasks" : ""}
+    <div className="page account-page">
+      <PageHead title="Account" />
+      <div className="group">
+        <Link to="/settings/profile" className="group-row profile">
+          <Avatar person={me} size={60} />
+          <span className="label">
+            <b>{me.full_name}</b>
+            <small>{[me.title, role].filter(Boolean).join(" · ")}</small>
+            <small className="ellipsis">{me.email}</small>
           </span>
-          <span className="faint tiny ellipsis" style={{ display: "block" }}>
-            {me.email}
-          </span>
-        </span>
-      </Link>
-      <div className="more-grid">
-        {tiles.map((t) => (
-          <Link key={t.to} to={t.to} className="glass">
-            <span className="ic" style={tileStyle(t.color)}>
-              <t.icon />
-            </span>
-            <span>{t.label}</span>
-            <small>{t.hint}</small>
-            {!!t.count && <span className="count">{t.count}</span>}
-          </Link>
-        ))}
-        {isNativeApp() && (
-          // The iPhone's document scanner: the pages become a PDF to send to a chat or a task.
-          <a
-            href="/share"
-            role="button"
-            className="glass"
-            onClick={(e) => {
-              e.preventDefault();
-              void scanToShare(navigate, toast);
-            }}
-          >
-            <span className="ic" style={tileStyle("#0A84FF")}>
-              <ScanLine />
-            </span>
-            <span>Scan a document</span>
-            <small>To a chat or a task, as a PDF</small>
-          </a>
-        )}
+          <ChevronRight className="chev" />
+        </Link>
       </div>
-      <button className="btn glassy block large" style={{ marginTop: 18, color: "var(--red)" }} onClick={out}>
-        <LogOut /> Sign out
-      </button>
-      <p className="faint tiny" style={{ textAlign: "center", marginTop: 14 }}>
+      <Group title="Work" rows={work} />
+      <Group title="Team" rows={team} />
+      <Group title="App" rows={app} />
+      <div className="group" style={{ marginTop: 22 }}>
+        <button type="button" className="group-row no-tile danger" onClick={out}>
+          Sign Out
+        </button>
+      </div>
+      <p className="faint tiny" style={{ textAlign: "center", margin: "18px 0 4px" }}>
         Northcroft QS Team
       </p>
     </div>

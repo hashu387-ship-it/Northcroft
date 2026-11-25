@@ -12,7 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import { Sheet } from "./Sheet";
 import clsx from "clsx";
-import { Check, ChevronDown, ChevronsUp, ChevronUp, CircleAlert, CircleCheck, Clock, Info, Minus, Sparkles, X } from "lucide-react";
+import { Check, ChevronDown, ChevronsUp, ChevronUp, CircleAlert, CircleCheck, CircleX, Clock, Info, Minus, Search as SearchIcon, Sparkles, X } from "lucide-react";
 import { daysText, earlyDays } from "@/lib/celebrate";
 import { initials } from "@/lib/format";
 import { dueState, fmtDue } from "@/lib/time";
@@ -610,3 +610,29 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 }
 
 export const useConfirm = () => useContext(ConfirmContext);
+
+/**
+ * The search field at the top of a list, like the one in Mail and Reminders: a filled capsule with a
+ * magnifying glass, and a clear button once something's typed.
+ */
+export function SearchField({ value, onChange, placeholder = "Search" }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <label className="search-field">
+      <SearchIcon aria-hidden />
+      <input type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} enterKeyHint="search" autoComplete="off" />
+      {value && (
+        <button type="button" className="search-clear" onClick={() => onChange("")} aria-label="Clear search">
+          <CircleX />
+        </button>
+      )}
+    </label>
+  );
+}
+
+/** Does every word typed appear somewhere in these bits of text? */
+export function matchesSearch(q: string, ...texts: (string | null | undefined)[]) {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = texts.filter(Boolean).join(" ").toLowerCase();
+  return words.every((w) => hay.includes(w));
+}

@@ -129,6 +129,11 @@ export interface NorthcroftNativePlugin {
   openSettings(o?: { kind?: "app" | "notifications" }): Promise<void>;
   /** Voice call sound: earpiece or loudspeaker, Bluetooth, screen off at the ear. */
   callAudio(o: { active: boolean; speaker?: boolean }): Promise<{ route: "speaker" | "bluetooth" | "headphones" | "phone" }>;
+  /** The Home Screen icon style: null is the standard icon, otherwise an alternate's name. */
+  appIcon(): Promise<{ supported: boolean; current?: string }>;
+  setAppIcon(o: { name: string | null }): Promise<{ ok: boolean; reason?: string }>;
+  /** Shows Wallet's "Add" screen for a signed .pkpass (base64). */
+  addWalletPass(o: { data: string }): Promise<{ added: boolean; already?: boolean; reason?: string }>;
   addListener(event: "launchAction", fn: () => void): Promise<PluginListenerHandle>;
 }
 

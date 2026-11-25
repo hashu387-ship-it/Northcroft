@@ -6,6 +6,7 @@ import {
   Timer,
   CalendarDays,
   ChevronLeft,
+  CircleCheckBig,
   ClipboardList,
   FileClock,
   FileSpreadsheet,
@@ -14,12 +15,11 @@ import {
   Inbox,
   MapPin,
   Megaphone,
-  MessagesSquare,
-  Ellipsis,
+  MessageCircle,
+  Phone,
   RefreshCw,
   Search,
   Settings,
-  SquareCheckBig,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePeople, useUnreadCount } from "@/lib/api";
@@ -27,7 +27,6 @@ import { useChats } from "@/lib/chats";
 import { useAuth, useMe } from "@/lib/auth";
 import { useRealtime } from "@/lib/realtime";
 import { useSubmissionsDue } from "@/lib/submissions";
-import { MENU_COLOR, tileStyle } from "@/lib/menu";
 import { useOnlineTracking } from "@/lib/online";
 import { registerServiceWorker, setBadge, syncPushSubscription } from "@/lib/push";
 import { useAppUpdates } from "@/lib/updates";
@@ -36,7 +35,8 @@ import { supabase } from "@/lib/supabase";
 import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
 import ProfileSetup from "@/pages/ProfileSetup";
-import { QsLogo, QsMark } from "@/components/Brand";
+import { ContextMenuHost } from "@/components/ContextMenu";
+import { LogoMark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CallHost } from "@/calls/CallScreen";
 import { CelebrationHost } from "@/components/Celebration";
@@ -100,7 +100,8 @@ export function PhotoBackground({ children }: { children: ReactNode }) {
   );
 }
 
-const TAB_ROOTS = ["/", "/my-tasks", "/projects", "/chats", "/inbox", "/more"];
+// The tab bar's four sections. Everything else opens on top of them, with a back button.
+const TAB_ROOTS = ["/", "/my-tasks", "/chats", "/inbox"];
 
 export default function AppShell() {
   const me = useMe();
@@ -155,6 +156,7 @@ export default function AppShell() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
     mainRef.current?.scrollTo({ top: 0 });
+    window.dispatchEvent(new Event("nc-route"));
   }, [location.pathname]);
 
   // Pages slide in the way you're going: forward from the right, back from the left. Switching
@@ -193,48 +195,49 @@ export default function AppShell() {
   if (!me.avatar_url || !me.phone) return <ProfileSetup />;
 
   const isRoot = TAB_ROOTS.includes(location.pathname);
-  // The side menu, in sections. Each item has its own colour (shared with the tab bar and More).
-  type Item = { to: string; label: string; icon: typeof House; color: string; end?: boolean; count?: number };
-  const home: Item = { to: "/", label: "Home", icon: House, color: MENU_COLOR.home, end: true };
+  // The side menu on computers and iPads, in sections, with the accent-coloured icons of a Mac sidebar.
+  type Item = { to: string; label: string; icon: typeof House; end?: boolean; count?: number };
+  const home: Item = { to: "/", label: "Home", icon: House, end: true };
   const sections: { label: string; items: Item[] }[] = [
     {
       label: "Work",
       items: [
         // Someone who only gives out tasks sees every assigned task there instead of their own.
-        { to: "/my-tasks", label: me.assignable === false ? "Assigned tasks" : "My tasks", icon: SquareCheckBig, color: MENU_COLOR.tasks },
-        { to: "/projects", label: "Projects", icon: FolderKanban, color: MENU_COLOR.projects },
+        { to: "/my-tasks", label: me.assignable === false ? "Assigned tasks" : "My tasks", icon: CircleCheckBig },
+        { to: "/projects", label: "Projects", icon: FolderKanban },
         // Every project's VOs in one table, laid out like the VO log spreadsheet.
-        { to: "/vo-log", label: "VO log", icon: FileSpreadsheet, color: MENU_COLOR.volog },
+        { to: "/vo-log", label: "VO log", icon: FileSpreadsheet },
         // Deadlines for what the team has to send, with the days left on each.
-        { to: "/submissions", label: "Submissions", icon: FileClock, color: MENU_COLOR.submissions, count: subsDue },
+        { to: "/submissions", label: "Submissions", icon: FileClock, count: subsDue },
         // The team sends a daily update; managers and seniors read everyone's.
-        ...(sendsDailyUpdate(me) || canAssign ? [{ to: "/updates", label: "Daily updates", icon: ClipboardList, color: MENU_COLOR.updates }] : []),
+        ...(sendsDailyUpdate(me) || canAssign ? [{ to: "/updates", label: "Daily updates", icon: ClipboardList }] : []),
       ],
     },
     {
       label: "Team",
       items: [
-        { to: "/chats", label: "Chats", icon: MessagesSquare, color: MENU_COLOR.chats, count: chatUnread },
-        { to: "/announcements", label: "Announcements", icon: Megaphone, color: MENU_COLOR.announcements, count: unacked },
-        { to: "/calendar", label: "Calendar", icon: CalendarDays, color: MENU_COLOR.calendar },
-        { to: "/inbox", label: "Inbox", icon: Inbox, color: MENU_COLOR.inbox, count: unread },
+        { to: "/chats", label: "Chats", icon: MessageCircle, count: chatUnread },
+        { to: "/calls", label: "Calls", icon: Phone },
+        { to: "/announcements", label: "Announcements", icon: Megaphone, count: unacked },
+        { to: "/calendar", label: "Calendar", icon: CalendarDays },
+        { to: "/inbox", label: "Inbox", icon: Inbox, count: unread },
       ],
     },
     {
       label: "Attendance",
       // People who don't check in see "Attendance" (the team's board) if they manage, otherwise nothing.
       items: !me.attendance_exempt
-        ? [{ to: "/attendance", label: "Check in", icon: MapPin, color: MENU_COLOR.attendance }]
+        ? [{ to: "/attendance", label: "Check in", icon: MapPin }]
         : canAssign
-          ? [{ to: "/attendance", label: "Attendance", icon: MapPin, color: MENU_COLOR.attendance }]
+          ? [{ to: "/attendance", label: "Attendance", icon: MapPin }]
           : [],
     },
     {
       label: "Manage",
       items: [
-        ...(canAssign ? [{ to: "/workload", label: "Workload", icon: BarChart3, color: MENU_COLOR.workload }] : []),
-        { to: "/time", label: "Time report", icon: Timer, color: MENU_COLOR.time },
-        { to: "/settings", label: "Settings", icon: Settings, color: MENU_COLOR.settings },
+        ...(canAssign ? [{ to: "/workload", label: "Workload", icon: BarChart3 }] : []),
+        { to: "/time", label: "Time report", icon: Timer },
+        { to: "/settings", label: "Settings", icon: Settings },
       ],
     },
   ];
@@ -245,17 +248,10 @@ export default function AppShell() {
       end={n.end}
       className={({ isActive }) => (isActive || (n.to === "/chats" && /^\/chats?(\/|$)/.test(location.pathname)) ? "active" : "")}
     >
-      <span className="nav-ic" style={tileStyle(n.color)}>
-        <n.icon />
-      </span>
+      <n.icon />
       {n.label}
       {!!n.count && <span className="count">{n.count > 99 ? "99+" : n.count}</span>}
     </NavLink>
-  );
-  const tabIcon = (Icon: typeof House, color: string) => (
-    <span className="tab-ic" style={tileStyle(color)}>
-      <Icon />
-    </span>
   );
 
   return (
@@ -263,8 +259,12 @@ export default function AppShell() {
       <Wallpaper />
 
       <aside className="sidebar glass">
-        <Link to="/" className="brand" style={{ color: "inherit" }} aria-label="Northcroft home">
-          <QsLogo size={104} className="side-logo" />
+        <Link to="/" className="brand" aria-label="Northcroft home">
+          <LogoMark size={34} className="logo-mark" />
+          <span>
+            <span className="brand-word">Northcroft</span>
+            <small>QS Team</small>
+          </span>
         </Link>
         <button type="button" className="nav-search" onClick={openSearch} aria-label="Search">
           <Search />
@@ -282,7 +282,7 @@ export default function AppShell() {
               </div>
             ))}
         </nav>
-        <Link to="/settings" className="sidebar-user">
+        <Link to="/more" className="sidebar-user">
           <Avatar person={me} size={36} />
           <span className="meta">
             <b>{me.short_name}</b>
@@ -291,33 +291,27 @@ export default function AppShell() {
         </Link>
       </aside>
 
-      <header className="topbar glass">
+      <header className="topbar">
         <div className="side">
-          {isRoot ? (
-            <Link to="/" aria-label="Northcroft home" style={{ lineHeight: 0 }}>
-              <QsMark size={34} />
-            </Link>
-          ) : (
-            <button className="icon-btn plain" onClick={() => (window.history.length > 1 ? morphBack(navigate) || navigate(-1) : navigate("/"))} aria-label="Back">
+          {!isRoot && (
+            <button
+              type="button"
+              className="bar-btn lg"
+              onClick={() => (window.history.length > 1 ? morphBack(navigate) || navigate(-1) : navigate("/"))}
+              aria-label="Back"
+            >
               <ChevronLeft />
             </button>
           )}
         </div>
-        <div className="title">
-          <QsLogo size={46} className="top-logo" />
-        </div>
+        <div className="title" aria-hidden="true" />
         <div className="side right">
-          <button type="button" className="icon-btn plain" onClick={openSearch} aria-label="Search">
-            <Search />
-          </button>
-          {!me.attendance_exempt && (
-            <Link to="/attendance" className="icon-btn plain" aria-label="Check in">
-              <MapPin />
+          {location.pathname !== "/more" && (
+            <Link to="/more" className="bar-btn avatar-btn" aria-label="Account and more">
+              <Avatar person={me} size={36} />
+              {!!unacked && <span className="bar-dot" />}
             </Link>
           )}
-          <Link to="/settings" aria-label="Settings">
-            <Avatar person={me} size={32} />
-          </Link>
         </div>
       </header>
 
@@ -335,39 +329,36 @@ export default function AppShell() {
         </div>
       </main>
 
-      <nav className="tabbar glass-strong" aria-label="Main">
-        <NavLink to="/" end>
-          {tabIcon(House, MENU_COLOR.home)}
-          Home
-        </NavLink>
-        <NavLink to="/my-tasks">
-          {tabIcon(SquareCheckBig, MENU_COLOR.tasks)}
-          Tasks
-        </NavLink>
-        <NavLink to="/projects">
-          {tabIcon(FolderKanban, MENU_COLOR.projects)}
-          Projects
-        </NavLink>
-        <NavLink to="/chats" className={() => (/^\/chats?(\/|$)/.test(location.pathname) ? "active" : "")}>
-          {tabIcon(MessagesSquare, MENU_COLOR.chats)}
-          Chats
-          {!!chatUnread && <span className="dot">{chatUnread > 99 ? "99+" : chatUnread}</span>}
-        </NavLink>
-        <NavLink to="/inbox">
-          {tabIcon(Inbox, MENU_COLOR.inbox)}
-          Inbox
-          {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
-        </NavLink>
-        <NavLink to="/more" className={({ isActive }) => (isActive || ["/announcements", "/calendar", "/attendance", "/updates", "/vo-log", "/submissions", "/workload", "/time", "/settings"].some((p) => location.pathname.startsWith(p)) ? "active" : "")}>
-          {tabIcon(Ellipsis, MENU_COLOR.more)}
-          More
-          {!!unacked && <span className="dot">{unacked}</span>}
-        </NavLink>
-      </nav>
+      <div className="tabbar-wrap">
+        <nav className="tabbar" aria-label="Main">
+          <NavLink to="/" end>
+            <House />
+            Home
+          </NavLink>
+          <NavLink to="/my-tasks">
+            <CircleCheckBig />
+            Tasks
+          </NavLink>
+          <NavLink to="/chats" className={() => (/^\/chats?(\/|$)/.test(location.pathname) ? "active" : "")}>
+            <MessageCircle />
+            Chats
+            {!!chatUnread && <span className="dot">{chatUnread > 99 ? "99+" : chatUnread}</span>}
+          </NavLink>
+          <NavLink to="/inbox">
+            <Inbox />
+            Inbox
+            {!!unread && <span className="dot">{unread > 99 ? "99+" : unread}</span>}
+          </NavLink>
+        </nav>
+        <button type="button" className="tab-search" onClick={openSearch} aria-label="Search">
+          <Search />
+        </button>
+      </div>
       <PersonCardHost />
       <CallHost />
       <CelebrationHost />
       <AppPopups />
+      <ContextMenuHost />
       <SearchHost />
       {isNativeApp() && (
         <Suspense fallback={null}>

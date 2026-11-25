@@ -325,6 +325,9 @@ if (targetNamed(EXT)) {
     for (const c of configsOf(target.pbxNativeTarget)) {
       const debug = c.name === "Debug";
       c.buildSettings = {
+        // The app group, to read the Focus filter's choices (FocusRules in NotificationService.swift).
+        CODE_SIGN_ENTITLEMENTS: `${NOTIFY}/${NOTIFY}.entitlements`,
+        NC_APP_GROUP: APP_GROUP,
         CODE_SIGN_STYLE: "Automatic",
         CURRENT_PROJECT_VERSION: appRelease.CURRENT_PROJECT_VERSION ?? 1,
         GENERATE_INFOPLIST_FILE: "NO",

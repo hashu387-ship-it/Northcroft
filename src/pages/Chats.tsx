@@ -19,6 +19,7 @@ import {
   PhoneCall,
   Search,
   ShieldCheck,
+  Sparkles,
   UserMinus,
   UserPlus,
   Users,
@@ -47,11 +48,13 @@ import { dateOf, fmtDate, fmtTime12, todayISO, addDays } from "@/lib/time";
 import type { Profile, Project } from "@/lib/types";
 import { PageHead } from "@/components/PageHead";
 import { CommentThread, chatKeyOf, type Scope } from "@/components/CommentThread";
-import { Avatar, AvatarStack, Empty, Field, Loading, Pill, Sheet, useConfirm, useToast } from "@/components/ui";
+import { Avatar, AvatarStack, Empty, Field, Loading, Pill, SearchField, Sheet, useConfirm, useToast } from "@/components/ui";
 import { openPersonCard } from "@/components/People";
 import { QsMark } from "@/components/Brand";
 import { ChatTile } from "@/components/ChatTile";
 import { SwipeRow } from "@/components/Swipe";
+import { useContextMenu } from "@/components/ContextMenu";
+import { CatchUpSheet } from "@/components/CatchUp";
 
 type Selection = { kind: "team" } | { kind: "project"; projectId: string } | { kind: "conversation"; id: string } | null;
 
@@ -116,10 +119,7 @@ export default function Chats() {
   const list = (
     <aside className="chat-list glass">
       <div className="chat-list-head">
-        <label className="search">
-          <Search />
-          <input className="input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search chats" aria-label="Search chats" />
-        </label>
+        <SearchField value={search} onChange={setSearch} placeholder="Search chats" />
       </div>
       <div className="chat-list-items">
         {chats.loading ? (
@@ -206,9 +206,24 @@ function ChatRow({ c, active, meId, onOpen }: { c: ChatItem; active: boolean; me
               .catch((e) => toast(errorMessage(e), "error")),
         }
       : null;
+  const navigate = useNavigate();
+  const startCall = useStartCall();
+  const [catchUpOpen, setCatchUp] = useState(false);
+  const other = c.kind === "direct" ? people.get(c.other) : undefined;
+  // Press and hold (or right-click): open, mark read, call the person, open the project.
+  const menu = useContextMenu(
+    () => [
+      { label: "Open", icon: <MessageSquarePlus />, run: onOpen },
+      markRead && { label: "Mark as read", icon: <CheckCheck />, run: markRead.run },
+      !!c.last_at && { label: "Catch up", icon: <Sparkles />, run: () => setCatchUp(true) },
+      other && { label: `Call ${other.short_name}`, icon: <PhoneCall />, run: () => void startCall(other.id) },
+      c.kind === "project" && !!c.project_id && { label: "Open the project", icon: <FolderKanban />, run: () => navigate(`/projects/${c.project_id}`) },
+    ],
+    { title: () => c.title },
+  );
   return (
     <SwipeRow leading={markRead}>
-      <button type="button" className={clsx("chat-item", active && "active", c.unread > 0 && "unread")} onClick={onOpen}>
+      <button type="button" {...menu} className={clsx("chat-item", active && "active", c.unread > 0 && "unread")} onClick={onOpen}>
         <ChatTile item={c} project={projects.get(c.project_id)} person={people.get(c.other)} />
         <span className="grow">
           <span className="top">
@@ -221,6 +236,7 @@ function ChatRow({ c, active, meId, onOpen }: { c: ChatItem; active: boolean; me
           </span>
         </span>
       </button>
+      <CatchUpSheet target={catchUpOpen ? { kind: "chat", chat: c.chat, title: c.title } : null} onClose={() => setCatchUp(false)} />
     </SwipeRow>
   );
 }
@@ -232,7 +248,10 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
   const people = usePeople();
   const conv = useConversation(sel.kind === "conversation" ? sel.id : undefined);
   const [info, setInfo] = useState(false);
+  const [catchUpOpen, setCatchUp] = useState(false);
   const startCall = useStartCall();
+  const chatKey = sel.kind === "team" ? "team" : sel.kind === "project" ? `project:${sel.projectId}` : `conv:${sel.id}`;
+  let chatTitle = "Team chat";
 
   let scope: Scope | null = null;
   let head: ReactNode = null;
@@ -253,6 +272,7 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
     );
   } else if (sel.kind === "project") {
     const p = projects.get(sel.projectId);
+    chatTitle = p?.name ?? "Project chat";
     scope = { kind: "project", projectId: sel.projectId };
     placeholder = `Message about ${p?.code ?? p?.name ?? "this project"}`;
     head = (
@@ -293,6 +313,7 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
     const direct = c.kind === "direct";
     const other = direct ? people.get(members.find((x) => x !== me.id)) : undefined;
     const title = direct ? other?.short_name ?? "Former team member" : c.name ?? "Group";
+    chatTitle = title;
     priv = true;
     scope = { kind: "conversation", conversationId: c.id, direct, members };
     placeholder = direct ? `Message ${title}` : `Message ${title}`;
@@ -325,7 +346,13 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
 
   return (
     <section className="chat-pane glass">
-      <div className="chat-pane-head">{head}</div>
+      <div className="chat-pane-head">
+        {head}
+        <button type="button" className="btn icon chat-call" onClick={() => setCatchUp(true)} aria-label="Catch up on this chat" title="Catch up">
+          <Sparkles size={18} />
+        </button>
+      </div>
+      <CatchUpSheet target={catchUpOpen ? { kind: "chat", chat: chatKey, title: chatTitle } : null} onClose={() => setCatchUp(false)} />
       <div className="chat-pane-body">
         {priv && (
           <div className="chat-private">

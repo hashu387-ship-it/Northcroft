@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import Capacitor
 import LocalAuthentication
+import PassKit
 import UserNotifications
 
 /// The web app's way in to the iPhone-only parts (see src/native/plugin.ts for the JavaScript side):
@@ -21,6 +22,8 @@ import UserNotifications
 ///   siteWatch, siteStop, siteTake   the site visit log from arrivals and departures (SiteWatcher)
 ///   phoneStatus, openSettings   what the phone allows Northcroft to do (PhoneStatus)
 ///   callAudio      earpiece, loudspeaker and Bluetooth during a voice call (CallAudio)
+///   appIcon, setAppIcon   the Home Screen icon style (alternate icons in Assets.xcassets)
+///   addWalletPass  shows Apple Wallet's "Add" screen for the staff pass (PassKit)
 @objc(NorthcroftNativePlugin)
 public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "NorthcroftNativePlugin"
@@ -59,7 +62,10 @@ public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "siteTake", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "phoneStatus", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openSettings", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "callAudio", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "callAudio", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "appIcon", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setAppIcon", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "addWalletPass", returnType: CAPPluginReturnPromise)
     ]
 
     private var launchObserver: NSObjectProtocol?
@@ -483,6 +489,40 @@ extension NorthcroftNativePlugin {
         CallAudio.set(active: call.getBool("active") ?? false, speaker: call.getBool("speaker") ?? false)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             call.resolve(["route": CallAudio.route])
+        }
+    }
+
+    @objc func appIcon(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            var out: [String: Any] = ["supported": UIApplication.shared.supportsAlternateIcons]
+            if let name = UIApplication.shared.alternateIconName { out["current"] = name }
+            call.resolve(out)
+        }
+    }
+
+    @objc func addWalletPass(_ call: CAPPluginCall) {
+        guard let b64 = call.getString("data"), let data = Data(base64Encoded: b64) else { return call.reject("No pass") }
+        DispatchQueue.main.async {
+            guard PKAddPassesViewController.canAddPasses() else { return call.resolve(["added": false, "reason": "Wallet isn't available on this iPhone."]) }
+            let pass: PKPass
+            do { pass = try PKPass(data: data) } catch { return call.resolve(["added": false, "reason": "The pass couldn't be read."]) }
+            if PKPassLibrary().containsPass(pass) { return call.resolve(["added": true, "already": true]) }
+            guard let vc = PKAddPassesViewController(pass: pass), let host = self.bridge?.viewController else {
+                return call.resolve(["added": false, "reason": "Wallet couldn't open."])
+            }
+            host.present(vc, animated: true)
+            call.resolve(["added": true])
+        }
+    }
+
+    @objc func setAppIcon(_ call: CAPPluginCall) {
+        let name = call.getString("name")
+        DispatchQueue.main.async {
+            guard UIApplication.shared.supportsAlternateIcons else { return call.resolve(["ok": false]) }
+            if UIApplication.shared.alternateIconName == name { return call.resolve(["ok": true]) }
+            UIApplication.shared.setAlternateIconName(name) { error in
+                call.resolve(error == nil ? ["ok": true] : ["ok": false, "reason": error!.localizedDescription])
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ final class NotificationService: UNNotificationServiceExtension {
             contentHandler(request.content)
             return
         }
+        FocusRules.apply(to: content)
         original = content
         guard let sender = content.userInfo["sender"] as? [String: Any], let name = sender["name"] as? String, !name.isEmpty else {
             finish(content)
@@ -148,5 +149,31 @@ final class NotificationService: UNNotificationServiceExtension {
         if s.hasPrefix("#") { s.removeFirst() }
         guard s.count == 6, let v = UInt32(s, radix: 16) else { return nil }
         return UIColor(red: CGFloat((v >> 16) & 0xFF) / 255, green: CGFloat((v >> 8) & 0xFF) / 255, blue: CGFloat(v & 0xFF) / 255, alpha: 1)
+    }
+}
+
+/// What the "Northcroft" Focus filter asked for (Settings > Focus > a Focus > Focus Filters; see
+/// FocusFilter in App/NorthcroftIntents.swift): during that Focus, chat messages, or everything that
+/// isn't urgent, arrive quietly in Notification Centre instead of lighting up the screen. Calls,
+/// approvals and other time-sensitive alerts always come through as usual.
+enum FocusRules {
+    static var group: String {
+        if let v = Bundle.main.object(forInfoDictionaryKey: "NCAppGroup") as? String, !v.isEmpty, !v.contains("$(") { return v }
+        return "group.com.northcroftme.qsteam"
+    }
+
+    static func apply(to content: UNMutableNotificationContent) {
+        guard #available(iOS 15.0, *) else { return }
+        guard let rules = UserDefaults(suiteName: group)?.dictionary(forKey: "focus.filter") else { return }
+        if content.interruptionLevel == .timeSensitive || content.interruptionLevel == .critical { return }
+        let type = content.userInfo["type"] as? String ?? ""
+        let isChat = type == "chat" || type == "mention" || content.userInfo["group"] != nil || (content.userInfo["url"] as? String ?? "").hasPrefix("/chat")
+        let urgentOnly = rules["urgentOnly"] as? Bool ?? false
+        let quietChats = rules["quietChats"] as? Bool ?? false
+        if urgentOnly || (quietChats && isChat) {
+            content.interruptionLevel = .passive
+            content.relevanceScore = 0.1
+            content.sound = nil
+        }
     }
 }

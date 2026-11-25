@@ -26,20 +26,24 @@ interface SectionDef {
   hint: string;
   icon: LucideIcon;
   color: string;
+  /** Which group it sits in on the phone list (like the blocks in iOS Settings). */
+  group: "you" | "team" | "about";
 }
 
+// Tile colours follow iOS Settings: blue for display, red for notifications, grey for system things.
 const ALL_SECTIONS: SectionDef[] = [
-  { id: "iphone", label: "iPhone app", hint: "Face ID, widget, Siri, calendar and scanning", icon: Smartphone, color: "#1B3570" },
-  { id: "profile", label: "Profile", hint: "Name, short name and phone", icon: User, color: "#1B3570" },
-  { id: "password", label: "Password", hint: "Change your password", icon: KeyRound, color: "#1B3570" },
-  { id: "notifications", label: "Notifications", hint: "Phone and desktop alerts", icon: BellRing, color: "#1B3570" },
-  { id: "appearance", label: "Appearance", hint: "Northcroft navy, Onyx, Pearl, QS Team glass, light, dark and more", icon: SunMoon, color: "#1B3570" },
-  { id: "team", label: "Team", hint: "People, access and passwords", icon: Users, color: "#1B3570" },
-  { id: "hours", label: "Working hours", hint: "Start, finish and working days", icon: Clock, color: "#1B3570" },
-  { id: "places", label: "Office and sites", hint: "Where check-ins are matched", icon: MapPin, color: "#1B3570" },
-  { id: "drive", label: "Google Drive", hint: "Where attachments are saved", icon: HardDrive, color: "#1B3570" },
-  { id: "about", label: "Install and about", hint: "Phone install guide, sign out", icon: Info, color: "#1B3570" },
+  { id: "iphone", label: "iPhone app", hint: "Face ID, widgets, Siri, calendar and scanning", icon: Smartphone, color: "#34C759", group: "you" },
+  { id: "profile", label: "Profile", hint: "Name, short name and phone", icon: User, color: "#8E8E93", group: "you" },
+  { id: "notifications", label: "Notifications", hint: "Phone and desktop alerts", icon: BellRing, color: "#FF3B30", group: "you" },
+  { id: "appearance", label: "Appearance", hint: "Light, dark, glass, text size and app icon", icon: SunMoon, color: "#007AFF", group: "you" },
+  { id: "password", label: "Password", hint: "Change your password", icon: KeyRound, color: "#8E8E93", group: "you" },
+  { id: "team", label: "Team", hint: "People, access and passwords", icon: Users, color: "#5856D6", group: "team" },
+  { id: "hours", label: "Working hours", hint: "Start, finish and working days", icon: Clock, color: "#FF9500", group: "team" },
+  { id: "places", label: "Office and sites", hint: "Where check-ins are matched", icon: MapPin, color: "#34C759", group: "team" },
+  { id: "drive", label: "Google Drive", hint: "Where attachments are saved", icon: HardDrive, color: "#30B0C7", group: "team" },
+  { id: "about", label: "Install and about", hint: "Phone install guide, sign out", icon: Info, color: "#8E8E93", group: "about" },
 ];
+const GROUP_TITLES: Record<SectionDef["group"], string | undefined> = { you: undefined, team: "Team", about: undefined };
 
 // "iPhone app" only shows inside the Northcroft iPhone app.
 const SECTIONS = ALL_SECTIONS.filter((s) => s.id !== "iphone" || isNativeApp());
@@ -101,7 +105,7 @@ export default function Settings() {
 
   return (
     <div className="page">
-      <PageHead title="Settings" sub={!isDesktop && active ? undefined : "Your profile, notifications and how the team works."} />
+      <PageHead title={!isDesktop && current ? current.label : "Settings"} sub={!isDesktop && active ? undefined : "Your profile, notifications and how the team works."} />
       <div className="settings-layout">
         <nav className="settings-nav glass" aria-label="Settings sections">
           {SECTIONS.map((s) => (
@@ -118,34 +122,43 @@ export default function Settings() {
           {active ? (
             <SectionBody id={active.id} />
           ) : (
-            <div className="stack" style={{ gap: 16 }}>
-              <Link to="/settings/profile" className="glass card row" style={{ color: "inherit", gap: 14 }}>
-                <Avatar person={me} size={56} />
-                <div className="grow" style={{ minWidth: 0 }}>
-                  <div className="bold" style={{ fontSize: 16 }}>
-                    {me.full_name}
-                  </div>
-                  <div className="muted small">
-                    {me.title}
-                    {isManager ? (showsManagerLabel(me) ? " · Manager" : "") : canAssign ? " · Can assign tasks" : ""}
-                  </div>
-                </div>
-                <ChevronRight size={18} className="faint" />
-              </Link>
-              <div className="glass settings-list" style={{ padding: "4px 6px" }}>
-                {SECTIONS.filter((s) => s.id !== "profile").map((s) => (
-                  <Link key={s.id} to={`/settings/${s.id}`}>
-                    <span className="settings-icon" style={{ background: s.color }}>
-                      <s.icon />
-                    </span>
-                    <span className="grow">
-                      {s.label}
-                      <small>{s.hint}</small>
-                    </span>
-                    <ChevronRight size={18} className="faint" />
-                  </Link>
-                ))}
+            <div>
+              <div className="group">
+                <Link to="/settings/profile" className="group-row profile">
+                  <Avatar person={me} size={58} />
+                  <span className="label">
+                    <b>{me.full_name}</b>
+                    <small>
+                      {me.title}
+                      {isManager ? (showsManagerLabel(me) ? " · Manager" : "") : canAssign ? " · Can assign tasks" : ""}
+                    </small>
+                  </span>
+                  <ChevronRight className="chev" />
+                </Link>
               </div>
+              {(["you", "team", "about"] as const).map((g) => {
+                const rows = SECTIONS.filter((s) => s.group === g && s.id !== "profile");
+                if (!rows.length) return null;
+                return (
+                  <div key={g} style={{ marginTop: GROUP_TITLES[g] ? 0 : 22 }}>
+                    {GROUP_TITLES[g] && <div className="group-title">{GROUP_TITLES[g]}</div>}
+                    <div className="group">
+                      {rows.map((s) => (
+                        <Link key={s.id} to={`/settings/${s.id}`} className="group-row">
+                          <span className="tile" style={{ background: s.color }}>
+                            <s.icon />
+                          </span>
+                          <span className="label">
+                            {s.label}
+                            <small>{s.hint}</small>
+                          </span>
+                          <ChevronRight className="chev" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

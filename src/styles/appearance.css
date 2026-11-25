@@ -1,0 +1,215 @@
+/* Settings > Appearance, in the iOS Settings grouped style (rows and groups come from core.css). */
+.appearance { max-width: 640px; }
+.appearance .group-title.first { margin-top: 4px; }
+.appearance .group-row.static { cursor: default; }
+.appearance .group-row.static:hover,
+.appearance .group-row.static:active { background: transparent; }
+.appearance .group-row.column { flex-direction: column; align-items: stretch; gap: 4px; padding-bottom: 12px; }
+.appearance .group-row.column .label { padding-bottom: 0; }
+.appearance .group-row .segmented { flex: none; }
+.appearance .group-row .label { white-space: normal; }
+.ap-value { float: right; color: var(--text-2); font-weight: 400; }
+
+/* ---- Light, Dark, Automatic: a little phone for each, a round tick under it */
+.ap-themes { display: flex; justify-content: space-around; padding: 18px 8px 14px; }
+.ap-theme {
+  border: 0;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: var(--t-sub);
+  padding: 0;
+  cursor: pointer;
+}
+.ap-theme:active .ap-phone { transform: scale(0.95); }
+.ap-phone {
+  position: relative;
+  display: block;
+  width: 74px;
+  height: 140px;
+  border-radius: 16px;
+  padding: 4px;
+  background: #1c1c1e;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.2), 0 6px 16px rgba(0, 0, 0, 0.12);
+  transition: transform 0.35s var(--spring), box-shadow 0.25s var(--ease);
+  overflow: hidden;
+}
+.ap-theme.on .ap-phone { box-shadow: 0 0 0 2.5px var(--accent), 0 6px 16px rgba(0, 0, 0, 0.12); }
+.ap-screen {
+  position: absolute;
+  inset: 4px;
+  border-radius: 12px;
+  background: #f2f2f7;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 7px 7px;
+  overflow: hidden;
+}
+.ap-phone.dark .ap-screen,
+.ap-screen.dark-half { background: #000; }
+.ap-screen.dark-half { clip-path: inset(0 0 0 50%); }
+.ap-title { width: 60%; height: 7px; border-radius: 4px; background: #000; }
+.ap-card { display: flex; flex-direction: column; gap: 5px; padding: 6px; border-radius: 7px; background: #fff; }
+.ap-card i { display: block; height: 4px; border-radius: 2px; background: rgba(60, 60, 67, 0.25); }
+.ap-card i:nth-child(2) { width: 70%; }
+.ap-bar {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.ap-bar b { width: 5px; height: 5px; border-radius: 50%; background: rgba(60, 60, 67, 0.5); }
+.ap-bar b:first-child { background: #007aff; }
+:is(.ap-phone.dark, .dark-half) .ap-title { background: #fff; }
+:is(.ap-phone.dark, .dark-half) .ap-card { background: #1c1c1e; }
+:is(.ap-phone.dark, .dark-half) .ap-card i { background: rgba(235, 235, 245, 0.3); }
+:is(.ap-phone.dark, .dark-half) .ap-bar { background: rgba(44, 44, 46, 0.85); }
+:is(.ap-phone.dark, .dark-half) .ap-bar b:first-child { background: #0a84ff; }
+.ap-radio {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--text-4);
+  color: #fff;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.ap-theme.on .ap-radio { background: var(--accent); border-color: var(--accent); }
+.ap-radio svg { width: 15px; height: 15px; stroke-width: 3; }
+
+/* ---- the glass preview: a tab bar floating over a colourful picture, using the live glass */
+.ap-glass-preview {
+  position: relative;
+  height: 96px;
+  margin: 12px 16px 4px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.ap-glass-art {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 90% at 15% 20%, #ff9f0a 0, transparent 60%),
+    radial-gradient(55% 80% at 85% 30%, #bf5af2 0, transparent 60%),
+    radial-gradient(70% 90% at 50% 110%, #0a84ff 0, transparent 70%),
+    linear-gradient(120deg, #ff375f, #5e5ce6);
+}
+.ap-glass-art::after {
+  content: "Northcroft · QS Team · Riyadh";
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.9);
+}
+.ap-glass-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+}
+.ap-glass-bar span { width: 46px; height: 32px; border-radius: 999px; }
+.ap-glass-bar span::after {
+  content: "";
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 9px auto;
+  border-radius: 50%;
+  border: 2px solid var(--text);
+  opacity: 0.8;
+}
+.ap-glass-bar span.on { background: var(--glass-lens); }
+.ap-glass-bar span.on::after { border-color: var(--accent); opacity: 1; }
+
+/* ---- text size slider: small A, the track, large A */
+.ap-slider { display: flex; align-items: center; gap: 12px; padding: 4px 0 2px; }
+.ap-a { color: var(--text-2); font-weight: 500; line-height: 1; }
+.ap-a.small { font-size: 13px; }
+.ap-a.large { font-size: 22px; }
+.ap-slider input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  margin: 0;
+}
+.ap-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--pct), var(--fill-3) var(--pct));
+}
+.ap-slider input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--fill-3); }
+.ap-slider input[type="range"]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+.ap-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0.5px 4px rgba(0, 0, 0, 0.12), 0 6px 13px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+}
+.ap-slider input[type="range"]::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0.5px 4px rgba(0, 0, 0, 0.12), 0 6px 13px rgba(0, 0, 0, 0.12);
+}
+
+/* ---- app icon styles */
+.ap-icons { display: flex; gap: 18px; padding: 16px; flex-wrap: wrap; }
+.ap-icon {
+  border: 0;
+  background: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--t-foot);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.ap-icon img {
+  width: 62px;
+  height: 62px;
+  border-radius: 14px;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.18), 0 4px 10px rgba(0, 0, 0, 0.12);
+  transition: transform 0.35s var(--spring), box-shadow 0.25s var(--ease);
+}
+.ap-icon:active img { transform: scale(0.92); }
+.ap-icon.on img { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--accent); }
+.ap-icon.on { color: var(--accent); font-weight: 600; }
+
+@media (max-width: 380px) {
+  .appearance .group-row:has(.segmented) { flex-wrap: wrap; }
+}
+
+/* ---- the design gallery (pages/DesignPreview.tsx) */
+.design-preview { max-width: 720px; }
+.dp-pad { padding: 14px 16px; }
+.dp-stack { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.dp-swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.dp-swatch { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: var(--t-foot); color: var(--text-2); }
+.dp-swatch i { width: 44px; height: 44px; border-radius: 50%; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1); }
+.dp-type { display: flex; flex-direction: column; gap: 6px; }
+.design-preview .group-foot + .group { margin-top: 22px; }

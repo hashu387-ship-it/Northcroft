@@ -5,6 +5,8 @@ import {
   AlarmClock,
   CalendarDays,
   CircleCheck,
+  FileClock,
+  FolderKanban,
   ClipboardList,
   Inbox,
   Layers,
@@ -12,6 +14,7 @@ import {
   LogOut,
   MapPin,
   Megaphone,
+  Phone,
   Plus,
   SquareCheckBig,
   TriangleAlert,
@@ -33,7 +36,7 @@ import { MyUpdateHomeCard, TeamUpdatesHomeCard } from "./updates/HomeCards";
 import { LastSevenDaysCard } from "./updates/LastSevenDays";
 import { leaveByDay, useTeamLeave } from "@/lib/leave";
 import { VoiceNote } from "@/components/Voice";
-import { Avatar, CountUp, Empty, Fab, Loading, Pill, PriorityFlag, useToast, PersonNames } from "@/components/ui";
+import { Avatar, CountUp, Empty, Loading, Pill, PriorityFlag, useToast, PersonNames } from "@/components/ui";
 import { useChecklistCounts, useInvalidate, usePeople, useProjectMap, useSettings, useTasks, useUnreadCount } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useSignoff, waitingOn } from "@/lib/signoff";
@@ -65,7 +68,7 @@ import {
   useBoqAlerts,
   useEventsBetween,
 } from "./home/data";
-import { QsLogo } from "@/components/Brand";
+import { MENU_COLOR, tileStyle } from "@/lib/menu";
 
 export default function Home() {
   const me = useMe();
@@ -110,34 +113,28 @@ export default function Home() {
 
   return (
     <div className="page">
-      <section className="home-banner" aria-label="Today">
-        <div className="hb-photo" aria-hidden />
-        <div className="hb-shade" aria-hidden />
-        <QsLogo size={150} className="hb-logo" onDark />
-        <div className="hb-body">
-          {/* Whoever is signed in, in their own photo. Tap it for your profile card. */}
-          <button type="button" className="hb-me" onClick={() => openPersonCard(me.id)} aria-label="Your profile">
-            <Avatar person={me} size={76} />
-          </button>
-          <div className="hb-text">
-            <span className="hb-eyebrow">
-              <i className="hb-bar" /> {fmtLongDate(today)}
-            </span>
-            <h1>
-              {greeting()}, {firstName}
-            </h1>
-            <p>{summary}</p>
-            <div className="hb-actions">
-              <button className="btn brand" onClick={() => setNewTask(true)}>
-                <Plus /> New task
-              </button>
-              <Link to="/my-tasks" className="btn on-dark">
-                <SquareCheckBig /> {givesOnly ? "Assigned tasks" : "My tasks"}
-              </Link>
-            </div>
-          </div>
+      {/* Today, the way Apple's apps open: the date, a large greeting, one line about your day. */}
+      <header className="home-title">
+        <div className="grow">
+          <span className="eyebrow">{fmtLongDate(today)}</span>
+          <h1>
+            {greeting()}, {firstName}
+          </h1>
+          <p>{summary}</p>
         </div>
-      </section>
+        <button type="button" className="home-me hide-mobile" onClick={() => openPersonCard(me.id)} aria-label="Your profile">
+          <Avatar person={me} size={56} />
+        </button>
+      </header>
+      <div className="home-actions">
+        <button className="btn primary" onClick={() => setNewTask(true)}>
+          <Plus /> New task
+        </button>
+        <Link to="/my-tasks" className="btn">
+          <SquareCheckBig /> {givesOnly ? "Assigned tasks" : "My tasks"}
+        </Link>
+      </div>
+      <HomeShortcuts />
       <InstallBanner />
 
       <div className="grid-4 stat-row">
@@ -212,11 +209,35 @@ export default function Home() {
         </div>
       </div>
 
-      <Fab label="New task" onClick={() => setNewTask(true)}>
-        <Plus />
-      </Fab>
       <TaskForm open={newTask} onClose={() => setNewTask(false)} />
     </div>
+  );
+}
+
+/* ---------------------------------------------------------------- shortcuts */
+/** The places that aren't in the tab bar, one tap away, like the tiles at the top of Apple's apps. */
+function HomeShortcuts() {
+  const me = useMe();
+  const { canAssign } = useAuth();
+  const items = [
+    { to: "/projects", label: "Projects", icon: FolderKanban, color: MENU_COLOR.projects },
+    ...(!me.attendance_exempt || canAssign ? [{ to: "/attendance", label: me.attendance_exempt ? "Attendance" : "Check in", icon: MapPin, color: MENU_COLOR.attendance }] : []),
+    { to: "/calendar", label: "Calendar", icon: CalendarDays, color: MENU_COLOR.calendar },
+    { to: "/submissions", label: "Submissions", icon: FileClock, color: MENU_COLOR.submissions },
+    { to: "/announcements", label: "News", icon: Megaphone, color: MENU_COLOR.announcements },
+    { to: "/calls", label: "Calls", icon: Phone, color: MENU_COLOR.calls },
+  ];
+  return (
+    <nav className="home-shortcuts" aria-label="Shortcuts">
+      {items.map((i) => (
+        <Link key={i.to} to={i.to} className="hs-tile">
+          <span className="tile" style={tileStyle(i.color)}>
+            <i.icon />
+          </span>
+          <span>{i.label}</span>
+        </Link>
+      ))}
+    </nav>
   );
 }
 

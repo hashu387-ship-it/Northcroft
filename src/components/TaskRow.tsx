@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { ArrowRight, Hourglass, ListChecks, Pause, Play, RotateCcw, Send, Users } from "lucide-react";
+import { ArrowRight, FolderKanban, Hourglass, Link2, ListChecks, Pause, Play, RotateCcw, Send, Share, SquareArrowOutUpRight, Users } from "lucide-react";
 import { useInvalidate, usePeople, useProjectMap } from "@/lib/api";
 import { errorMessage, supabase } from "@/lib/supabase";
 import { SwipeRow } from "./Swipe";
@@ -14,6 +14,58 @@ import { Avatar, AvatarStack, DueLabel, EarlyBadge, Pill, PriorityFlag, ProjectT
 import { ProgressChip } from "@/pages/updates/TaskProgress";
 import { WorkingDots } from "./Tracked";
 import { MorphLink } from "./Morph";
+import { useContextMenu, type MenuItems } from "./ContextMenu";
+
+/** Press and hold a task (or right-click it): open, start or hand in, open its project, copy or share its link. */
+function useTaskMenu(task: Task) {
+  const me = useMe();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const invalidate = useInvalidate();
+  const projects = useProjectMap();
+  return useContextMenu(
+    (): MenuItems => {
+      const mine = peopleOn(task).includes(me.id);
+      const blocked = !!task.approval || task.hold === "on";
+      const url = `${window.location.origin}/tasks/${task.id}`;
+      const project = projects.get(task.project_id);
+      return [
+        { label: "Open", icon: <SquareArrowOutUpRight />, run: () => navigate(`/tasks/${task.id}`) },
+        mine && !blocked && task.status === "todo" && {
+          label: "Start",
+          icon: <Play />,
+          run: async () => {
+            const { error } = await supabase.from("tasks").update({ status: "in_progress" }).eq("id", task.id);
+            if (error) toast(errorMessage(error), "error");
+            else toast("Marked as in progress");
+            await invalidate("tasks", "activity");
+          },
+        },
+        mine && !blocked && task.status === "in_progress" && { label: "Submit for review", icon: <Send />, run: () => navigate(`/tasks/${task.id}?submit=1`) },
+        project && { label: `Open ${project.name}`, icon: <FolderKanban />, run: () => navigate(`/projects/${project.id}`) },
+        null,
+        {
+          label: "Copy link",
+          icon: <Link2 />,
+          run: async () => {
+            try {
+              await navigator.clipboard.writeText(url);
+              toast("Link copied");
+            } catch {
+              toast("Couldn't copy the link", "error");
+            }
+          },
+        },
+        typeof navigator.share === "function" && {
+          label: "Share",
+          icon: <Share />,
+          run: () => navigator.share({ title: task.title, url }).catch(() => undefined),
+        },
+      ];
+    },
+    { title: () => task.title },
+  );
+}
 
 export function TaskRow({
   task,
@@ -33,11 +85,13 @@ export function TaskRow({
   const qc = useQueryClient();
   const changesRequested = !!task.changes_note && (task.status === "in_progress" || task.status === "todo");
   const team = peopleOn(task);
+  const menu = useTaskMenu(task);
   // Its state, so a look can colour the row: done, on hold, waiting for review, or overdue.
   const state =
     task.status === "done" ? "done" : task.hold === "on" ? "hold" : task.status === "in_review" ? "review" : task.due_date && task.due_date < todayISO() ? "late" : null;
   return (
     <MorphLink
+      {...menu}
       to={`/tasks/${task.id}`}
       morphKey={`task-${task.id}`}
       className={clsx("task-row", task.status === "done" && "done", state && `st-${state}`)}

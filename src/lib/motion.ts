@@ -7,6 +7,9 @@
 // edge (rubber band), finger speed, a short vibration for moments that matter (Android only;
 // iPhones don't let web apps vibrate), and the phone's reduce-motion and reduce-transparency settings.
 
+import { isNativeApp } from "@/native/platform";
+import { NorthcroftNative } from "@/native/plugin";
+
 export interface SpringParams {
   /** 1 = settles without overshoot; 0.8 = a small, physical bounce. */
   damping: number;
@@ -169,13 +172,19 @@ export class VelocityTracker {
 
 /**
  * A short vibration for a moment that matters: a swipe action happening, a sheet snapping shut, a
- * refresh starting. Never on ordinary taps. Android only; nothing happens elsewhere.
+ * refresh starting, a long-press menu opening. Never on ordinary taps. In the iPhone app it's the
+ * phone's own Taptic Engine; in a browser, Android only.
  */
-export function haptic(kind: "tick" | "success" | "warning" = "tick") {
+export function haptic(kind: "tick" | "success" | "warning" | "press" = "tick") {
+  if (isNativeApp()) {
+    const style = kind === "tick" ? "selection" : kind === "press" ? "medium" : kind;
+    void NorthcroftNative.haptic({ style }).catch(() => undefined);
+    return;
+  }
   try {
     const nav = navigator as Navigator & { vibrate?: (p: number | number[]) => boolean };
     if (typeof nav.vibrate !== "function") return;
-    nav.vibrate(kind === "tick" ? 8 : kind === "success" ? [10, 40, 14] : [16, 60, 16]);
+    nav.vibrate(kind === "tick" ? 8 : kind === "press" ? 14 : kind === "success" ? [10, 40, 14] : [16, 60, 16]);
   } catch {
     // Not allowed here; no matter.
   }

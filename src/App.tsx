@@ -11,6 +11,7 @@ const Home = lazy(() => import("@/pages/Home"));
 const MyTasks = lazy(() => import("@/pages/MyTasks"));
 const TaskDetail = lazy(() => import("@/pages/TaskDetail"));
 const Projects = lazy(() => import("@/pages/Projects"));
+const DesignPreview = lazy(() => import("@/pages/DesignPreview"));
 const ProjectDetail = lazy(() => import("@/pages/ProjectDetail"));
 const Inbox = lazy(() => import("@/pages/Inbox"));
 const Announcements = lazy(() => import("@/pages/Announcements"));
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="submissions" element={<Submissions />} />
           <Route path="time" element={<TimeReport />} />
           <Route path="calls" element={<Calls />} />
+          <Route path="design" element={<DesignPreview />} />
           <Route path="call/:id" element={<Calls />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

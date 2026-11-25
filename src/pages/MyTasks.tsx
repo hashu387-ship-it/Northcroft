@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, CircleCheck, ClipboardCheck, ClipboardList, Inbox, Plus, SquareCheckBig, List, Columns3 } from "lucide-react";
-import { useChecklistCounts, usePeople, useTasks } from "@/lib/api";
+import { ChevronRight, CircleCheck, ClipboardCheck, ClipboardList, Inbox, Plus, Search, SquareCheckBig, List, Columns3 } from "lucide-react";
+import { useChecklistCounts, usePeople, useProjectMap, useTasks } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { useSignoff, waitingOn } from "@/lib/signoff";
 import { useApprover, useTaskRequests } from "@/lib/taskApproval";
@@ -11,7 +11,7 @@ import { PageHead } from "@/components/PageHead";
 import { TaskForm } from "@/components/TaskForm";
 import { SwipeTaskRow } from "@/components/TaskRow";
 import { TeamTaskList } from "@/components/TeamTasks";
-import { Avatar, Empty, Fab, Loading, Segmented } from "@/components/ui";
+import { Avatar, Empty, Fab, Loading, matchesSearch, SearchField, Segmented } from "@/components/ui";
 import { TaskBoard } from "@/components/TaskBoard";
 import { todayISO } from "@/lib/time";
 import type { Task } from "@/lib/types";
@@ -36,6 +36,29 @@ function Group({ title, tasks, counts, tone, showAssignee = false }: { title: st
       </div>
     </section>
   );
+}
+
+/** Typing in the search field: every task you can see here that matches, open ones first. */
+function SearchResults({ q, tasks, counts }: { q: string; tasks: Task[]; counts?: Record<string, [number, number]> }) {
+  const projects = useProjectMap();
+  const people = usePeople();
+  const seen = new Set<string>();
+  const found = tasks
+    .filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)))
+    .filter((t) => {
+      const p = projects.get(t.project_id);
+      return matchesSearch(q, t.title, t.description, p?.name, p?.code, ...peopleOn(t).map((id) => people.get(id)?.full_name));
+    })
+    .sort((a, b) => Number(a.status === "done") - Number(b.status === "done"));
+  if (!found.length)
+    return (
+      <div className="glass" style={{ marginTop: 8 }}>
+        <Empty icon={<Search />} title="No tasks found">
+          Nothing matches "{q.trim()}". Try a project name, a person or another word from the title.
+        </Empty>
+      </div>
+    );
+  return <Group title="Found" tasks={found} counts={counts} showAssignee />;
 }
 
 /**
@@ -96,6 +119,7 @@ export default function MyTasks() {
   const approver = useApprover();
   const [params, setParams] = useSearchParams();
   const [formOpen, setFormOpen] = useState(() => params.get("new") === "1");
+  const [q, setQ] = useState("");
   // Someone who only gives out tasks (the Commercial Head) has no list of their own: they see
   // every assigned task instead.
   const givesOnly = me.assignable === false;
@@ -266,9 +290,13 @@ export default function MyTasks() {
         )}
       </div>
 
+      <SearchField value={q} onChange={setQ} placeholder="Search tasks" />
+
       {/* Someone who only gives out tasks has no Mine view, so a weekly update to check shows on top. */}
       {givesOnly && <ChecksGroup checks={checks} />}
-      {loading ? (
+      {q.trim() ? (
+        <SearchResults q={q} tasks={[...myTasks, ...allOpen, ...(recentDone.data ?? [])]} counts={counts} />
+      ) : loading ? (
         <Loading />
       ) : onBoard ? (
         <>

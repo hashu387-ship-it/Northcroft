@@ -1,114 +1,218 @@
-import { useState } from "react";
+// Settings > Appearance, laid out like iOS Settings > Display & Brightness:
+//   Light, Dark or Automatic, with a little phone for each
+//   Glass: how see-through the floating bars are (Clear to Tinted, like iOS 27's slider)
+//   Text size and list spacing
+//   Reduce transparency
+//   App icon style (in the iPhone app)
+//   Celebrations
+// Everything is saved on this device (lib/appearance.ts) and applies straight away.
+import { useEffect, useState } from "react";
 import clsx from "clsx";
+import { Link } from "react-router-dom";
+import { Check, ChevronRight, Palette } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
-import { Switch } from "@/components/ui";
-import { Section } from "./common";
+import { readAppearance, saveAppearance, type Appearance, type DensityPref, type GlassPref, type TextPref, type ThemePref } from "@/lib/appearance";
+import { Segmented, Switch, useToast } from "@/components/ui";
+import { isNativeApp } from "@/native/platform";
+import { NorthcroftNative } from "@/native/plugin";
+import { haptic } from "@/lib/motion";
+import "@/styles/appearance.css";
 
-type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx" | "pearl" | "navy" | "aurora" | "liquid";
+const THEMES: { value: ThemePref; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "Automatic" },
+];
 
-function readTheme(): Theme {
-  try {
-    const t = localStorage.getItem("nc-theme");
-    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" || t === "pearl" || t === "onyx" || t === "navy" || t === "aurora" || t === "liquid" ? t : "navy";
-  } catch {
-    return "navy";
-  }
-}
+const GLASS: { value: GlassPref; label: string }[] = [
+  { value: "clear", label: "Clear" },
+  { value: "default", label: "Default" },
+  { value: "tinted", label: "Tinted" },
+];
 
-function readSolid(): boolean {
-  try {
-    return localStorage.getItem("nc-solid-v2") === "true";
-  } catch {
-    return false;
-  }
+const TEXT: TextPref[] = ["s", "m", "l", "xl"];
+const TEXT_LABEL: Record<TextPref, string> = { s: "Small", m: "Default", l: "Large", xl: "Larger" };
+
+const ICONS: { name: string | null; label: string; src: string }[] = [
+  { name: null, label: "Standard", src: "/icons/styles/standard.png" },
+  { name: "AppIcon-Light", label: "Light", src: "/icons/styles/light.png" },
+  { name: "AppIcon-Blue", label: "Blue", src: "/icons/styles/blue.png" },
+];
+
+/** A tiny phone screen in light or dark, the way iOS shows the choice. */
+function MiniPhone({ kind }: { kind: ThemePref }) {
+  return (
+    <span className={clsx("ap-phone", kind)} aria-hidden>
+      <span className="ap-screen">
+        <span className="ap-title" />
+        <span className="ap-card">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="ap-bar">
+          <b />
+          <b />
+          <b />
+        </span>
+      </span>
+      {kind === "system" && (
+        <span className="ap-screen dark-half">
+          <span className="ap-title" />
+          <span className="ap-card">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="ap-bar">
+            <b />
+            <b />
+            <b />
+          </span>
+        </span>
+      )}
+    </span>
+  );
 }
 
 export function AppearanceSection() {
-  const [theme, setTheme] = useState<Theme>(readTheme);
-  const [solid, setSolid] = useState(readSolid);
+  const toast = useToast();
+  const { isManager } = useAuth();
+  const [a, setA] = useState<Appearance>(readAppearance);
   const [extras, setExtras] = useState(extrasOn);
+  const [icon, setIcon] = useState<{ supported: boolean; current: string | null } | null>(null);
 
-  function applyTheme(t: Theme) {
-    setTheme(t);
-    const root = document.documentElement;
-    // Onyx, QS Team glass and Purple glass are the dark theme with a palette over it; Pearl and Clay
-    // glass are the light theme with a palette over it.
-    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx" || t === "pearl" || t === "navy" || t === "aurora" || t === "liquid") root.dataset.palette = t;
-    else delete root.dataset.palette;
-    // Liquid Glass follows the phone's light or dark mode.
-    const base = t === "purple" || t === "qs" || t === "onyx" || t === "navy" || t === "aurora" ? "dark" : t === "clay" || t === "pearl" ? "light" : t === "liquid" ? "system" : t;
-    try {
-      if (base === "system") delete root.dataset.theme;
-      else root.dataset.theme = base;
-      localStorage.setItem("nc-theme", t);
-    } catch {
-      if (base !== "system") root.dataset.theme = base;
-    }
-  }
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    NorthcroftNative.appIcon()
+      .then((r) => setIcon({ supported: r.supported, current: r.current ?? null }))
+      .catch(() => setIcon(null));
+  }, []);
 
-  function applySolid(v: boolean) {
-    setSolid(v);
-    const root = document.documentElement;
-    if (v) root.dataset.solid = "true";
-    else delete root.dataset.solid;
-    try {
-      if (v) localStorage.setItem("nc-solid-v2", "true");
-      else localStorage.removeItem("nc-solid-v2");
-    } catch {
-      /* the switch still works for this visit */
-    }
-  }
+  const set = (patch: Partial<Appearance>) => {
+    haptic();
+    setA(saveAppearance(patch));
+  };
 
-  const options: { value: Theme; label: string }[] = [
-    { value: "liquid", label: "Liquid Glass (iOS 26)" },
-    { value: "navy", label: "Northcroft navy" },
-    { value: "aurora", label: "Aurora glass (new)" },
-    { value: "onyx", label: "Onyx" },
-    { value: "pearl", label: "Pearl" },
-    { value: "qs", label: "QS Team glass" },
-    { value: "light", label: "Light" },
-    { value: "dark", label: "Dark" },
-    { value: "purple", label: "Purple glass" },
-    { value: "clay", label: "Clay glass" },
-    { value: "system", label: "Automatic" },
-  ];
+  const textIndex = TEXT.indexOf(a.text);
 
   return (
-    <div className="stack" style={{ gap: 16 }}>
-      <Section title="Appearance" sub="These choices are saved on this device only.">
-        <div className="theme-choice" role="radiogroup" aria-label="Theme">
-          {options.map((o) => (
-            <button key={o.value} className={clsx(theme === o.value && "active")} onClick={() => applyTheme(o.value)} role="radio" aria-checked={theme === o.value} type="button">
-              <span className={clsx("theme-swatch", o.value)} />
-              {o.label}
+    <div className="appearance">
+      <div className="group-title first">Appearance</div>
+      <div className="group">
+        <div className="ap-themes" role="radiogroup" aria-label="Appearance">
+          {THEMES.map((t) => (
+            <button key={t.value} type="button" role="radio" aria-checked={a.theme === t.value} className={clsx("ap-theme", a.theme === t.value && "on")} onClick={() => set({ theme: t.value })}>
+              <MiniPhone kind={t.value} />
+              <span className="ap-label">{t.label}</span>
+              <span className="ap-radio">{a.theme === t.value && <Check />}</span>
             </button>
           ))}
         </div>
-        <div className="muted small">
-          Northcroft navy is the default: deep navy clay with white text, the Northcroft red main button, soft blue highlights,
-          and each card's icon in its own colour. Aurora glass is the new look to try: deep midnight navy with soft blue, cyan and red light
-          slowly moving behind frosted glass, thin bright edges on every panel, and big bold numbers. Onyx is black and gold: near-black clay with champagne gold icons, counts, links and
-          buttons, white serif headings, and every row of a table as its own thick clay block. Pearl is the same clay in warm light grey, with black ink and the logo on its black plate. QS Team glass is deep navy with a blue glow and the Riyadh skyline along the
-          bottom. Purple glass is a deep navy-to-purple background with frosted panels and a soft glow. Clay glass keeps the light glass
-          but makes cards, buttons and tabs soft and puffy, like clay, and buttons sink a little when you press them. Automatic follows your phone or
-          computer, switching to dark at night if you've set it up that way.
+      </div>
+      <div className="group-foot">Automatic follows your phone or computer, so the app turns dark at night if you've set it up that way.</div>
+
+      <div className="group-title">Liquid Glass</div>
+      <div className="group">
+        <div className="ap-glass-preview" aria-hidden>
+          <span className="ap-glass-art" />
+          <span className="ap-glass-bar lg">
+            <span className="on" />
+            <span />
+            <span />
+            <span />
+          </span>
         </div>
-      </Section>
-      <Section title="Easier reading">
-        <div className="setting-row">
-          <div className="grow">
-            <b>Solid surfaces</b>
-            <small>Replaces the see-through glass in the glass looks with solid panels. Turn this on if text over the coloured background is hard to read, or to save battery on older phones. Onyx and Pearl are solid clay already.</small>
-          </div>
-          <Switch checked={solid} onChange={applySolid} label="Solid surfaces" />
+        <div className="group-row no-tile static">
+          <span className="label">Glass</span>
+          <Segmented<GlassPref> value={a.glass} onChange={(v) => set({ glass: v })} options={GLASS} />
         </div>
-      </Section>
-      <Section title="Celebrations">
-        <div className="setting-row">
-          <div className="grow">
-            <b>Sound and buzz</b>
-            <small>A short chime, and a small buzz on Android phones, with the confetti when work is approved or handed in early. iPhones stay quiet when on silent.</small>
+        <div className="group-row no-tile static">
+          <span className="label">
+            Reduce transparency
+            <small>The tab bar, menus and panels turn solid.</small>
+          </span>
+          <Switch checked={a.solid} onChange={(v) => set({ solid: v })} label="Reduce transparency" />
+        </div>
+      </div>
+      <div className="group-foot">Clear lets more of the page show through the bars and menus; Tinted makes them frostier and easier to read.</div>
+
+      <div className="group-title">Text and lists</div>
+      <div className="group">
+        <div className="group-row no-tile static column">
+          <span className="label">
+            Text size <span className="ap-value">{TEXT_LABEL[a.text]}</span>
+          </span>
+          <div className="ap-slider">
+            <span className="ap-a small">A</span>
+            <input
+              type="range"
+              min={0}
+              max={TEXT.length - 1}
+              step={1}
+              value={textIndex}
+              onChange={(e) => set({ text: TEXT[Number(e.target.value)] })}
+              aria-label="Text size"
+              aria-valuetext={TEXT_LABEL[a.text]}
+              style={{ ["--pct" as string]: `${(textIndex / (TEXT.length - 1)) * 100}%` }}
+            />
+            <span className="ap-a large">A</span>
           </div>
+        </div>
+        <div className="group-row no-tile static">
+          <span className="label">List spacing</span>
+          <Segmented<DensityPref>
+            value={a.density}
+            onChange={(v) => set({ density: v })}
+            options={[
+              { value: "compact", label: "Compact" },
+              { value: "standard", label: "Standard" },
+              { value: "roomy", label: "Roomy" },
+            ]}
+          />
+        </div>
+      </div>
+
+      {icon?.supported && (
+        <>
+          <div className="group-title">App icon</div>
+          <div className="group">
+            <div className="ap-icons" role="radiogroup" aria-label="App icon">
+              {ICONS.map((i) => {
+                const on = (icon.current ?? null) === i.name;
+                return (
+                  <button
+                    key={i.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    className={clsx("ap-icon", on && "on")}
+                    onClick={async () => {
+                      haptic();
+                      const r = await NorthcroftNative.setAppIcon({ name: i.name }).catch(() => ({ ok: false }));
+                      if (r.ok) setIcon({ supported: true, current: i.name });
+                      else toast("The icon couldn't be changed just now", "error");
+                    }}
+                  >
+                    <img src={i.src} alt="" />
+                    <span>{i.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="group-foot">The Standard icon also follows the Home Screen's dark and tinted icon styles.</div>
+        </>
+      )}
+
+      <div className="group-title">Celebrations</div>
+      <div className="group">
+        <div className="group-row no-tile static">
+          <span className="label">
+            Sound and buzz
+            <small>A short chime and a small buzz with the confetti when work is approved or handed in early.</small>
+          </span>
           <Switch
             checked={extras}
             onChange={(v) => {
@@ -119,7 +223,25 @@ export function AppearanceSection() {
             label="Celebration sound and buzz"
           />
         </div>
-      </Section>
+      </div>
+      <div className="group-foot">These choices are saved on this device only.</div>
+
+      {isManager && (
+        <>
+          <div className="group">
+            <Link to="/design" className="group-row">
+              <span className="tile" style={{ background: "#AF52DE" }}>
+                <Palette />
+              </span>
+              <span className="label">
+                Design gallery
+                <small>Every part of the look with sample data</small>
+              </span>
+              <ChevronRight className="chev" />
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   );
 }

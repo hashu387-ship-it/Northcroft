@@ -255,3 +255,45 @@ Ringing on the lock screen like a phone call (CallKit) needs the paid Apple Deve
   `NCAppGroup` key in each Info.plist, so a test build can use its own group.
 - The new iPhone features need both a new iPhone build and the website update; an older iPhone
   build just doesn't show them (Scan a document says to update the app).
+
+## The Apple-style design (November 2026)
+
+One design for the website and the iPhone app, after Apple's own apps (Music, Reminders, Settings):
+
+- **Where it lives:** `src/styles/core.css` is the whole design system (colours, type, Liquid Glass,
+  buttons, lists, sheets, menus). Page files (`tasks.css`, `chats.css`...) only lay out their pages.
+  The eight old looks (navy, Onyx, Aurora, Pearl, QS Team glass, Purple, Clay, Liquid) are gone.
+- **Glass only where Apple puts it:** the tab bar, the top bar's scroll edge, sheets, menus, toasts and
+  floating buttons. Content sits on plain white (or dark grey) grouped cards.
+- **Navigation:** Home, Tasks, Chats, Inbox in a floating tab bar with Search on its own; the bar
+  shrinks to the current tab while scrolling down. Everything else is under the photo at the top
+  right (Account). Titles shrink into the top bar as the page scrolls (`src/lib/chrome.ts`).
+- **Settings > Appearance** (`src/lib/appearance.ts`): Light, Dark or Automatic; glass Clear, Default
+  or Tinted; text size; list spacing; Reduce transparency; and in the iPhone app the app icon
+  (Standard, Light, Blue: `AppIcon-Light` and `AppIcon-Blue` in `Assets.xcassets`, listed in the
+  `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` build setting). The Standard icon has a tinted
+  version for iOS 18's tinted Home Screen.
+- **Press and hold** a task, chat or notification for its menu (`src/components/ContextMenu.tsx`);
+  right-click on a computer. Swipes stay as they were.
+- **Catch up:** the `catchup` Edge Function summarises a chat, the inbox or a task's comments with
+  Claude, using the same key as Check wording. It reads with the person's own sign-in, so it can only
+  see what they can.
+- **Design gallery:** `/design` (managers only, from Settings > Appearance) shows every part with
+  made-up sample data.
+
+## More iPhone features (November 2026)
+
+- **Widget:** Apple's own widget style (white or dark, blue and red only where they mean something),
+  a Check in button on the widget itself (iOS 17), a large size with five tasks, and a round lock
+  screen size. StandBy uses the small one.
+- **Siri:** "What's due today in Northcroft" and "Am I checked in on Northcroft" answer without
+  opening the app, from the widget's copy of today (`Shared/NorthcroftActionIntents.swift`).
+- **Focus filter:** Settings > Focus > (a Focus) > Add Filter > Northcroft. "Quiet chat messages" or
+  "Only urgent alerts" makes those notifications arrive quietly during that Focus; calls and approvals
+  still come through. The notification extension reads the choice from the app group, so it now has
+  its own entitlements file (`NorthcroftNotify.entitlements`).
+- **Staff pass in Apple Wallet:** Account > Staff pass in Wallet. The `wallet-pass` Edge Function signs
+  the pass. It needs, from the paid Apple Developer Program: a Pass Type ID (Certificates, Identifiers
+  & Profiles > Identifiers > Pass Type IDs) and its certificate. Then add these Edge Function secrets:
+  `WALLET_PASS_TYPE_ID`, `WALLET_TEAM_ID`, `WALLET_CERT_PEM`, `WALLET_KEY_PEM` (unencrypted) and
+  `WALLET_WWDR_PEM` (Apple's WWDR G4 certificate). Until then the app explains the pass isn't set up yet.

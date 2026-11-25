@@ -1,32 +1,35 @@
-// One colour per menu item, shared by the side menu, the bottom tabs and the More page so each
-// place matches. Shown as a small rounded tile behind a white icon.
+// One colour per destination, shared by the Account page, Settings and the What's new list, in
+// the iOS Settings palette: a small rounded tile in the colour with a white symbol. (The tab bar
+// and the side menu use the accent colour instead, as Apple's apps do.)
 export const MENU_COLOR = {
-  home: "#0A84FF",
-  tasks: "#5E5CE6",
-  projects: "#FF9F0A",
-  volog: "#1D6F42",
-  submissions: "#DC6B19",
+  home: "#007AFF",
+  tasks: "#007AFF",
+  projects: "#FF9500",
+  volog: "#30B0C7",
+  submissions: "#FF2D55",
   updates: "#AF52DE",
-  chats: "#30D158",
-  announcements: "#F13E44",
-  calendar: "#E91E63",
-  inbox: "#0FA3B1",
-  attendance: "#A2845E",
-  workload: "#C9A227",
-  time: "#0FA37F",
-  settings: "#3A6EA5",
-  more: "#F13E44",
+  chats: "#34C759",
+  calls: "#34C759",
+  announcements: "#FF3B30",
+  calendar: "#5856D6",
+  inbox: "#007AFF",
+  attendance: "#00C7BE",
+  workload: "#FFCC00",
+  time: "#32ADE6",
+  settings: "#8E8E93",
+  scan: "#007AFF",
+  whatsnew: "#FF9500",
+  more: "#8E8E93",
 } as const;
 
 export type MenuColor = keyof typeof MENU_COLOR;
 
-/** The tile's background: the colour, a little darker towards the bottom right. */
+/** The tile's background: the colour with a little light at the top, like iOS 26 icons. */
 export function tileBackground(color: string): string {
-  return `linear-gradient(145deg, ${color}, color-mix(in srgb, ${color} 70%, #000))`;
+  return `linear-gradient(180deg, color-mix(in srgb, ${color} 88%, #fff), ${color} 55%, color-mix(in srgb, ${color} 90%, #000))`;
 }
 
-/** Style for a menu tile: the coloured background, and the colour itself as --tile so a look can
- *  draw the tile differently (Onyx shows a dark raised tile with the icon in the colour). */
+/** Style for a menu tile. */
 export function tileStyle(color: string): Record<string, string> {
   return { background: tileBackground(color), "--tile": color };
 }

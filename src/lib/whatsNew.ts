@@ -2,8 +2,12 @@
 // update (a popup when the app opens) and again from More whenever they like. Each item says who
 // it's for, so people only see what applies to them.
 import type { LucideIcon } from "lucide-react";
+import { isNativeApp } from "@/native/platform";
 import {
   AlarmClock,
+  Hand,
+  Search,
+  SlidersHorizontal,
   ClipboardCheck,
   ClockAlert,
   Megaphone,
@@ -51,17 +55,57 @@ export interface Release {
 /** Newest first. Add a release at the top when something new ships. */
 export const RELEASES: Release[] = [
   {
-    id: "2026-11-24",
-    date: "2026-11-24",
+    id: "2026-11-26",
+    date: "2026-11-26",
     items: [
       {
-        id: "logo-colours",
+        id: "apple-look",
         icon: Palette,
-        color: "#0A84FF",
-        title: () => "The logo matches your look",
-        body: () => "The QS Team logo is now blue on Northcroft navy, gold on Onyx, violet on Purple glass and navy on the light looks.",
+        color: "#007AFF",
+        title: () => "A cleaner look, made like Apple's own apps",
+        body: () =>
+          "One design in Light, Dark or Automatic, with Liquid Glass bars that float over your work. The tab bar is now Home, Tasks, Chats and Inbox, with Search on its own. Everything else is under your photo at the top right.",
         to: "/settings/appearance",
         cta: "Open Appearance",
+      },
+      {
+        id: "press-and-hold",
+        icon: Hand,
+        color: "#FF9500",
+        title: () => "Press and hold for quick actions",
+        body: () => "Hold a task, a chat or a notification to start it, mark it read, call someone, open the project or copy the link. On a computer, right-click.",
+      },
+      {
+        id: "catch-up",
+        icon: Sparkles,
+        color: "#AF52DE",
+        title: () => "Catch up on a busy chat",
+        body: () => "Tap Catch up in a chat or your inbox for a short summary of what happened and what's waiting on you. Tasks have a Summary button above their comments.",
+      },
+      {
+        id: "search-lists",
+        icon: Search,
+        color: "#8E8E93",
+        title: () => "Search in every list",
+        body: () => "Tasks, chats, your inbox and projects each have a search field at the top.",
+      },
+      {
+        id: "make-it-yours",
+        icon: SlidersHorizontal,
+        color: "#34C759",
+        title: () => "Make it yours",
+        body: () => "Choose how see-through the glass is, the text size and how roomy the lists are. In the iPhone app you can also pick the app icon.",
+        to: "/settings/appearance",
+        cta: "Open Appearance",
+      },
+      {
+        id: "iphone-more",
+        icon: Smartphone,
+        color: "#5856D6",
+        title: () => "More on your iPhone",
+        body: () =>
+          "The widget has a Check in button and comes in a large size and a round lock screen size. Ask Siri \"What's due today in Northcroft\". Add Northcroft to a Focus to keep chats quiet while you work.",
+        for: () => isNativeApp(),
       },
     ],
   },

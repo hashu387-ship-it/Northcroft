@@ -62,12 +62,12 @@
   font-weight: 600;
   cursor: pointer;
   color: var(--text-2);
-  background: var(--btn-glass, var(--fill));
-  border: 1px solid var(--btn-glass-border, var(--separator));
-  box-shadow: var(--btn-glass-shadow, none);
+  background: var(--fill);
+  border: 0;
+  box-shadow: none;
   transition: transform 0.15s var(--ease), background 0.2s, color 0.2s;
 }
-.leave-kind:hover { background: var(--btn-glass-hover, var(--fill-2)); }
+.leave-kind:hover { background: var(--fill-2); }
 .leave-kind:active { transform: scale(0.96); }
 .leave-kind:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .leave-kind.on {
