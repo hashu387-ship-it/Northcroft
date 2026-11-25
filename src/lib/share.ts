@@ -1,6 +1,7 @@
-// Share into the app: files, a link or text shared from another app (Android and computers).
-// The service worker keeps what was shared on the phone (see receiveShare in public/sw.js) and opens
-// the Share screen. It stays until it's sent or cancelled.
+// Share into the app: files, a link or text shared from another app (Android and computers through
+// the service worker, see receiveShare in public/sw.js; the iPhone app through its share sheet, see
+// src/native/NativeBridge.tsx). What was shared stays on the phone and the Share screen opens; it
+// stays until it's sent or cancelled.
 const SHARE_DB = "northcroft-share";
 const STORE = "shared";
 
@@ -51,6 +52,17 @@ export async function pendingShare(): Promise<Shared | null> {
   } catch {
     return null;
   }
+}
+
+/** Keeps something shared in so the Share screen shows it (the iPhone app's share sheet uses this). */
+export async function saveShare(item: Shared) {
+  const db = await open();
+  await new Promise<void>((resolve, reject) => {
+    const t = db.transaction(STORE, "readwrite");
+    t.objectStore(STORE).put(item);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
 }
 
 export async function clearShare() {

@@ -3,6 +3,7 @@
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { type Actor, compose, initials, isChat, type NotificationRow, tagFor } from "./compose.ts";
+import { apnsConfigured, type ApnsEnv, categoryFor, sendApns } from "./apns.ts";
 
 type PushConfig = {
   vapid_public_key: string;
@@ -79,7 +80,7 @@ Deno.serve(async (req) => {
           .is("archived_at", null)
       : Promise.resolve({ count: 1 });
 
-  const [{ data: subs }, { count }, { data: actor }, { data: project }, { count: waiting }] = await Promise.all([
+  const [{ data: subs }, { count }, { data: actor }, { data: project }, { count: waiting }, { data: phones }] = await Promise.all([
     supabase.from("push_subscriptions").select("id, endpoint, p256dh, auth, origin").eq("user_id", n.user_id),
     supabase
       .from("notifications")
@@ -94,6 +95,10 @@ Deno.serve(async (req) => {
       ? supabase.from("projects").select("name").eq("id", n.project_id).maybeSingle<{ name: string }>()
       : Promise.resolve({ data: null }),
     sameConversation(),
+    // The Northcroft iPhone app (Apple's push service).
+    apnsConfigured()
+      ? supabase.from("native_push_devices").select("id, token, apns_env").eq("user_id", n.user_id)
+      : Promise.resolve({ data: [] as { id: string; token: string; apns_env: ApnsEnv | null }[] }),
   ]);
   // Group and one-to-one chats: the group's name, or nothing for a one-to-one chat.
   const convId = isChat(n) && n.link?.startsWith("/chats/") ? n.link.slice(7) : null;
@@ -133,8 +138,25 @@ Deno.serve(async (req) => {
     });
   };
 
+  // The iPhone app's version: the same words, the unread count on the icon, and buttons where they
+  // fit (Approve/Decline on missed check-in and leave requests, Reply on chats).
+  const { category, ref } = categoryFor(n.type, n.link, isChat(n));
+  const apnsPayload = {
+    aps: {
+      alert: { title: shown.title, body: shown.body },
+      badge: count ?? 0,
+      sound: "default",
+      "thread-id": tag,
+      ...(category ? { category } : {}),
+    },
+    url: path,
+    id: n.id,
+    type: n.type,
+    ...(ref ? { ref } : {}),
+  };
+
   // Preview the message without sending it (used to check the wording).
-  if (dry_run) return json({ devices: subs?.length ?? 0, payload: JSON.parse(payloadFor(null)) });
+  if (dry_run) return json({ devices: subs?.length ?? 0, phones: phones?.length ?? 0, payload: JSON.parse(payloadFor(null)), apns: apnsPayload });
 
   let sent = 0;
   let removed = 0;
@@ -158,6 +180,35 @@ Deno.serve(async (req) => {
           failed++;
           console.error("Push failed", status, (e as { body?: string }).body ?? String(e));
         }
+      }
+    }),
+  );
+
+  // iPhones with the app. A token's service (production, or test for builds run from Xcode) is
+  // learnt on the first send and kept.
+  await Promise.all(
+    (phones ?? []).map(async (d) => {
+      try {
+        const first: ApnsEnv = d.apns_env ?? "production";
+        let res = await sendApns(d.token, first, apnsPayload, { collapseId: tag });
+        let env = first;
+        if (!res.ok && !d.apns_env && res.reason === "BadDeviceToken") {
+          env = "sandbox";
+          res = await sendApns(d.token, env, apnsPayload, { collapseId: tag });
+        }
+        if (res.ok) {
+          sent++;
+          if (d.apns_env !== env) await supabase.from("native_push_devices").update({ apns_env: env }).eq("id", d.id);
+        } else if (res.status === 410 || res.reason === "BadDeviceToken" || res.reason === "Unregistered") {
+          await supabase.from("native_push_devices").delete().eq("id", d.id);
+          removed++;
+        } else {
+          failed++;
+          console.error("APNs failed", res.status, res.reason);
+        }
+      } catch (e) {
+        failed++;
+        console.error("APNs error", String(e));
       }
     }),
   );

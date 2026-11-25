@@ -30,9 +30,13 @@ export function NotificationsSection() {
   const devices = useQuery({
     queryKey: ["push_subscriptions", me.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("push_subscriptions").select("id, user_agent, last_seen_at");
-      if (error) throw error;
-      return data ?? [];
+      // Browsers and installed web apps, plus iPhones with the Northcroft app.
+      const [web, phones] = await Promise.all([
+        supabase.from("push_subscriptions").select("id, user_agent, last_seen_at"),
+        supabase.from("native_push_devices").select("id, device_name, last_seen_at"),
+      ]);
+      if (web.error) throw web.error;
+      return [...(web.data ?? []), ...(phones.error ? [] : phones.data ?? [])];
     },
   });
 

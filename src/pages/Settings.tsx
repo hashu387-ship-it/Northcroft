@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, NavLink, useParams } from "react-router-dom";
-import { BellRing, ChevronRight, Clock, HardDrive, Info, KeyRound, MapPin, SunMoon, User, Users } from "lucide-react";
+import { BellRing, ChevronRight, Clock, HardDrive, Info, KeyRound, MapPin, Smartphone, SunMoon, User, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth, useMe } from "@/lib/auth";
 import { PageHead } from "@/components/PageHead";
@@ -15,6 +15,8 @@ import { HoursSection } from "./settings/HoursSection";
 import { PlacesSection } from "./settings/PlacesSection";
 import { DriveSection } from "./settings/DriveSection";
 import { AboutSection } from "./settings/AboutSection";
+import { IphoneSection } from "./settings/IphoneSection";
+import { isNativeApp } from "@/native/platform";
 import "@/styles/admin.css";
 import { showsManagerLabel } from "@/lib/people";
 
@@ -26,7 +28,8 @@ interface SectionDef {
   color: string;
 }
 
-const SECTIONS: SectionDef[] = [
+const ALL_SECTIONS: SectionDef[] = [
+  { id: "iphone", label: "iPhone app", hint: "Face ID and check-in at the office", icon: Smartphone, color: "#1B3570" },
   { id: "profile", label: "Profile", hint: "Name, short name and phone", icon: User, color: "#1B3570" },
   { id: "password", label: "Password", hint: "Change your password", icon: KeyRound, color: "#1B3570" },
   { id: "notifications", label: "Notifications", hint: "Phone and desktop alerts", icon: BellRing, color: "#1B3570" },
@@ -37,6 +40,9 @@ const SECTIONS: SectionDef[] = [
   { id: "drive", label: "Google Drive", hint: "Where attachments are saved", icon: HardDrive, color: "#1B3570" },
   { id: "about", label: "Install and about", hint: "Phone install guide, sign out", icon: Info, color: "#1B3570" },
 ];
+
+// "iPhone app" only shows inside the Northcroft iPhone app.
+const SECTIONS = ALL_SECTIONS.filter((s) => s.id !== "iphone" || isNativeApp());
 
 function useIsDesktop() {
   const query = "(min-width: 900px)";
@@ -76,6 +82,8 @@ function SectionBody({ id }: { id: string }) {
       return <DriveSection />;
     case "about":
       return <AboutSection />;
+    case "iphone":
+      return <IphoneSection />;
     default:
       return null;
   }

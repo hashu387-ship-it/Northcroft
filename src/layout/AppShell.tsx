@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { isMorphing, morphBack } from "@/lib/morph";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import {
@@ -40,6 +40,11 @@ import { QsLogo, QsMark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CelebrationHost } from "@/components/Celebration";
 import { AppPopups } from "@/components/AppPopups";
+import { isNativeApp } from "@/native/platform";
+import { FaceIdLock } from "@/native/FaceIdLock";
+
+// The iPhone app's own parts (notification buttons, check-in at the office, share sheet); never loaded in a browser.
+const NativeBridge = lazy(() => import("@/native/NativeBridge"));
 import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
 import { openSearch } from "@/lib/search";
 import { OfflineBar, OutboxRunner } from "@/components/Offline";
@@ -362,6 +367,12 @@ export default function AppShell() {
       <CelebrationHost />
       <AppPopups />
       <SearchHost />
+      {isNativeApp() && (
+        <Suspense fallback={null}>
+          <NativeBridge />
+        </Suspense>
+      )}
+      <FaceIdLock />
       {appUpdate.ready && (
         <div className="update-bar" role="status">
           <span>A new version of the app is ready.</span>

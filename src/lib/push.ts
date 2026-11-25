@@ -1,19 +1,25 @@
 // Web Push: register the service worker, ask permission, and keep the subscription in Supabase.
+// Inside the iPhone app, notifications come through Apple instead (src/native/push.ts).
 import { VAPID_PUBLIC_KEY } from "./config";
 import { supabase } from "./supabase";
+import { isNativeApp } from "@/native/platform";
+import { NorthcroftNative } from "@/native/plugin";
+import { disableNativePush, enableNativePush, nativePushState } from "@/native/push";
 
 export const isIOS = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 export const isStandalone = () =>
+  isNativeApp() ||
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-export const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+export const pushSupported = () => isNativeApp() || ("serviceWorker" in navigator && "PushManager" in window && "Notification" in window);
 
 export type PushState = "unsupported" | "needs-install" | "denied" | "default" | "granted";
 
 export function pushState(): PushState {
+  if (isNativeApp()) return nativePushState();
   if (isIOS() && !isStandalone()) return "needs-install";
   if (!pushSupported()) return "unsupported";
   return Notification.permission as PushState;
@@ -28,7 +34,7 @@ function urlBase64ToUint8Array(base64: string) {
 }
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!("serviceWorker" in navigator)) return null;
+  if (isNativeApp() || !("serviceWorker" in navigator)) return null;
   try {
     return await navigator.serviceWorker.register("/sw.js", { scope: "/" });
   } catch (e) {
@@ -51,6 +57,7 @@ async function saveSubscription(sub: PushSubscription) {
 
 /** Ask for permission (must be called from a tap) and subscribe this device. */
 export async function enablePush(): Promise<PushState> {
+  if (isNativeApp()) return enableNativePush();
   if (pushState() === "needs-install") return "needs-install";
   if (!pushSupported()) return "unsupported";
   const permission = await Notification.requestPermission();
@@ -71,6 +78,7 @@ export async function enablePush(): Promise<PushState> {
 
 /** On every launch: if permission is already granted, make sure the server has this device. */
 export async function syncPushSubscription() {
+  if (isNativeApp()) return; // the iPhone app registers itself (src/native/NativeBridge.tsx)
   try {
     if (!pushSupported() || Notification.permission !== "granted") return;
     const reg = await navigator.serviceWorker.getRegistration();
@@ -89,6 +97,7 @@ export async function syncPushSubscription() {
 }
 
 export async function disablePush() {
+  if (isNativeApp()) return disableNativePush();
   const reg = await navigator.serviceWorker?.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
   if (sub) {
@@ -100,6 +109,7 @@ export async function disablePush() {
 export async function setBadge(count: number) {
   const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
   try {
+    if (isNativeApp()) return void (await NorthcroftNative.setBadge({ count: Math.max(0, count) }));
     if (count > 0) await nav.setAppBadge?.(count);
     else await nav.clearAppBadge?.();
   } catch {

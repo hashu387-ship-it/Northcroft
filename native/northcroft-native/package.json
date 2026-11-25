@@ -1,0 +1,14 @@
+{
+  "name": "northcroft-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Northcroft's own iPhone code: check-in at the office, Face ID, the share inbox, notification buttons and the app badge.",
+  "main": "index.js",
+  "files": ["Package.swift", "ios/Sources", "index.js"],
+  "capacitor": {
+    "ios": { "src": "ios" }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

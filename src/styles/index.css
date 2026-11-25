@@ -1927,3 +1927,22 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .upload-progress { display: block; }
 /* Link names on file lists wrap instead of being cut short (chat cards stay one line). */
 .dl-card:not(.compact) .dl-name b.ellipsis { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+
+/* Face ID lock (the iPhone app). */
+.faceid-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  color: #fff;
+  background: radial-gradient(90% 60% at 50% -15%, #1b3566 0%, transparent 62%), #0b1a33;
+}
+.faceid-lock p { margin: 0; font-size: 17px; font-weight: 600; }
+.faceid-lock .faceid-why { font-size: 14px; font-weight: 400; color: #c8d3e6; max-width: 300px; }
+.faceid-lock .btn { margin-top: 10px; }
