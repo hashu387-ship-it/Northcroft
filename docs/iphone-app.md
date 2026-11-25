@@ -16,6 +16,15 @@ so every change to the website reaches the app straight away. The shell adds wha
 - **Siri and Shortcuts:** "Check me in with Northcroft", "Scan a document with Northcroft", "Show my
   Northcroft tasks", "Open Northcroft chats". Also in the Shortcuts app and on the Action button.
 - **App icon menu:** press and hold the icon for Check in, Scan a document, My tasks and Chats.
+- **Workday Live Activity:** from check-in until check-out, the lock screen and Dynamic Island show
+  the check-in time, the time since and what's due, with a Check out button.
+- **Control Center:** Check in and Scan a document buttons (iOS 18 and later), also for the lock screen.
+- **Searchable scans:** scanned PDFs carry the text read on the phone, so they can be searched.
+- **Spotlight:** projects and your open tasks in the iPhone's search; a result opens straight to it.
+- **Calendar:** your task deadlines, site visits and meetings in a "Northcroft" calendar on the phone
+  (Settings > iPhone app).
+- **Liquid Glass:** the iOS 26 look, with springy animations and haptics; the default in the iPhone
+  app, and a choice in Settings > Appearance everywhere else.
 
 Only the native parts (the folders `ios/` and `native/`) need a new version through Apple. Everything
 else updates the moment it's deployed.
@@ -184,8 +193,14 @@ automatically.
   `UIApplicationShortcutItems` and the `northcroft://action/...` links in `Info.plist`, handled in
   `SceneDelegate.swift`. They all leave an action in `LaunchActions.swift`; the web app takes it
   (`takeLaunchAction`) and does it, since it needs the sign-in.
-- **Document scanner:** `DocumentScanner.swift` (VisionKit) gives back a PDF; `src/native/scan.ts`
-  opens the Share screen with it.
+- **Document scanner:** `DocumentScanner.swift` (VisionKit) gives back a PDF, with the text read by
+  Vision laid invisibly over each page; `src/native/scan.ts` opens the Share screen with it.
+- **Live Activity:** `WorkdayActivity.swift` (started, updated and ended by `src/native/sync.ts`) and
+  `ios/App/NorthcroftWidget/WorkdayLiveActivity.swift`, which keeps its own copy of the attributes.
+- **Control Center:** `ios/App/NorthcroftWidget/NorthcroftControls.swift`, running the actions in
+  `ios/App/Shared/NorthcroftActionIntents.swift` (built into both the app and the widget).
+- **Spotlight and Calendar:** `Spotlight.swift` and `CalendarSync.swift`, fed by `src/native/sync.ts`.
+- **Liquid Glass look:** `src/styles/liquidglass.css` and `src/lib/liquidglass.ts`.
 - **App group:** named once by the `NC_APP_GROUP` build setting, used by the entitlements and the
   `NCAppGroup` key in each Info.plist, so a test build can use its own group.
 - The new iPhone features need both a new iPhone build and the website update; an older iPhone

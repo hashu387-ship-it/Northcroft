@@ -81,14 +81,56 @@ final class ShareViewController: UIViewController {
             stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -22),
             doneButton.heightAnchor.constraint(equalToConstant: 48)
         ])
+
+        // iOS 26 and later: the card is Liquid Glass, tinted Northcroft navy.
+        if #available(iOS 26.0, *) {
+            card.backgroundColor = .clear
+            let effect = UIGlassEffect(style: .regular)
+            effect.tintColor = UIColor(red: 0.04, green: 0.10, blue: 0.20, alpha: 0.55)
+            let glass = UIVisualEffectView(effect: effect)
+            glass.translatesAutoresizingMaskIntoConstraints = false
+            glass.layer.cornerRadius = 22
+            glass.layer.cornerCurve = .continuous
+            glass.clipsToBounds = true
+            card.insertSubview(glass, at: 0)
+            NSLayoutConstraint.activate([
+                glass.topAnchor.constraint(equalTo: card.topAnchor),
+                glass.bottomAnchor.constraint(equalTo: card.bottomAnchor),
+                glass.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+                glass.trailingAnchor.constraint(equalTo: card.trailingAnchor)
+            ])
+            view.backgroundColor = UIColor.black.withAlphaComponent(0.25)
+        }
+        card.layer.cornerCurve = .continuous
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // The card springs in.
+        guard !UIAccessibility.isReduceMotionEnabled else { return }
+        card.alpha = 0
+        card.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+        UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.78, initialSpringVelocity: 0.4) {
+            self.card.alpha = 1
+            self.card.transform = .identity
+        }
     }
 
     private func show(title: String, detail: String) {
-        spinner.stopAnimating()
-        spinner.isHidden = true
-        titleLabel.text = title
-        detailLabel.text = detail
-        doneButton.isHidden = false
+        let apply = {
+            self.spinner.stopAnimating()
+            self.spinner.isHidden = true
+            self.titleLabel.text = title
+            self.detailLabel.text = detail
+            self.doneButton.isHidden = false
+            self.card.layoutIfNeeded()
+        }
+        if UIAccessibility.isReduceMotionEnabled {
+            apply()
+        } else {
+            UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0, animations: apply)
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(title.hasPrefix("Couldn't") ? .error : .success)
     }
 
     @objc private func finish() {

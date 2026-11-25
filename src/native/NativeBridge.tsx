@@ -8,6 +8,7 @@
 //   Siri, Shortcuts, the app icon's press-and-hold menu and the widget: Check in, Scan a document,
 //     My tasks, Chats (the phone keeps the action until this takes it, see LaunchActions.swift).
 //   The home screen widget: keeps its copy of today's check-in and tasks due up to date.
+//   The workday Live Activity, Spotlight, the Northcroft calendar and haptics (see sync.ts).
 //   The status bar follows the look (light text on dark looks).
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +32,7 @@ import { NorthcroftNative, type LaunchAction, type WidgetSnapshot } from "./plug
 import { PREF, usePref } from "./prefs";
 import { refreshNativePushState, saveNativeToken, enableNativePush } from "./push";
 import { scanToShare } from "./scan";
+import { useCalendarSync, useHaptics, useLiveWorkday, useSpotlight } from "./sync";
 
 const ASKED_KEY = "nc-native-push-asked";
 
@@ -67,14 +69,21 @@ export default function NativeBridge() {
   /* -------------------------------------------------------------- look */
   useEffect(() => {
     void SplashScreen.hide().catch(() => undefined);
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
     const apply = () => {
-      const dark = document.documentElement.dataset.theme !== "light";
+      // Looks that follow the phone (Liquid Glass, Automatic) have no data-theme: ask the phone.
+      const theme = document.documentElement.dataset.theme;
+      const dark = theme ? theme !== "light" : (mq?.matches ?? true);
       void StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => undefined);
     };
     apply();
     const mo = new MutationObserver(apply);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => mo.disconnect();
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette"] });
+    mq?.addEventListener?.("change", apply);
+    return () => {
+      mo.disconnect();
+      mq?.removeEventListener?.("change", apply);
+    };
   }, []);
 
   /* -------------------------------------------------------------- notifications */
@@ -207,7 +216,7 @@ export default function NativeBridge() {
 
   /* -------------------------------------------------------------- Siri, app icon and widget actions */
   const runAction = useCallback(
-    async (action: LaunchAction) => {
+    async (action: LaunchAction, path?: string) => {
       const { me, navigate, toast, checkedIn, checkInAt } = live.current;
       switch (action) {
         case "checkin":
@@ -228,6 +237,12 @@ export default function NativeBridge() {
         case "chats":
           navigate("/chats");
           return;
+        case "checkout":
+          navigate("/attendance");
+          return;
+        case "open":
+          if (path && path.startsWith("/")) navigate(path);
+          return;
       }
     },
     [checkInNow],
@@ -240,9 +255,9 @@ export default function NativeBridge() {
     const { navigate } = live.current;
     try {
       // 0. Opened from Siri, Shortcuts, the app icon's menu or the widget.
-      const { action } = await NorthcroftNative.takeLaunchAction().catch(() => ({}) as { action?: LaunchAction });
+      const { action, path } = await NorthcroftNative.takeLaunchAction().catch(() => ({}) as { action?: LaunchAction; path?: string });
       if (action) {
-        await runAction(action);
+        await runAction(action, path);
         return;
       }
 
@@ -319,6 +334,15 @@ export default function NativeBridge() {
       })),
     };
   }, [todayRow.data, todayRec, myOpen.data, projects, today, me.full_name, me.attendance_exempt]);
+
+  /* -------------------------------------------------------------- Live Activity, Spotlight, Calendar, haptics */
+  const liveOff = usePref(PREF.liveActivityOff);
+  const calendarOn = usePref(PREF.calendar);
+  const projectName = useCallback((id: string | null) => projects.get(id)?.name, [projects]);
+  useLiveWorkday(widget, todayRec, !liveOff);
+  useSpotlight(myOpen.data, projects.list, projectName);
+  useCalendarSync(me.id, today, myOpen.data, projectName, calendarOn);
+  useHaptics();
 
   const widgetKey = widget ? JSON.stringify(widget) : "";
   useEffect(() => {

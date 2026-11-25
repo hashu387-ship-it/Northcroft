@@ -149,6 +149,46 @@ if (targetNamed(EXT)) {
   }
 }
 
+// --- Live Activity, Control Center buttons and the shared Siri actions ------------------------------
+// Shared/NorthcroftActionIntents.swift is built into both the App and the widget (the Control Center
+// buttons run those actions); WorkdayLiveActivity.swift and NorthcroftControls.swift into the widget.
+{
+  const widget = targetNamed(EXT)[1];
+  const hasFile = (name) => Object.entries(objects.PBXFileReference).find(([k, v]) => !k.endsWith("_comment") && unq(v.path) === name);
+  const inSources = (target, ref) =>
+    objects.PBXSourcesBuildPhase[target.buildPhases.find((p) => p.comment === "Sources").value].files.some(
+      (f) => objects.PBXBuildFile[f.value]?.fileRef === ref,
+    );
+
+  // The "Shared" group with the actions file.
+  let sharedGroupId = Object.keys(objects.PBXGroup).find((k) => !k.endsWith("_comment") && unq(objects.PBXGroup[k].path) === "Shared");
+  if (!sharedGroupId) {
+    sharedGroupId = proj.generateUuid();
+    objects.PBXGroup[sharedGroupId] = { isa: "PBXGroup", children: [], path: "Shared", sourceTree: q("<group>") };
+    objects.PBXGroup[`${sharedGroupId}_comment`] = "Shared";
+    const mainGroup = objects.PBXGroup[proj.getFirstProject().firstProject.mainGroup];
+    mainGroup.children.splice(mainGroup.children.length - 1, 0, { value: sharedGroupId, comment: "Shared" });
+  }
+  const ACTIONS = "NorthcroftActionIntents.swift";
+  let actionsRef = hasFile(ACTIONS)?.[0];
+  if (!actionsRef) {
+    actionsRef = fileRef(ACTIONS, "sourcecode.swift");
+    objects.PBXGroup[sharedGroupId].children.push({ value: actionsRef, comment: ACTIONS });
+  }
+  for (const t of [app, widget]) if (!inSources(t, actionsRef)) addToSources(t, actionsRef, ACTIONS);
+
+  // The widget's own new files.
+  const widgetGroupId = Object.keys(objects.PBXGroup).find((k) => !k.endsWith("_comment") && unq(objects.PBXGroup[k].path) === EXT);
+  for (const name of ["WorkdayLiveActivity.swift", "NorthcroftControls.swift"]) {
+    let ref = hasFile(name)?.[0];
+    if (!ref) {
+      ref = fileRef(name, "sourcecode.swift");
+      objects.PBXGroup[widgetGroupId].children.push({ value: ref, comment: name });
+    }
+    if (!inSources(widget, ref)) addToSources(widget, ref, name);
+  }
+}
+
 // Keep Xcode's own spelling of these (the library drops the leading zero).
 const attrs = proj.getFirstProject().firstProject.attributes;
 attrs.LastSwiftUpdateCheck = "0920";

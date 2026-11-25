@@ -98,7 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (id) await clearOutbox(id).catch(() => {});
         await forgetUser();
         // The iPhone widget stops showing their day.
-        if (isNativeApp()) await NorthcroftNative.clearWidget().catch(() => {});
+        if (isNativeApp()) {
+          await NorthcroftNative.clearWidget().catch(() => {});
+          await NorthcroftNative.calendarDisable().catch(() => {});
+        }
       },
       refreshProfile: () => loadProfile(session?.user.id),
     }),

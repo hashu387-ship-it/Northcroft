@@ -6,6 +6,8 @@ import { AuthProvider } from "@/lib/auth";
 import { ConfirmProvider, ToastProvider } from "@/components/ui";
 import { startScrollHints } from "@/lib/scrollHints";
 import App from "./App";
+import { isNativeApp } from "@/native/platform";
+import { startLiquidGlassScroll } from "@/lib/liquidglass";
 import "./styles/index.css";
 import "./styles/polish.css";
 import "./styles/liquid.css";
@@ -18,6 +20,7 @@ import "./styles/qs.css";
 import "./styles/onyx.css";
 import "./styles/aurora.css";
 import "./styles/motion.css";
+import "./styles/liquidglass.css";
 
 // Appearance preferences are per device. Onyx (the design system's look: soft charcoal clay, the
 // Northcroft world with grain, a red glow and the skyline, serif headings, puffy clay buttons and
@@ -38,10 +41,16 @@ try {
     localStorage.setItem("nc-look-navy", "1");
     localStorage.setItem("nc-look-onyx", "1");
   }
+  // Liquid Glass (the look of iOS 26) is the default inside the iPhone app: every iPhone switches to
+  // it once ("nc-look-liquid"); after that, whatever someone picks in Settings stays.
+  if (isNativeApp() && !localStorage.getItem("nc-look-liquid")) {
+    localStorage.setItem("nc-theme", "liquid");
+    localStorage.setItem("nc-look-liquid", "1");
+  }
   const theme = localStorage.getItem("nc-theme") || "navy";
   if (theme === "dark" || theme === "purple" || theme === "qs" || theme === "onyx" || theme === "navy" || theme === "aurora") document.documentElement.dataset.theme = "dark";
-  else if (theme !== "system") document.documentElement.dataset.theme = "light";
-  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx" || theme === "pearl" || theme === "navy" || theme === "aurora") document.documentElement.dataset.palette = theme;
+  else if (theme !== "system" && theme !== "liquid") document.documentElement.dataset.theme = "light";
+  if (theme === "purple" || theme === "clay" || theme === "qs" || theme === "onyx" || theme === "pearl" || theme === "navy" || theme === "aurora" || theme === "liquid") document.documentElement.dataset.palette = theme;
   localStorage.removeItem("nc-solid");
   if (localStorage.getItem("nc-solid-v2") === "true") document.documentElement.dataset.solid = "true";
 } catch {
@@ -51,6 +60,7 @@ try {
 }
 
 startScrollHints();
+startLiquidGlassScroll();
 
 const queryClient = new QueryClient({
   defaultOptions: {

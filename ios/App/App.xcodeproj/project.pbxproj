@@ -21,6 +21,10 @@
 		2AF72E2A305147268D562C5C /* NorthcroftIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F57AC026244DF98BFA23C7 /* NorthcroftIntents.swift */; };
 		0B68D2F2E5DC43BDADD2B485 /* NorthcroftWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DA8E9782A3354591979F5803 /* NorthcroftWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		34D6E5DD3CF04D8385DA3333 /* NorthcroftWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81CC6FE4F211450E873E10BA /* NorthcroftWidget.swift */; };
+		A675024516744EE59ADC563D /* NorthcroftActionIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86415C21FAFB40F8A9303B36 /* NorthcroftActionIntents.swift */; };
+		8DD4CA18EADA4CA396D5B76C /* NorthcroftActionIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86415C21FAFB40F8A9303B36 /* NorthcroftActionIntents.swift */; };
+		2A3AC1D23DB646248EAFC603 /* WorkdayLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AB68B0A0F745E4A1FA34A3 /* WorkdayLiveActivity.swift */; };
+		FCF4D9B7610B4D0EAD5FBB99 /* NorthcroftControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1943F62E228444C9AA2AC53 /* NorthcroftControls.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +49,9 @@
 		81CC6FE4F211450E873E10BA /* NorthcroftWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NorthcroftWidget.swift"; sourceTree = "<group>"; };
 		13B73AD40B8E41FFBFF653F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
 		50D47ED2744F4F55B174B452 /* NorthcroftWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "NorthcroftWidget.entitlements"; sourceTree = "<group>"; };
+		86415C21FAFB40F8A9303B36 /* NorthcroftActionIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NorthcroftActionIntents.swift"; sourceTree = "<group>"; };
+		22AB68B0A0F745E4A1FA34A3 /* WorkdayLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkdayLiveActivity.swift"; sourceTree = "<group>"; };
+		B1943F62E228444C9AA2AC53 /* NorthcroftControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NorthcroftControls.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +87,7 @@
 				504EC3061FED79650016851F /* App */,
 				D537A5532D584915A1DA6528 /* ShareExtension */,
 				4522B4556C9B409AA5603B05 /* NorthcroftWidget */,
+				EC0A545D6E4C44B1965AA0DA /* Shared */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -128,8 +136,18 @@
 				81CC6FE4F211450E873E10BA /* NorthcroftWidget.swift */,
 				13B73AD40B8E41FFBFF653F1 /* Info.plist */,
 				50D47ED2744F4F55B174B452 /* NorthcroftWidget.entitlements */,
+				22AB68B0A0F745E4A1FA34A3 /* WorkdayLiveActivity.swift */,
+				B1943F62E228444C9AA2AC53 /* NorthcroftControls.swift */,
 			);
 			path = NorthcroftWidget;
+			sourceTree = "<group>";
+		};
+		EC0A545D6E4C44B1965AA0DA /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				86415C21FAFB40F8A9303B36 /* NorthcroftActionIntents.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -269,6 +287,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				2AF72E2A305147268D562C5C /* NorthcroftIntents.swift in Sources */,
+				A675024516744EE59ADC563D /* NorthcroftActionIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -285,6 +304,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				34D6E5DD3CF04D8385DA3333 /* NorthcroftWidget.swift in Sources */,
+				8DD4CA18EADA4CA396D5B76C /* NorthcroftActionIntents.swift in Sources */,
+				2A3AC1D23DB646248EAFC603 /* WorkdayLiveActivity.swift in Sources */,
+				FCF4D9B7610B4D0EAD5FBB99 /* NorthcroftControls.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

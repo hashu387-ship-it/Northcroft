@@ -12,13 +12,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.rootViewController = CAPBridgeViewController()
         window?.makeKeyAndVisible()
 
-        // Opened from the app icon's press-and-hold menu, or from the widget (northcroft://action/...).
+        // Opened from the app icon's press-and-hold menu, the widget or Live Activity
+        // (northcroft://action/...), or a Calendar event (northcroft://open/...).
         // The web app does the action once it has loaded (NorthcroftNative.takeLaunchAction).
         if let item = connectionOptions.shortcutItem {
             LaunchActions.handle(shortcutType: item.type)
         }
         for context in connectionOptions.urlContexts {
             LaunchActions.handle(url: context.url)
+        }
+        // Opened from a Spotlight result.
+        for activity in connectionOptions.userActivities {
+            LaunchActions.handle(activity: activity)
         }
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
@@ -33,7 +38,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
-        SceneDelegateProxy.shared.scene(scene, continue: userActivity)
+        // A Spotlight result is ours; anything else goes on to Capacitor as before.
+        if !LaunchActions.handle(activity: userActivity) {
+            SceneDelegateProxy.shared.scene(scene, continue: userActivity)
+        }
     }
 
     /// A press-and-hold menu item while Northcroft is already running.

@@ -82,6 +82,12 @@
 	<true/>
 	<key>NCAppGroup</key>
 	<string>$(NC_APP_GROUP)</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Northcroft puts your task deadlines, site visits and meetings in a Northcroft calendar on this iPhone, and keeps it up to date.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Northcroft puts your task deadlines, site visits and meetings in a Northcroft calendar on this iPhone, and keeps it up to date.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

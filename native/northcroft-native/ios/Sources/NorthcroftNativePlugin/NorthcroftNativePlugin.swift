@@ -12,6 +12,10 @@ import UserNotifications
 ///   scanDocument   the iPhone's document scanner, giving back a PDF (DocumentScanner)
 ///   takeLaunchAction   a Siri, Shortcuts, app icon or widget action waiting to be done (LaunchActions)
 ///   updateWidget, clearWidget   what the home screen widget shows (WidgetData)
+///   workday        the workday Live Activity on the lock screen and Dynamic Island (WorkdayActivity)
+///   spotlightIndex, spotlightClear   projects and tasks in the iPhone's search (Spotlight)
+///   calendarStatus, calendarEnable, calendarSync, calendarDisable   the Northcroft calendar (CalendarSync)
+///   haptic         a small tap from the phone (Haptics)
 @objc(NorthcroftNativePlugin)
 public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "NorthcroftNativePlugin"
@@ -32,7 +36,15 @@ public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "scanDocument", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeLaunchAction", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "updateWidget", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clearWidget", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "clearWidget", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "workday", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "spotlightIndex", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "spotlightClear", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "calendarStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "calendarEnable", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "calendarSync", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "calendarDisable", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "haptic", returnType: CAPPluginReturnNone)
     ]
 
     private var launchObserver: NSObjectProtocol?
@@ -243,8 +255,10 @@ extension NorthcroftNativePlugin {
     }
 
     @objc func takeLaunchAction(_ call: CAPPluginCall) {
-        if let action = LaunchActions.take() {
-            call.resolve(["action": action])
+        if let a = LaunchActions.take() {
+            var out: [String: Any] = ["action": a.action]
+            if let p = a.path { out["path"] = p }
+            call.resolve(out)
         } else {
             call.resolve([:])
         }
@@ -257,7 +271,85 @@ extension NorthcroftNativePlugin {
 
     @objc func clearWidget(_ call: CAPPluginCall) {
         WidgetData.clear()
+        Task {
+            if #available(iOS 16.2, *) { await LiveWorkday.endAll() }
+        }
+        SpotlightIndex.clear()
         call.resolve()
+    }
+
+    // MARK: - Live Activity, Spotlight, Calendar, haptics
+
+    @objc func workday(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else {
+            call.resolve(["running": false])
+            return
+        }
+        let checkedIn = call.getBool("checkedIn") ?? false
+        let checkedOut = call.getBool("checkedOut") ?? false
+        let at = call.getDouble("checkInAtMs").map { Date(timeIntervalSince1970: $0 / 1000) }
+        let place = call.getString("place")
+        let due = call.getInt("dueToday") ?? 0
+        let late = call.getInt("late") ?? 0
+        let name = call.getString("firstName") ?? ""
+        Task {
+            let running = await LiveWorkday.sync(checkedIn: checkedIn, checkedOut: checkedOut, checkInAt: at, place: place, dueToday: due, late: late, firstName: name)
+            call.resolve(["running": running])
+        }
+    }
+
+    @objc func spotlightIndex(_ call: CAPPluginCall) {
+        let items = Self.plainList(call.getArray("items"))
+        SpotlightIndex.replace(items) { count in call.resolve(["indexed": count]) }
+    }
+
+    @objc func spotlightClear(_ call: CAPPluginCall) {
+        SpotlightIndex.clear()
+        call.resolve()
+    }
+
+    @objc func calendarStatus(_ call: CAPPluginCall) {
+        call.resolve(["permission": CalendarSync.status()])
+    }
+
+    @objc func calendarEnable(_ call: CAPPluginCall) {
+        CalendarSync.requestAccess { ok in
+            call.resolve(["permission": ok ? "granted" : CalendarSync.status()])
+        }
+    }
+
+    @objc func calendarSync(_ call: CAPPluginCall) {
+        guard CalendarSync.status() == "granted" else {
+            call.resolve(["synced": false, "permission": CalendarSync.status()])
+            return
+        }
+        let items = Self.plainList(call.getArray("events"))
+        DispatchQueue.global(qos: .utility).async {
+            do {
+                let n = try CalendarSync.sync(items)
+                call.resolve(["synced": true, "count": n])
+            } catch {
+                call.reject("Couldn't update the Northcroft calendar: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    @objc func calendarDisable(_ call: CAPPluginCall) {
+        CalendarSync.remove()
+        call.resolve()
+    }
+
+    /// A list of objects from JavaScript as plain dictionaries.
+    static func plainList(_ arr: JSArray?) -> [[String: Any]] {
+        (arr ?? []).compactMap { $0 as? JSObject }.map { obj in
+            var d: [String: Any] = [:]
+            for (k, v) in obj { d[k] = v }
+            return d
+        }
+    }
+
+    @objc func haptic(_ call: CAPPluginCall) {
+        Haptics.play(call.getString("style") ?? "light")
     }
 }
 

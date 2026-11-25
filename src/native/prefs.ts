@@ -6,6 +6,10 @@ export const PREF = {
   faceId: "nc-faceid",
   /** Remind me to check in when I arrive at the office. */
   officeWatch: "nc-office-watch",
+  /** Task deadlines, site visits and meetings in a Northcroft calendar on the phone. */
+  calendar: "nc-calendar-sync",
+  /** The workday Live Activity is on unless this is set. */
+  liveActivityOff: "nc-live-activity-off",
 } as const;
 
 const EVENT = "nc-native-prefs";

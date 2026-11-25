@@ -15,7 +15,34 @@ export interface SharedBatch {
 }
 
 /** Something asked for from Siri, the Shortcuts app, the app icon's press-and-hold menu or the widget. */
-export type LaunchAction = "checkin" | "scan" | "tasks" | "chats";
+export type LaunchAction = "checkin" | "checkout" | "scan" | "tasks" | "chats" | "open";
+
+export type CalendarPermission = "granted" | "writeOnly" | "denied" | "notDetermined" | "unknown";
+
+/** One entry in the Northcroft calendar on the phone. */
+export interface CalendarEntry {
+  /** Stays the same for the same task or event ("task:<id>", "event:<id>"). */
+  key: string;
+  title: string;
+  allDay: boolean;
+  /** yyyy-MM-dd, for all-day entries. */
+  date?: string;
+  /** For timed entries. */
+  startMs?: number;
+  endMs?: number;
+  location?: string;
+  notes?: string;
+  /** The page it opens in the app. */
+  path?: string;
+}
+
+/** One project or task in the iPhone's search. */
+export interface SpotlightItem {
+  path: string;
+  title: string;
+  subtitle?: string;
+  keywords?: string[];
+}
 
 /** What the home screen widget shows (ios/App/NorthcroftWidget reads the same fields). */
 export interface WidgetSnapshot {
@@ -56,11 +83,24 @@ export interface NorthcroftNativePlugin {
   setBadge(o: { count: number }): Promise<void>;
   /** The iPhone's document scanner; the pages come back as one PDF (base64). */
   scanDocument(): Promise<{ supported: boolean; cancelled?: boolean; data?: string; name?: string; pages?: number }>;
-  /** A Siri, Shortcuts, app icon or widget action waiting to be done (taken once). */
-  takeLaunchAction(): Promise<{ action?: LaunchAction }>;
+  /** A Siri, Shortcuts, Control Center, app icon, widget or Spotlight action waiting to be done (taken once). */
+  takeLaunchAction(): Promise<{ action?: LaunchAction; path?: string }>;
   /** What the home screen widget shows. */
   updateWidget(s: WidgetSnapshot): Promise<{ saved: boolean }>;
+  /** Also ends the Live Activity and empties Spotlight (signing out). */
   clearWidget(): Promise<void>;
+  /** The workday Live Activity: running while checked in and not yet out. */
+  workday(o: { checkedIn: boolean; checkedOut: boolean; checkInAtMs?: number; place?: string; dueToday: number; late: number; firstName: string }): Promise<{ running: boolean }>;
+  /** Projects and tasks in the iPhone's search (replaces what was there). */
+  spotlightIndex(o: { items: SpotlightItem[] }): Promise<{ indexed: number }>;
+  spotlightClear(): Promise<void>;
+  /** The Northcroft calendar on the phone. */
+  calendarStatus(): Promise<{ permission: CalendarPermission }>;
+  calendarEnable(): Promise<{ permission: CalendarPermission }>;
+  calendarSync(o: { events: CalendarEntry[] }): Promise<{ synced: boolean; count?: number; permission?: CalendarPermission }>;
+  calendarDisable(): Promise<void>;
+  /** A small tap from the phone. */
+  haptic(o: { style: "selection" | "light" | "medium" | "heavy" | "soft" | "rigid" | "success" | "warning" | "error" }): Promise<void>;
   /** A launch action arrived while the app was open: take it with takeLaunchAction. */
   addListener(event: "launchAction", fn: () => void): Promise<PluginListenerHandle>;
 }

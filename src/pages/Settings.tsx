@@ -29,7 +29,7 @@ interface SectionDef {
 }
 
 const ALL_SECTIONS: SectionDef[] = [
-  { id: "iphone", label: "iPhone app", hint: "Face ID, widget, Siri and scanning", icon: Smartphone, color: "#1B3570" },
+  { id: "iphone", label: "iPhone app", hint: "Face ID, widget, Siri, calendar and scanning", icon: Smartphone, color: "#1B3570" },
   { id: "profile", label: "Profile", hint: "Name, short name and phone", icon: User, color: "#1B3570" },
   { id: "password", label: "Password", hint: "Change your password", icon: KeyRound, color: "#1B3570" },
   { id: "notifications", label: "Notifications", hint: "Phone and desktop alerts", icon: BellRing, color: "#1B3570" },

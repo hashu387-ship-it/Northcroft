@@ -129,6 +129,8 @@ private struct CheckInBlock: View {
                 Image(systemName: checkedIn ? "checkmark.circle.fill" : "mappin.circle.fill")
                     .foregroundStyle(checkedIn ? Color.ncGreen : Color.ncRed)
                     .font(.system(size: compact ? 16 : 20, weight: .semibold))
+                    .widgetAccentable()
+                    .contentTransition(.symbolEffect(.replace))
                 Text(out ? "Checked out" : checkedIn ? "Checked in" : "Not checked in")
                     .font(.system(size: compact ? 14 : 16, weight: .semibold))
                     .foregroundStyle(.white)
@@ -146,6 +148,9 @@ private struct CheckInBlock: View {
                     .foregroundStyle(.white.opacity(0.75))
             }
         }
+        // Checking in or out slides the new state in.
+        .id(out ? 2 : checkedIn ? 1 : 0)
+        .transition(.push(from: .bottom))
     }
 }
 
@@ -158,8 +163,12 @@ private struct DueLine: View {
             HStack(spacing: 4) {
                 Text(s.dueToday == 0 ? "Nothing due today" : "\(s.dueToday) due today")
                     .foregroundStyle(.white)
+                    .contentTransition(.numericText())
                 if s.late > 0 {
-                    Text("· \(s.late) late").foregroundStyle(Color.ncRed)
+                    Text("· \(s.late) late")
+                        .foregroundStyle(Color.ncRed)
+                        .widgetAccentable()
+                        .contentTransition(.numericText())
                 }
             }
             .font(.system(size: 12, weight: .medium))
@@ -179,6 +188,7 @@ private struct Brand: View {
             .font(.system(size: 10, weight: .bold))
             .kerning(1.2)
             .foregroundStyle(Color.ncRed)
+            .widgetAccentable()
     }
 }
 
@@ -313,6 +323,7 @@ struct InlineView: View {
 
 struct NorthcroftWidgetView: View {
     @Environment(\.widgetFamily) var family
+    @Environment(\.widgetRenderingMode) var renderingMode
     let entry: DayEntry
 
     var body: some View {
@@ -335,8 +346,18 @@ struct NorthcroftWidgetView: View {
         }
     }
 
-    private var background: some View {
-        LinearGradient(colors: [.ncNavyLight, .ncNavy], startPoint: .topLeading, endPoint: .bottomTrailing)
+    /// Northcroft navy in full colour. With tinted or clear (Liquid Glass) home screens the system
+    /// puts its own glass behind the widget, so ours steps back.
+    @ViewBuilder private var background: some View {
+        if renderingMode == .fullColor {
+            ZStack {
+                LinearGradient(colors: [.ncNavyLight, .ncNavy], startPoint: .topLeading, endPoint: .bottomTrailing)
+                // A soft highlight across the top, like light on glass.
+                LinearGradient(colors: [.white.opacity(0.14), .clear], startPoint: .top, endPoint: .center)
+            }
+        } else {
+            Color.clear
+        }
     }
 }
 
@@ -359,5 +380,12 @@ struct NorthcroftTodayWidget: Widget {
 struct NorthcroftWidgets: WidgetBundle {
     var body: some Widget {
         NorthcroftTodayWidget()
+        WorkdayLiveActivity()
+        if #available(iOS 18.0, *) {
+            CheckInControl()
+        }
+        if #available(iOS 18.0, *) {
+            ScanControl()
+        }
     }
 }

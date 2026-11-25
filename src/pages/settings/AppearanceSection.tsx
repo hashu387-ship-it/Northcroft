@@ -4,12 +4,12 @@ import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
 import { Switch } from "@/components/ui";
 import { Section } from "./common";
 
-type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx" | "pearl" | "navy" | "aurora";
+type Theme = "system" | "light" | "dark" | "purple" | "clay" | "qs" | "onyx" | "pearl" | "navy" | "aurora" | "liquid";
 
 function readTheme(): Theme {
   try {
     const t = localStorage.getItem("nc-theme");
-    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" || t === "pearl" || t === "onyx" || t === "navy" || t === "aurora" ? t : "navy";
+    return t === "light" || t === "dark" || t === "system" || t === "purple" || t === "clay" || t === "qs" || t === "pearl" || t === "onyx" || t === "navy" || t === "aurora" || t === "liquid" ? t : "navy";
   } catch {
     return "navy";
   }
@@ -33,9 +33,10 @@ export function AppearanceSection() {
     const root = document.documentElement;
     // Onyx, QS Team glass and Purple glass are the dark theme with a palette over it; Pearl and Clay
     // glass are the light theme with a palette over it.
-    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx" || t === "pearl" || t === "navy" || t === "aurora") root.dataset.palette = t;
+    if (t === "purple" || t === "clay" || t === "qs" || t === "onyx" || t === "pearl" || t === "navy" || t === "aurora" || t === "liquid") root.dataset.palette = t;
     else delete root.dataset.palette;
-    const base = t === "purple" || t === "qs" || t === "onyx" || t === "navy" || t === "aurora" ? "dark" : t === "clay" || t === "pearl" ? "light" : t;
+    // Liquid Glass follows the phone's light or dark mode.
+    const base = t === "purple" || t === "qs" || t === "onyx" || t === "navy" || t === "aurora" ? "dark" : t === "clay" || t === "pearl" ? "light" : t === "liquid" ? "system" : t;
     try {
       if (base === "system") delete root.dataset.theme;
       else root.dataset.theme = base;
@@ -59,6 +60,7 @@ export function AppearanceSection() {
   }
 
   const options: { value: Theme; label: string }[] = [
+    { value: "liquid", label: "Liquid Glass (iOS 26)" },
     { value: "navy", label: "Northcroft navy" },
     { value: "aurora", label: "Aurora glass (new)" },
     { value: "onyx", label: "Onyx" },
