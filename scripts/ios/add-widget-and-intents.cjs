@@ -1,0 +1,158 @@
+// Adds to ios/App/App.xcodeproj:
+//   - the "NorthcroftWidget" target (the home screen and lock screen widget), embedded in the app
+//   - NorthcroftIntents.swift (Siri and Shortcuts) to the App target
+//   - the NC_APP_GROUP build setting on every target, which names the shared app group in the
+//     entitlements and Info.plist files (so a test build can use its own group)
+// Already done and committed; kept to redo it if the iOS project is ever made again with
+// `npx cap add ios` (run add-share-extension.cjs first). Run from the repository root:
+//   npx -y -p xcode@3.0.1 node scripts/ios/add-widget-and-intents.cjs
+const path = require("path");
+const xcode = require("xcode");
+
+const PBX = path.join("ios", "App", "App.xcodeproj", "project.pbxproj");
+const APP_ID = "com.northcroftme.qsteam";
+const APP_GROUP = "group.com.northcroftme.qsteam";
+const EXT = "NorthcroftWidget";
+const INTENTS = "NorthcroftIntents.swift";
+
+const proj = xcode.project(PBX);
+proj.parseSync();
+const objects = proj.hash.project.objects;
+const q = (s) => `"${s}"`;
+const unq = (s) => String(s ?? "").replace(/"/g, "");
+
+const targets = () => Object.entries(objects.PBXNativeTarget).filter(([k, v]) => !k.endsWith("_comment") && typeof v === "object");
+const targetNamed = (name) => targets().find(([, t]) => unq(t.name) === name);
+
+function fileRef(name, type) {
+  const id = proj.generateUuid();
+  objects.PBXFileReference[id] = { isa: "PBXFileReference", lastKnownFileType: type, path: q(name), sourceTree: q("<group>") };
+  objects.PBXFileReference[`${id}_comment`] = name;
+  return id;
+}
+
+function configsOf(target) {
+  const list = objects.XCConfigurationList[target.buildConfigurationList];
+  return list.buildConfigurations.map((c) => objects.XCBuildConfiguration[c.value]);
+}
+
+function addToSources(target, ref, name) {
+  const phase = target.buildPhases.find((p) => p.comment === "Sources");
+  const buildFile = proj.generateUuid();
+  objects.PBXBuildFile[buildFile] = { isa: "PBXBuildFile", fileRef: ref, fileRef_comment: name };
+  objects.PBXBuildFile[`${buildFile}_comment`] = `${name} in Sources`;
+  objects.PBXSourcesBuildPhase[phase.value].files.push({ value: buildFile, comment: `${name} in Sources` });
+}
+
+const appEntry = targetNamed("App");
+if (!appEntry) throw new Error("No App target");
+const app = appEntry[1];
+
+// --- NC_APP_GROUP on the App and ShareExtension targets --------------------------------------------
+for (const name of ["App", "ShareExtension"]) {
+  const t = targetNamed(name);
+  if (!t) continue;
+  for (const c of configsOf(t[1])) c.buildSettings.NC_APP_GROUP = APP_GROUP;
+}
+
+// --- Siri and Shortcuts: NorthcroftIntents.swift in the App target ---------------------------------
+const hasIntents = Object.entries(objects.PBXFileReference).some(([k, v]) => !k.endsWith("_comment") && unq(v.path) === INTENTS);
+if (!hasIntents) {
+  const appGroupId = Object.keys(objects.PBXGroup).find((k) => !k.endsWith("_comment") && objects.PBXGroup[k].path === "App");
+  const ref = fileRef(INTENTS, "sourcecode.swift");
+  objects.PBXGroup[appGroupId].children.push({ value: ref, comment: INTENTS });
+  addToSources(app, ref, INTENTS);
+}
+
+// --- The widget target --------------------------------------------------------------------------------
+if (targetNamed(EXT)) {
+  console.log(`${EXT} is already in the project.`);
+} else {
+  const target = proj.addTarget(EXT, "app_extension", EXT, `${APP_ID}.widget`);
+
+  const swiftRef = fileRef(`${EXT}.swift`, "sourcecode.swift");
+  const plistRef = fileRef("Info.plist", "text.plist.xml");
+  const entRef = fileRef(`${EXT}.entitlements`, "text.plist.entitlements");
+  const groupId = proj.generateUuid();
+  objects.PBXGroup[groupId] = {
+    isa: "PBXGroup",
+    children: [
+      { value: swiftRef, comment: `${EXT}.swift` },
+      { value: plistRef, comment: "Info.plist" },
+      { value: entRef, comment: `${EXT}.entitlements` },
+    ],
+    path: EXT,
+    sourceTree: q("<group>"),
+  };
+  objects.PBXGroup[`${groupId}_comment`] = EXT;
+  const mainGroup = objects.PBXGroup[proj.getFirstProject().firstProject.mainGroup];
+  mainGroup.children.splice(mainGroup.children.length - 1, 0, { value: groupId, comment: EXT });
+
+  proj.addBuildPhase([], "PBXSourcesBuildPhase", "Sources", target.uuid);
+  proj.addBuildPhase([], "PBXFrameworksBuildPhase", "Frameworks", target.uuid);
+  proj.addBuildPhase([], "PBXResourcesBuildPhase", "Resources", target.uuid);
+  addToSources(target.pbxNativeTarget, swiftRef, `${EXT}.swift`);
+
+  // Build settings, matching the App target where it matters (versions must match for the App Store).
+  // Widgets need iOS 17 here (containerBackground); on older iPhones the app works without it.
+  const appRelease = configsOf(app).find((c) => c.name === "Release").buildSettings;
+  for (const c of configsOf(target.pbxNativeTarget)) {
+    const debug = c.name === "Debug";
+    c.buildSettings = {
+      CODE_SIGN_ENTITLEMENTS: `${EXT}/${EXT}.entitlements`,
+      CODE_SIGN_STYLE: "Automatic",
+      CURRENT_PROJECT_VERSION: appRelease.CURRENT_PROJECT_VERSION ?? 1,
+      GENERATE_INFOPLIST_FILE: "NO",
+      INFOPLIST_FILE: `${EXT}/Info.plist`,
+      IPHONEOS_DEPLOYMENT_TARGET: "17.0",
+      LD_RUNPATH_SEARCH_PATHS: q("$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"),
+      MARKETING_VERSION: appRelease.MARKETING_VERSION ?? "1.0",
+      NC_APP_GROUP: APP_GROUP,
+      PRODUCT_BUNDLE_IDENTIFIER: `${APP_ID}.widget`,
+      PRODUCT_NAME: q("$(TARGET_NAME)"),
+      SKIP_INSTALL: "YES",
+      SWIFT_EMIT_LOC_STRINGS: "YES",
+      SWIFT_VERSION: "5.0",
+      TARGETED_DEVICE_FAMILY: q("1,2"),
+      ...(debug ? { SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG", SWIFT_OPTIMIZATION_LEVEL: q("-Onone") } : { SWIFT_COMPILATION_MODE: "wholemodule", VALIDATE_PRODUCT: "YES" }),
+    };
+  }
+
+  // The library leaves two "undefined" values on the .appex file reference; Xcode can't read those.
+  const productRef = objects.PBXFileReference[target.pbxNativeTarget.productReference];
+  delete productRef.fileEncoding;
+  delete productRef.lastKnownFileType;
+
+  // Build the widget before the app that embeds it (the library usually adds this already).
+  const deps = app.dependencies ?? [];
+  const already = deps.some((d) => objects.PBXTargetDependency?.[d.value]?.target === target.uuid);
+  if (!already) proj.addTargetDependency(appEntry[0], [target.uuid]);
+
+  // The library made a second "Copy Files" phase for the widget: move it into the existing
+  // "Embed Foundation Extensions" step, next to the share extension, and drop the extra phase.
+  const copyPhases = app.buildPhases
+    .map((ph) => [ph, objects.PBXCopyFilesBuildPhase[ph.value]])
+    .filter(([, v]) => v && String(v.dstSubfolderSpec) === "13");
+  const embed = copyPhases.find(([ph]) => ph.comment === "Embed Foundation Extensions") ?? copyPhases[0];
+  for (const [ph, v] of copyPhases) {
+    if (ph === embed[0]) continue;
+    for (const f of v.files) {
+      const bf = objects.PBXBuildFile[f.value];
+      if (bf) bf.settings = { ATTRIBUTES: ["RemoveHeadersOnCopy"] };
+      f.comment = `${EXT}.appex in Embed Foundation Extensions`;
+      objects.PBXBuildFile[`${f.value}_comment`] = f.comment;
+      embed[1].files.push(f);
+    }
+    delete objects.PBXCopyFilesBuildPhase[ph.value];
+    delete objects.PBXCopyFilesBuildPhase[`${ph.value}_comment`];
+    app.buildPhases.splice(app.buildPhases.indexOf(ph), 1);
+  }
+}
+
+// Keep Xcode's own spelling of these (the library drops the leading zero).
+const attrs = proj.getFirstProject().firstProject.attributes;
+attrs.LastSwiftUpdateCheck = "0920";
+attrs.LastUpgradeCheck = "0920";
+
+require("fs").writeFileSync(PBX, proj.writeSync());
+console.log("Added the widget, Siri shortcuts and NC_APP_GROUP.");

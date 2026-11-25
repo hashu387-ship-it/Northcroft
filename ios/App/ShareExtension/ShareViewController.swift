@@ -6,7 +6,11 @@ import UniformTypeIdentifiers
 /// and says so. The next time Northcroft opens it shows the Share screen to pick the task, chat or
 /// project they go to (src/native/NativeBridge.tsx picks them up).
 final class ShareViewController: UIViewController {
-    private let group = "group.com.northcroftme.qsteam"
+    /// The folder shared with the app: NCAppGroup in Info.plist, from the NC_APP_GROUP build setting.
+    private let group: String = {
+        if let v = Bundle.main.object(forInfoDictionaryKey: "NCAppGroup") as? String, !v.isEmpty, !v.contains("$(") { return v }
+        return "group.com.northcroftme.qsteam"
+    }()
     /// Files bigger than this are left out: they'd be too slow to hand over to the app.
     private let maxFileBytes = 40 * 1024 * 1024
 

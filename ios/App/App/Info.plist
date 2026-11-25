@@ -71,7 +71,7 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock Northcroft with Face ID.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Take photos to add to tasks, chats and registers.</string>
+	<string>Take photos and scan documents to add to tasks, chats and registers.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Record voice notes for tasks, chats and announcements.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -80,5 +80,53 @@
 	<false/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NCAppGroup</key>
+	<string>$(NC_APP_GROUP)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.northcroftme.qsteam.actions</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>northcroft</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>northcroft.checkin</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Check in</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>mappin.and.ellipse</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>northcroft.scan</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Scan a document</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>doc.viewfinder</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>northcroft.tasks</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>My tasks</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>checklist</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>northcroft.chats</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Chats</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>bubble.left.and.bubble.right</string>
+		</dict>
+	</array>
 </dict>
 </plist>

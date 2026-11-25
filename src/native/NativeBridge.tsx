@@ -5,28 +5,32 @@
 //   Check-in at the office: tells the phone where the offices are, and when someone opens the app
 //     after the "You're at the office" notice, checks them in (the office-only rule still applies).
 //   Share into Northcroft: files shared from other apps open the Share screen.
+//   Siri, Shortcuts, the app icon's press-and-hold menu and the widget: Check in, Scan a document,
+//     My tasks, Chats (the phone keeps the action until this takes it, see LaunchActions.swift).
+//   The home screen widget: keeps its copy of today's check-in and tasks due up to date.
 //   The status bar follows the look (light text on dark looks).
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { App } from "@capacitor/app";
 import { PushNotifications, type ActionPerformed } from "@capacitor/push-notifications";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
-import { useInvalidate, useSettings } from "@/lib/api";
+import { useInvalidate, useProjectMap, useSettings, useTasks } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { decideCheckinFix } from "@/lib/checkinFix";
 import { getPosition } from "@/lib/geo";
 import { setLeaveStatus } from "@/lib/leave";
 import { saveShare, type SharedFile } from "@/lib/share";
 import { errorMessage, supabase } from "@/lib/supabase";
-import { fmtTime12, todayISO } from "@/lib/time";
+import { fmtDue, fmtTime12, todayISO } from "@/lib/time";
 import type { Attendance } from "@/lib/types";
 import { useToast } from "@/components/ui";
 import { useAttendanceOn } from "@/pages/home/data";
 import { usePlaces } from "@/pages/attendance/shared";
-import { NorthcroftNative } from "./plugin";
+import { NorthcroftNative, type LaunchAction, type WidgetSnapshot } from "./plugin";
 import { PREF, usePref } from "./prefs";
 import { refreshNativePushState, saveNativeToken, enableNativePush } from "./push";
+import { scanToShare } from "./scan";
 
 const ASKED_KEY = "nc-native-push-asked";
 
@@ -51,11 +55,14 @@ export default function NativeBridge() {
   const today = todayISO();
   const todayRow = useAttendanceOn(today, me.id);
   const officeOn = usePref(PREF.officeWatch);
+  const myOpen = useTasks({ assigneeId: me.id, openOnly: true });
+  const projects = useProjectMap();
   const busy = useRef(false);
 
   // Latest values for the listeners, which are set up once.
-  const live = useRef({ me, navigate, toast, invalidate, today, checkedIn: false });
-  live.current = { me, navigate, toast, invalidate, today, checkedIn: (todayRow.data ?? []).length > 0 };
+  const todayRec = (todayRow.data ?? [])[0] as Attendance | undefined;
+  const live = useRef({ me, navigate, toast, invalidate, today, checkedIn: false, checkInAt: null as string | null });
+  live.current = { me, navigate, toast, invalidate, today, checkedIn: !!todayRec, checkInAt: todayRec?.check_in_at ?? null };
 
   /* -------------------------------------------------------------- look */
   useEffect(() => {
@@ -168,12 +175,77 @@ export default function NativeBridge() {
     if ((todayRow.data ?? []).length > 0) void NorthcroftNative.officeMarkCheckedIn({ day: today }).catch(() => undefined);
   }, [todayRow.data, today]);
 
+  /* -------------------------------------------------------------- check in now */
+  // From an arrival at the office, Siri, the app icon or the widget. The office-only rule still
+  // applies (the server checks where the phone is).
+  const checkInNow = useCallback(async () => {
+    const { navigate, toast, invalidate, today } = live.current;
+    try {
+      const fix = await getPosition();
+      const { data, error } = await supabase.rpc("check_in", {
+        p_lat: fix.lat,
+        p_lng: fix.lng,
+        p_accuracy: fix.accuracy,
+        p_address: null,
+        p_note: null,
+      });
+      if (error) throw error;
+      const rec = data as Attendance;
+      toast(`Checked in at ${fmtTime12(rec.check_in_at)}${rec.in_place_name ? `, ${rec.in_place_name}` : ""}`);
+      await NorthcroftNative.officeMarkCheckedIn({ day: today });
+      await invalidate("attendance");
+    } catch (e) {
+      const msg = errorMessage(e);
+      if (/already checked in/i.test(msg)) {
+        await NorthcroftNative.officeMarkCheckedIn({ day: today });
+      } else {
+        toast(`Couldn't check you in: ${msg}`, "error");
+        navigate("/attendance");
+      }
+    }
+  }, []);
+
+  /* -------------------------------------------------------------- Siri, app icon and widget actions */
+  const runAction = useCallback(
+    async (action: LaunchAction) => {
+      const { me, navigate, toast, checkedIn, checkInAt } = live.current;
+      switch (action) {
+        case "checkin":
+          if (me.attendance_exempt) {
+            navigate("/attendance");
+          } else if (checkedIn) {
+            toast(checkInAt ? `You checked in at ${fmtTime12(checkInAt)}` : "You've already checked in today");
+          } else {
+            await checkInNow();
+          }
+          return;
+        case "scan":
+          await scanToShare(navigate, toast);
+          return;
+        case "tasks":
+          navigate("/my-tasks");
+          return;
+        case "chats":
+          navigate("/chats");
+          return;
+      }
+    },
+    [checkInNow],
+  );
+
   /* -------------------------------------------------------------- on opening the app */
   const onOpen = useCallback(async () => {
     if (busy.current) return;
     busy.current = true;
-    const { navigate, toast, invalidate, today } = live.current;
+    const { navigate } = live.current;
     try {
+      // 0. Opened from Siri, Shortcuts, the app icon's menu or the widget.
+      const { action } = await NorthcroftNative.takeLaunchAction().catch(() => ({}) as { action?: LaunchAction });
+      if (action) {
+        await runAction(action);
+        return;
+      }
+
       // 1. Files shared in from another app.
       const { batch } = await NorthcroftNative.shareInbox().catch(() => ({ batch: undefined }));
       if (batch) {
@@ -196,34 +268,12 @@ export default function NativeBridge() {
       // 2. Arrived at the office: check in.
       const arrival = await NorthcroftNative.officePending().catch(() => ({}) as { kind?: "in" });
       if (arrival.kind === "in" && !live.current.checkedIn && !live.current.me.attendance_exempt) {
-        try {
-          const fix = await getPosition();
-          const { data, error } = await supabase.rpc("check_in", {
-            p_lat: fix.lat,
-            p_lng: fix.lng,
-            p_accuracy: fix.accuracy,
-            p_address: null,
-            p_note: null,
-          });
-          if (error) throw error;
-          const rec = data as Attendance;
-          toast(`Checked in at ${fmtTime12(rec.check_in_at)}${rec.in_place_name ? `, ${rec.in_place_name}` : ""}`);
-          await NorthcroftNative.officeMarkCheckedIn({ day: today });
-          await invalidate("attendance");
-        } catch (e) {
-          const msg = errorMessage(e);
-          if (/already checked in/i.test(msg)) {
-            await NorthcroftNative.officeMarkCheckedIn({ day: today });
-          } else {
-            toast(`Couldn't check you in: ${msg}`, "error");
-            navigate("/attendance");
-          }
-        }
+        await checkInNow();
       }
     } finally {
       busy.current = false;
     }
-  }, []);
+  }, [runAction, checkInNow]);
 
   useEffect(() => {
     // Give the first data a moment, so "already checked in today" is known.
@@ -231,11 +281,52 @@ export default function NativeBridge() {
     const sub = App.addListener("appStateChange", ({ isActive }) => {
       if (isActive) window.setTimeout(() => void onOpen(), 400);
     });
+    // An action while the app is already open (Siri, the app icon or the widget).
+    const action = NorthcroftNative.addListener("launchAction", () => {
+      window.setTimeout(() => void onOpen(), 300);
+    }).catch(() => undefined);
     return () => {
       window.clearTimeout(first);
       void sub.then((h) => h.remove());
+      void action.then((h) => h?.remove());
     };
   }, [onOpen]);
+
+  /* -------------------------------------------------------------- the home screen widget */
+  // Today's check-in and the open tasks due today or late, for the widget to show.
+  const widget = useMemo<WidgetSnapshot | null>(() => {
+    if (!todayRow.data || !myOpen.data) return null;
+    const due = myOpen.data
+      .filter((t) => (t.status === "todo" || t.status === "in_progress") && t.hold !== "on" && !!t.due_date && t.due_date <= today)
+      .sort((a, b) => (a.due_date! < b.due_date! ? -1 : a.due_date! > b.due_date! ? 1 : 0));
+    return {
+      day: today,
+      firstName: me.full_name.split(" ")[0],
+      exempt: !!me.attendance_exempt,
+      checkedIn: !!todayRec,
+      checkInAt: todayRec ? fmtTime12(todayRec.check_in_at) : undefined,
+      checkedOut: !!todayRec?.check_out_at,
+      checkOutAt: todayRec?.check_out_at ? fmtTime12(todayRec.check_out_at) : undefined,
+      place: todayRec?.in_place_name ?? undefined,
+      dueToday: due.filter((t) => t.due_date === today).length,
+      late: due.filter((t) => t.due_date! < today).length,
+      tasks: due.slice(0, 5).map((t) => ({
+        id: t.id,
+        title: t.title,
+        due: fmtDue(t.due_date),
+        project: projects.get(t.project_id)?.name,
+        late: t.due_date! < today,
+      })),
+    };
+  }, [todayRow.data, todayRec, myOpen.data, projects, today, me.full_name, me.attendance_exempt]);
+
+  const widgetKey = widget ? JSON.stringify(widget) : "";
+  useEffect(() => {
+    if (!widget) return;
+    void NorthcroftNative.updateWidget(widget).catch(() => undefined);
+    // Only when something it shows has changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgetKey]);
 
   return null;
 }

@@ -1,11 +1,12 @@
-// Settings > iPhone app (only inside the Northcroft iPhone app): Face ID lock and the check-in
-// reminder at the office.
+// Settings > iPhone app (only inside the Northcroft iPhone app): Face ID lock, the check-in
+// reminder at the office, the document scanner, and how to use the widget, Siri and the app icon.
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ChevronRight, ScanLine } from "lucide-react";
 import { useMe } from "@/lib/auth";
 import { pushState } from "@/lib/push";
 import { NorthcroftNative, type LocationPermission } from "@/native/plugin";
+import { scanToShare } from "@/native/scan";
 import { PREF, setPref, usePref } from "@/native/prefs";
 import { Pill, Switch, useToast } from "@/components/ui";
 import { Section } from "./common";
@@ -13,6 +14,7 @@ import { Section } from "./common";
 export function IphoneSection() {
   const me = useMe();
   const toast = useToast();
+  const navigate = useNavigate();
   const faceOn = usePref(PREF.faceId);
   const officeOn = usePref(PREF.officeWatch);
   const [bio, setBio] = useState<{ available: boolean; type: string } | null>(null);
@@ -108,6 +110,43 @@ export function IphoneSection() {
           </div>
         </Section>
       )}
+
+      <Section title="Scan documents">
+        <button type="button" className="setting-row" style={{ color: "inherit", width: "100%", textAlign: "left", background: "none", border: 0 }} onClick={() => void scanToShare(navigate, toast)}>
+          <div className="grow">
+            <b>Scan a document</b>
+            <small>Delivery notes, site sheets, marked-up drawings: the camera finds the page edges and straightens them, and the pages become one PDF you send to a chat or one of your tasks.</small>
+          </div>
+          <ScanLine className="muted" />
+        </button>
+      </Section>
+
+      <Section title="Widget, Siri and the app icon">
+        <div className="setting-row">
+          <div className="grow">
+            <b>Home screen widget</b>
+            <small>
+              Shows whether you've checked in and your tasks due today. Press and hold an empty spot on your home screen (or lock screen), tap Edit, then Add Widget,
+              and pick Northcroft.
+            </small>
+          </div>
+        </div>
+        <div className="setting-row">
+          <div className="grow">
+            <b>Siri and Shortcuts</b>
+            <small>
+              Say {me.attendance_exempt ? "" : "“Check me in with Northcroft”, "}“Scan a document with Northcroft”, “Show my Northcroft tasks” or
+              “Open Northcroft chats”. They're also in the Shortcuts app, and can go on the Action button.
+            </small>
+          </div>
+        </div>
+        <div className="setting-row">
+          <div className="grow">
+            <b>App icon</b>
+            <small>Press and hold the Northcroft icon for Check in, Scan a document, My tasks and Chats.</small>
+          </div>
+        </div>
+      </Section>
 
       <Section title="Notifications">
         <Link to="/settings/notifications" className="setting-row" style={{ color: "inherit" }}>

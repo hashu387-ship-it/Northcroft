@@ -9,6 +9,9 @@ import UserNotifications
 ///   biometry, authenticate   Face ID
 ///   shareInbox, readShared, clearShared   files shared in from other apps (ShareExtension)
 ///   setBadge       the number on the app icon
+///   scanDocument   the iPhone's document scanner, giving back a PDF (DocumentScanner)
+///   takeLaunchAction   a Siri, Shortcuts, app icon or widget action waiting to be done (LaunchActions)
+///   updateWidget, clearWidget   what the home screen widget shows (WidgetData)
 @objc(NorthcroftNativePlugin)
 public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "NorthcroftNativePlugin"
@@ -25,12 +28,27 @@ public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "shareInbox", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "readShared", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearShared", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setBadge", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setBadge", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "scanDocument", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "takeLaunchAction", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "updateWidget", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearWidget", returnType: CAPPluginReturnPromise)
     ]
+
+    private var launchObserver: NSObjectProtocol?
 
     override public func load() {
         // Also done in AppDelegate; repeating it here is harmless and covers an older AppDelegate.
         NorthcroftSetup.start()
+        // A Siri, Shortcuts, app icon or widget action while the app is already open: tell the web
+        // app, which then takes it with takeLaunchAction.
+        launchObserver = NotificationCenter.default.addObserver(forName: LaunchActions.didChange, object: nil, queue: .main) { [weak self] _ in
+            self?.notifyListeners("launchAction", data: [:])
+        }
+    }
+
+    deinit {
+        if let o = launchObserver { NotificationCenter.default.removeObserver(o) }
     }
 
     // MARK: - Check-in at the office
@@ -190,10 +208,63 @@ public class NorthcroftNativePlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
+// MARK: - Document scanner, launch actions, widget
+
+extension NorthcroftNativePlugin {
+    @objc func scanDocument(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard DocumentScanner.isSupported else {
+                call.resolve(["supported": false])
+                return
+            }
+            guard let host = self.bridge?.viewController else {
+                call.reject("Couldn't open the scanner")
+                return
+            }
+            DocumentScanner.present(from: host) { outcome in
+                switch outcome {
+                case .pdf(let data, let pages):
+                    let f = DateFormatter()
+                    f.locale = Locale(identifier: "en_US_POSIX")
+                    f.dateFormat = "yyyy-MM-dd HH.mm"
+                    call.resolve([
+                        "supported": true,
+                        "data": data.base64EncodedString(),
+                        "name": "Scan \(f.string(from: Date())).pdf",
+                        "pages": pages
+                    ])
+                case .cancelled:
+                    call.resolve(["supported": true, "cancelled": true])
+                case .failed(let why):
+                    call.reject(why)
+                }
+            }
+        }
+    }
+
+    @objc func takeLaunchAction(_ call: CAPPluginCall) {
+        if let action = LaunchActions.take() {
+            call.resolve(["action": action])
+        } else {
+            call.resolve([:])
+        }
+    }
+
+    @objc func updateWidget(_ call: CAPPluginCall) {
+        let json = (call.options as? [String: Any]) ?? [:]
+        call.resolve(["saved": WidgetData.save(json)])
+    }
+
+    @objc func clearWidget(_ call: CAPPluginCall) {
+        WidgetData.clear()
+        call.resolve()
+    }
+}
+
 /// Where the share extension leaves files for the app: the shared app group folder "Shared",
 /// one folder per share with a manifest.json listing what's in it.
 enum SharedInbox {
-    static let group = "group.com.northcroftme.qsteam"
+    static var group: String { AppGroup.id }
 
     static var root: URL? {
         FileManager.default

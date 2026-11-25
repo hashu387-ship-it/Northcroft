@@ -4,6 +4,8 @@ import { supabase } from "./supabase";
 import { forgetUser, rememberUser } from "./offline";
 import { clearOutbox } from "./outbox";
 import type { Profile } from "./types";
+import { isNativeApp } from "@/native/platform";
+import { NorthcroftNative } from "@/native/plugin";
 
 interface AuthValue {
   session: Session | null;
@@ -95,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         if (id) await clearOutbox(id).catch(() => {});
         await forgetUser();
+        // The iPhone widget stops showing their day.
+        if (isNativeApp()) await NorthcroftNative.clearWidget().catch(() => {});
       },
       refreshProfile: () => loadProfile(session?.user.id),
     }),

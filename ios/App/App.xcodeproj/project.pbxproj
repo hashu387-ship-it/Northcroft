@@ -18,6 +18,9 @@
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		F56A6A7DD4684CD983298AFE /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 889AFC58910C4A3683F1AFB7 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4939CEF9C22147DC9B9291F8 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F90EDE71B07C4B42B196D362 /* ShareViewController.swift */; };
+		2AF72E2A305147268D562C5C /* NorthcroftIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F57AC026244DF98BFA23C7 /* NorthcroftIntents.swift */; };
+		0B68D2F2E5DC43BDADD2B485 /* NorthcroftWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DA8E9782A3354591979F5803 /* NorthcroftWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		34D6E5DD3CF04D8385DA3333 /* NorthcroftWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81CC6FE4F211450E873E10BA /* NorthcroftWidget.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +40,11 @@
 		F90EDE71B07C4B42B196D362 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShareViewController.swift"; sourceTree = "<group>"; };
 		27924835038E4C9998FA5A75 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
 		D8B3A505B7EF43DCB2DE478C /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "ShareExtension.entitlements"; sourceTree = "<group>"; };
+		07F57AC026244DF98BFA23C7 /* NorthcroftIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NorthcroftIntents.swift"; sourceTree = "<group>"; };
+		DA8E9782A3354591979F5803 /* NorthcroftWidget.appex */ = {isa = PBXFileReference; name = "NorthcroftWidget.appex"; path = "NorthcroftWidget.appex"; sourceTree = BUILT_PRODUCTS_DIR; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; };
+		81CC6FE4F211450E873E10BA /* NorthcroftWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NorthcroftWidget.swift"; sourceTree = "<group>"; };
+		13B73AD40B8E41FFBFF653F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
+		50D47ED2744F4F55B174B452 /* NorthcroftWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "NorthcroftWidget.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +63,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		81887EC4D6804309B47CA348 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -64,6 +79,7 @@
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				D537A5532D584915A1DA6528 /* ShareExtension */,
+				4522B4556C9B409AA5603B05 /* NorthcroftWidget */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -73,6 +89,7 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				889AFC58910C4A3683F1AFB7 /* ShareExtension.appex */,
+				DA8E9782A3354591979F5803 /* NorthcroftWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -90,6 +107,7 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				8A2B206D463F49D7A99D0638 /* App.entitlements */,
+				07F57AC026244DF98BFA23C7 /* NorthcroftIntents.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -102,6 +120,16 @@
 				D8B3A505B7EF43DCB2DE478C /* ShareExtension.entitlements */,
 			);
 			path = ShareExtension;
+			sourceTree = "<group>";
+		};
+		4522B4556C9B409AA5603B05 /* NorthcroftWidget */ = {
+			isa = PBXGroup;
+			children = (
+				81CC6FE4F211450E873E10BA /* NorthcroftWidget.swift */,
+				13B73AD40B8E41FFBFF653F1 /* Info.plist */,
+				50D47ED2744F4F55B174B452 /* NorthcroftWidget.entitlements */,
+			);
+			path = NorthcroftWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -120,6 +148,7 @@
 			);
 			dependencies = (
 				BEE1DCA9DD3A4882A6FAA307 /* PBXTargetDependency */,
+				5DECEF0D2DDF4BFC8E6E168C /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -140,6 +169,23 @@
 				F55A88F07ED14B4DB7D63015 /* Sources */,
 				B562EBE5B7194A19BDC2CCE8 /* Frameworks */,
 				9A73D92EC846438E857B4D4C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+		};
+		943519B2C2474C2DAF7C859A /* "NorthcroftWidget" */ = {
+			isa = PBXNativeTarget;
+			name = "NorthcroftWidget";
+			productName = "NorthcroftWidget";
+			productReference = DA8E9782A3354591979F5803;
+			productType = "com.apple.product-type.app-extension";
+			buildConfigurationList = EFD854D7E68E4E04A827B8C6;
+			buildPhases = (
+				77951FD498134099A7EE97B7 /* Sources */,
+				81887EC4D6804309B47CA348 /* Frameworks */,
+				F621C53DB4FD4521B5929B2F /* Resources */,
 			);
 			buildRules = (
 			);
@@ -180,6 +226,7 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				6F3B66FCFDDF42B384C59596 /* "ShareExtension" */,
+				943519B2C2474C2DAF7C859A /* "NorthcroftWidget" */,
 			);
 		};
 /* End PBXProject section */
@@ -205,6 +252,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F621C53DB4FD4521B5929B2F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -214,6 +268,7 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				2AF72E2A305147268D562C5C /* NorthcroftIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,6 +277,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				4939CEF9C22147DC9B9291F8 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77951FD498134099A7EE97B7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34D6E5DD3CF04D8385DA3333 /* NorthcroftWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -377,6 +440,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
+				NC_APP_GROUP = group.com.northcroftme.qsteam;
 			};
 			name = Debug;
 		};
@@ -399,6 +463,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
+				NC_APP_GROUP = group.com.northcroftme.qsteam;
 			};
 			name = Release;
 		};
@@ -422,6 +487,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				NC_APP_GROUP = group.com.northcroftme.qsteam;
 			};
 		};
 		17725F97E6914F67B88A8483 /* Release */ = {
@@ -437,6 +503,53 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.northcroftme.qsteam.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+				NC_APP_GROUP = group.com.northcroftme.qsteam;
+			};
+		};
+		775E13C0868B4A2FA59C59B4 /* Debug */ = {
+			name = Debug;
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NorthcroftWidget/NorthcroftWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NorthcroftWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 1.0;
+				NC_APP_GROUP = group.com.northcroftme.qsteam;
+				PRODUCT_BUNDLE_IDENTIFIER = com.northcroftme.qsteam.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+		};
+		7E62DBA5A13B48348662D58E /* Release */ = {
+			name = Release;
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NorthcroftWidget/NorthcroftWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NorthcroftWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 1.0;
+				NC_APP_GROUP = group.com.northcroftme.qsteam;
+				PRODUCT_BUNDLE_IDENTIFIER = com.northcroftme.qsteam.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -476,6 +589,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		EFD854D7E68E4E04A827B8C6 /* Build configuration list for PBXNativeTarget "NorthcroftWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				775E13C0868B4A2FA59C59B4 /* Debug */,
+				7E62DBA5A13B48348662D58E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -499,6 +621,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F56A6A7DD4684CD983298AFE /* ShareExtension.appex in Embed Foundation Extensions */,
+				0B68D2F2E5DC43BDADD2B485 /* NorthcroftWidget.appex in Embed Foundation Extensions */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			name = "Embed Foundation Extensions";
@@ -513,6 +636,11 @@
 			target = 6F3B66FCFDDF42B384C59596 /* "ShareExtension" */;
 			targetProxy = 10FE2624C6E2434D9D6C2CB3 /* PBXContainerItemProxy */;
 		};
+		5DECEF0D2DDF4BFC8E6E168C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 943519B2C2474C2DAF7C859A /* "NorthcroftWidget" */;
+			targetProxy = 8E5D8E4DEEC241C1B6ED8DF6 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXContainerItemProxy section */
@@ -522,6 +650,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 6F3B66FCFDDF42B384C59596;
 			remoteInfo = "ShareExtension";
+		};
+		8E5D8E4DEEC241C1B6ED8DF6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 943519B2C2474C2DAF7C859A;
+			remoteInfo = "NorthcroftWidget";
 		};
 /* End PBXContainerItemProxy section */
 	};

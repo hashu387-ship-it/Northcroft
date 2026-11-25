@@ -10,6 +10,12 @@ so every change to the website reaches the app straight away. The shell adds wha
 - **Face ID lock:** switched on in Settings > iPhone app.
 - **Share into Northcroft:** Northcroft appears in the share sheet of other apps (Photos, Files,
   WhatsApp, Mail).
+- **Scan documents:** the iPhone's document scanner (More > Scan a document) turns paper into a PDF
+  that goes to a chat or a task, through the Share screen.
+- **Home screen and lock screen widget:** whether you've checked in today, and your tasks due today.
+- **Siri and Shortcuts:** "Check me in with Northcroft", "Scan a document with Northcroft", "Show my
+  Northcroft tasks", "Open Northcroft chats". Also in the Shortcuts app and on the Action button.
+- **App icon menu:** press and hold the icon for Check in, Scan a document, My tasks and Chats.
 
 Only the native parts (the folders `ios/` and `native/`) need a new version through Apple. Everything
 else updates the moment it's deployed.
@@ -50,7 +56,7 @@ Then, in Xcode:
 1. In the left column, click the blue **App** project at the top.
 2. Under **TARGETS**, click **App**, then the **Signing & Capabilities** tab.
 3. Make sure **Automatically manage signing** is ticked, and pick your name under **Team**.
-4. Do the same for the second target, **ShareExtension**.
+4. Do the same for the other two targets, **ShareExtension** and **NorthcroftWidget**.
 5. If Xcode shows a red message under **App Groups** or **Push Notifications**, click
    **Try Again**. Xcode registers them with Apple for you.
 
@@ -69,6 +75,9 @@ identifier, the share extension's identifier and the app group all have to chang
    - **Share:** in Photos, share a photo, pick **Northcroft**, then open the app. The Share screen
      shows the photo.
    - **Notifications:** these only arrive once step 5 below is done.
+   - **Scan:** More > Scan a document. Scan a page, then send it to yourself in a chat.
+   - **Widget:** add the Northcroft widget to the home screen; it shows today's check-in and tasks.
+   - **Siri:** say "Show my Northcroft tasks". Press and hold the app icon for its menu.
 
 ## 5. Notifications key (once)
 
@@ -112,7 +121,8 @@ Send a test notification** checks that it works.
 4. After 15 to 30 minutes the build appears in App Store Connect under **TestFlight**.
 
 Before each new upload, raise the **Build** number (and the **Version** for a new release) on the
-**General** tab. Do it for both targets, **App** and **ShareExtension**; they must match.
+**General** tab. Do it for all three targets, **App**, **ShareExtension** and **NorthcroftWidget**;
+they must match.
 
 ## 8. Test with TestFlight
 
@@ -166,4 +176,17 @@ automatically.
   - `supabase/functions/send-push/apns.ts`: sending through APNs.
 - **Share extension target:** if the iOS project is ever made again with `npx cap add ios`, run
   `npx -y -p xcode@3.0.1 node scripts/ios/add-share-extension.cjs` to add the share extension
-  target back.
+  target back, then `npx -y -p xcode@3.0.1 node scripts/ios/add-widget-and-intents.cjs` for the
+  widget target, the Siri file and the `NC_APP_GROUP` setting.
+- **Widget:** `ios/App/NorthcroftWidget` (WidgetKit, iOS 17 and later). It reads the copy the app
+  saves in the shared app group (`WidgetData.swift`); the web app sends it from `NativeBridge`.
+- **Siri, Shortcuts, app icon menu, widget taps:** `ios/App/App/NorthcroftIntents.swift`,
+  `UIApplicationShortcutItems` and the `northcroft://action/...` links in `Info.plist`, handled in
+  `SceneDelegate.swift`. They all leave an action in `LaunchActions.swift`; the web app takes it
+  (`takeLaunchAction`) and does it, since it needs the sign-in.
+- **Document scanner:** `DocumentScanner.swift` (VisionKit) gives back a PDF; `src/native/scan.ts`
+  opens the Share screen with it.
+- **App group:** named once by the `NC_APP_GROUP` build setting, used by the entitlements and the
+  `NCAppGroup` key in each Info.plist, so a test build can use its own group.
+- The new iPhone features need both a new iPhone build and the website update; an older iPhone
+  build just doesn't show them (Scan a document says to update the app).

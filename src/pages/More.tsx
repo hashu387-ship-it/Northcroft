@@ -1,8 +1,8 @@
 import "@/styles/comms.css";
-import { Link } from "react-router-dom";
-import { BarChart3, CalendarDays, ClipboardList, FileClock, FileSpreadsheet, LogOut, MapPin, Megaphone, MessagesSquare, Settings, Sparkles, Timer, type LucideIcon } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { BarChart3, CalendarDays, ClipboardList, FileClock, FileSpreadsheet, LogOut, MapPin, Megaphone, MessagesSquare, ScanLine, Settings, Sparkles, Timer, type LucideIcon } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
-import { Avatar, useConfirm } from "@/components/ui";
+import { Avatar, useConfirm, useToast } from "@/components/ui";
 import { useAuth, useMe } from "@/lib/auth";
 import { signOutWarning } from "@/lib/outbox";
 import { sendsDailyUpdate } from "@/lib/dailyUpdates";
@@ -11,6 +11,8 @@ import { showsManagerLabel } from "@/lib/people";
 import { MENU_COLOR, tileStyle } from "@/lib/menu";
 import { useSubmissionsDue } from "@/lib/submissions";
 import { QsLogo } from "@/components/Brand";
+import { isNativeApp } from "@/native/platform";
+import { scanToShare } from "@/native/scan";
 
 interface Tile {
   to: string;
@@ -25,6 +27,8 @@ export default function More() {
   const me = useMe();
   const { canAssign, signOut } = useAuth();
   const confirm = useConfirm();
+  const navigate = useNavigate();
+  const toast = useToast();
   const anns = useAnnouncementsWithAcks();
   const unacked = anns.data.filter((a) => needsMyAck(a, me.id)).length;
   const subsLate = useSubmissionsDue();
@@ -86,6 +90,24 @@ export default function More() {
             {!!t.count && <span className="count">{t.count}</span>}
           </Link>
         ))}
+        {isNativeApp() && (
+          // The iPhone's document scanner: the pages become a PDF to send to a chat or a task.
+          <a
+            href="/share"
+            role="button"
+            className="glass"
+            onClick={(e) => {
+              e.preventDefault();
+              void scanToShare(navigate, toast);
+            }}
+          >
+            <span className="ic" style={tileStyle("#0A84FF")}>
+              <ScanLine />
+            </span>
+            <span>Scan a document</span>
+            <small>To a chat or a task, as a PDF</small>
+          </a>
+        )}
       </div>
       <button className="btn glassy block large" style={{ marginTop: 18, color: "var(--red)" }} onClick={out}>
         <LogOut /> Sign out
