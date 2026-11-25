@@ -25,6 +25,9 @@
 		8DD4CA18EADA4CA396D5B76C /* NorthcroftActionIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86415C21FAFB40F8A9303B36 /* NorthcroftActionIntents.swift */; };
 		2A3AC1D23DB646248EAFC603 /* WorkdayLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AB68B0A0F745E4A1FA34A3 /* WorkdayLiveActivity.swift */; };
 		FCF4D9B7610B4D0EAD5FBB99 /* NorthcroftControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1943F62E228444C9AA2AC53 /* NorthcroftControls.swift */; };
+		13A809410B9D4E838EBCC8C8 /* NorthcroftWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10261D57A494C8BA9A38E /* NorthcroftWatchApp.swift */; };
+		CC406EE798B449B4B4EAFD13 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DBB54CA1065F4BC19AF0EAAD /* Assets.xcassets */; };
+		E2060C5C14A744718BCCD307 /* NorthcroftWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = C807EA8A35D24B8C856732F5 /* NorthcroftWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,6 +55,10 @@
 		86415C21FAFB40F8A9303B36 /* NorthcroftActionIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NorthcroftActionIntents.swift"; sourceTree = "<group>"; };
 		22AB68B0A0F745E4A1FA34A3 /* WorkdayLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkdayLiveActivity.swift"; sourceTree = "<group>"; };
 		B1943F62E228444C9AA2AC53 /* NorthcroftControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NorthcroftControls.swift"; sourceTree = "<group>"; };
+		C807EA8A35D24B8C856732F5 /* NorthcroftWatch.app */ = {isa = PBXFileReference; name = "NorthcroftWatch.app"; path = "NorthcroftWatch.app"; sourceTree = BUILT_PRODUCTS_DIR; explicitFileType = wrapper.application; includeInIndex = 0; };
+		60A10261D57A494C8BA9A38E /* NorthcroftWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NorthcroftWatchApp.swift"; sourceTree = "<group>"; };
+		2F7BC91F7B6C415F9AB9DC7E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
+		DBB54CA1065F4BC19AF0EAAD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Assets.xcassets"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +84,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1582387C04B42DD9586F606 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -88,6 +102,7 @@
 				D537A5532D584915A1DA6528 /* ShareExtension */,
 				4522B4556C9B409AA5603B05 /* NorthcroftWidget */,
 				EC0A545D6E4C44B1965AA0DA /* Shared */,
+				CA43810D0EEA4A8EB2C4396F /* NorthcroftWatch */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -98,6 +113,7 @@
 				504EC3041FED79650016851F /* App.app */,
 				889AFC58910C4A3683F1AFB7 /* ShareExtension.appex */,
 				DA8E9782A3354591979F5803 /* NorthcroftWidget.appex */,
+				C807EA8A35D24B8C856732F5 /* NorthcroftWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -150,6 +166,16 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		CA43810D0EEA4A8EB2C4396F /* NorthcroftWatch */ = {
+			isa = PBXGroup;
+			children = (
+				60A10261D57A494C8BA9A38E /* NorthcroftWatchApp.swift */,
+				DBB54CA1065F4BC19AF0EAAD /* Assets.xcassets */,
+				2F7BC91F7B6C415F9AB9DC7E /* Info.plist */,
+			);
+			path = NorthcroftWatch;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -161,12 +187,14 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				868D88D2FA854693B9107688 /* Embed Foundation Extensions */,
+				C1F6B3AE8BFB48A487CE1184 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				BEE1DCA9DD3A4882A6FAA307 /* PBXTargetDependency */,
 				5DECEF0D2DDF4BFC8E6E168C /* PBXTargetDependency */,
+				05B3FAD2D152473F914DCF64 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -210,6 +238,23 @@
 			dependencies = (
 			);
 		};
+		AB9D6ABEC58449A3BFE2D8E3 /* "NorthcroftWatch" */ = {
+			isa = PBXNativeTarget;
+			name = "NorthcroftWatch";
+			productName = "NorthcroftWatch";
+			productReference = C807EA8A35D24B8C856732F5;
+			productType = "com.apple.product-type.application";
+			buildConfigurationList = 027FFA18E35F48D38CBACFB1;
+			buildPhases = (
+				D0C8F40C32F0461185A36DA4 /* Sources */,
+				A1582387C04B42DD9586F606 /* Frameworks */,
+				B000A973208D4B02A8BB8933 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -245,6 +290,7 @@
 				504EC3031FED79650016851F /* App */,
 				6F3B66FCFDDF42B384C59596 /* "ShareExtension" */,
 				943519B2C2474C2DAF7C859A /* "NorthcroftWidget" */,
+				AB9D6ABEC58449A3BFE2D8E3 /* "NorthcroftWatch" */,
 			);
 		};
 /* End PBXProject section */
@@ -274,6 +320,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B000A973208D4B02A8BB8933 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CC406EE798B449B4B4EAFD13 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -307,6 +361,14 @@
 				8DD4CA18EADA4CA396D5B76C /* NorthcroftActionIntents.swift in Sources */,
 				2A3AC1D23DB646248EAFC603 /* WorkdayLiveActivity.swift in Sources */,
 				FCF4D9B7610B4D0EAD5FBB99 /* NorthcroftControls.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0C8F40C32F0461185A36DA4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				13A809410B9D4E838EBCC8C8 /* NorthcroftWatchApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -581,6 +643,58 @@
 				VALIDATE_PRODUCT = YES;
 			};
 		};
+		09E9145221D7427CA3158CFD /* Debug */ = {
+			name = Debug;
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NorthcroftWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Northcroft;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				NC_COMPANION_ID = com.northcroftme.qsteam;
+				PRODUCT_BUNDLE_IDENTIFIER = com.northcroftme.qsteam.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+		};
+		19DC949A13E14A03B3C7EA35 /* Release */ = {
+			name = Release;
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NorthcroftWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Northcroft;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				NC_COMPANION_ID = com.northcroftme.qsteam;
+				PRODUCT_BUNDLE_IDENTIFIER = com.northcroftme.qsteam.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -620,6 +734,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		027FFA18E35F48D38CBACFB1 /* Build configuration list for PBXNativeTarget "NorthcroftWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				09E9145221D7427CA3158CFD /* Debug */,
+				19DC949A13E14A03B3C7EA35 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -650,6 +773,17 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 		};
+		C1F6B3AE8BFB48A487CE1184 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				E2060C5C14A744718BCCD307 /* NorthcroftWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -662,6 +796,11 @@
 			isa = PBXTargetDependency;
 			target = 943519B2C2474C2DAF7C859A /* "NorthcroftWidget" */;
 			targetProxy = 8E5D8E4DEEC241C1B6ED8DF6 /* PBXContainerItemProxy */;
+		};
+		05B3FAD2D152473F914DCF64 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AB9D6ABEC58449A3BFE2D8E3 /* "NorthcroftWatch" */;
+			targetProxy = F089BDF2595949FFAA97A057 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -679,6 +818,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 943519B2C2474C2DAF7C859A;
 			remoteInfo = "NorthcroftWidget";
+		};
+		F089BDF2595949FFAA97A057 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB9D6ABEC58449A3BFE2D8E3;
+			remoteInfo = "NorthcroftWatch";
 		};
 /* End PBXContainerItemProxy section */
 	};

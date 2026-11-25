@@ -8,6 +8,7 @@ public enum NorthcroftSetup {
     public static func start() {
         OfficeWatcher.shared.activate()
         NotificationButtons.register()
+        WatchBridge.shared.activate()
     }
 }
 

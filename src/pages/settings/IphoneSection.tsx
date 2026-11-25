@@ -213,6 +213,15 @@ export function IphoneSection() {
         </div>
         <div className="setting-row">
           <div className="grow">
+            <b>Apple Watch</b>
+            <small>
+              Northcroft is on your watch too (install it from the Watch app on this iPhone if it isn't): today's check-in and tasks due
+              {me.attendance_exempt ? "." : ", and a Check in button that finishes on this iPhone."}
+            </small>
+          </div>
+        </div>
+        <div className="setting-row">
+          <div className="grow">
             <b>Search</b>
             <small>Swipe down on the home screen and type a project or task name: Northcroft's projects and your open tasks show up, and open straight to them.</small>
           </div>

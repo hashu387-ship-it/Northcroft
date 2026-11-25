@@ -1,7 +1,7 @@
 import Foundation
 import WidgetKit
 
-/// What the home screen widget shows, written by the app whenever it changes (the widget can't
+/// What the home screen widget (and the Apple Watch app) shows, written by the app whenever it changes (the widget can't
 /// sign in, so it shows the latest copy). The widget reads the same key; see
 /// ios/App/NorthcroftWidget/NorthcroftWidget.swift.
 public enum WidgetData {
@@ -14,6 +14,7 @@ public enum WidgetData {
         guard let defaults = AppGroup.defaults,
               JSONSerialization.isValidJSONObject(json),
               let data = try? JSONSerialization.data(withJSONObject: json) else { return false }
+        WatchBridge.shared.send(data)
         if defaults.data(forKey: key) == data { return true }
         defaults.set(data, forKey: key)
         WidgetCenter.shared.reloadAllTimelines()
@@ -24,5 +25,6 @@ public enum WidgetData {
     public static func clear() {
         AppGroup.defaults?.removeObject(forKey: key)
         WidgetCenter.shared.reloadAllTimelines()
+        WatchBridge.shared.send(nil)
     }
 }

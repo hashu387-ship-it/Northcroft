@@ -189,6 +189,106 @@ if (targetNamed(EXT)) {
   }
 }
 
+// --- The Apple Watch app ------------------------------------------------------------------------------
+// "NorthcroftWatch": a SwiftUI watch app (watchOS 10 and later) embedded in the iPhone app under
+// Watch/, built before it. Its iPhone app is named by NC_COMPANION_ID (so a test build can differ).
+{
+  const WATCH = "NorthcroftWatch";
+  if (!targetNamed(WATCH)) {
+    const target = proj.addTarget(WATCH, "application", WATCH, `${APP_ID}.watchkitapp`);
+    const swiftRef = fileRef("NorthcroftWatchApp.swift", "sourcecode.swift");
+    const plistRef = fileRef("Info.plist", "text.plist.xml");
+    const assetsRef = fileRef("Assets.xcassets", "folder.assetcatalog");
+    const groupId = proj.generateUuid();
+    objects.PBXGroup[groupId] = {
+      isa: "PBXGroup",
+      children: [
+        { value: swiftRef, comment: "NorthcroftWatchApp.swift" },
+        { value: assetsRef, comment: "Assets.xcassets" },
+        { value: plistRef, comment: "Info.plist" },
+      ],
+      path: WATCH,
+      sourceTree: q("<group>"),
+    };
+    objects.PBXGroup[`${groupId}_comment`] = WATCH;
+    const mainGroup = objects.PBXGroup[proj.getFirstProject().firstProject.mainGroup];
+    mainGroup.children.splice(mainGroup.children.length - 1, 0, { value: groupId, comment: WATCH });
+
+    proj.addBuildPhase([], "PBXSourcesBuildPhase", "Sources", target.uuid);
+    proj.addBuildPhase([], "PBXFrameworksBuildPhase", "Frameworks", target.uuid);
+    proj.addBuildPhase([], "PBXResourcesBuildPhase", "Resources", target.uuid);
+    addToSources(target.pbxNativeTarget, swiftRef, "NorthcroftWatchApp.swift");
+    const resId = target.pbxNativeTarget.buildPhases.find((p) => p.comment === "Resources").value;
+    const resFile = proj.generateUuid();
+    objects.PBXBuildFile[resFile] = { isa: "PBXBuildFile", fileRef: assetsRef, fileRef_comment: "Assets.xcassets" };
+    objects.PBXBuildFile[`${resFile}_comment`] = "Assets.xcassets in Resources";
+    objects.PBXResourcesBuildPhase[resId].files.push({ value: resFile, comment: "Assets.xcassets in Resources" });
+
+    const appRelease = configsOf(app).find((c) => c.name === "Release").buildSettings;
+    for (const c of configsOf(target.pbxNativeTarget)) {
+      const debug = c.name === "Debug";
+      c.buildSettings = {
+        ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon",
+        CODE_SIGN_STYLE: "Automatic",
+        CURRENT_PROJECT_VERSION: appRelease.CURRENT_PROJECT_VERSION ?? 1,
+        GENERATE_INFOPLIST_FILE: "YES",
+        INFOPLIST_FILE: `${WATCH}/Info.plist`,
+        INFOPLIST_KEY_CFBundleDisplayName: "Northcroft",
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: q("UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"),
+        LD_RUNPATH_SEARCH_PATHS: q("$(inherited) @executable_path/Frameworks"),
+        MARKETING_VERSION: appRelease.MARKETING_VERSION ?? "1.0",
+        NC_COMPANION_ID: APP_ID,
+        PRODUCT_BUNDLE_IDENTIFIER: `${APP_ID}.watchkitapp`,
+        PRODUCT_NAME: q("$(TARGET_NAME)"),
+        SDKROOT: "watchos",
+        SKIP_INSTALL: "YES",
+        SWIFT_EMIT_LOC_STRINGS: "YES",
+        SWIFT_VERSION: "5.0",
+        TARGETED_DEVICE_FAMILY: "4",
+        WATCHOS_DEPLOYMENT_TARGET: "10.0",
+        ...(debug ? { SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG", SWIFT_OPTIMIZATION_LEVEL: q("-Onone") } : { SWIFT_COMPILATION_MODE: "wholemodule", VALIDATE_PRODUCT: "YES" }),
+      };
+    }
+
+    const productRef = objects.PBXFileReference[target.pbxNativeTarget.productReference];
+    delete productRef.fileEncoding;
+    delete productRef.lastKnownFileType;
+    productRef.explicitFileType = "wrapper.application";
+    // The library leaves a stray "in Copy Files" entry for the product that no step uses.
+    for (const [k, v] of Object.entries(objects.PBXBuildFile)) {
+      if (k.endsWith("_comment") || typeof v !== "object") continue;
+      if (v.fileRef === target.pbxNativeTarget.productReference && objects.PBXBuildFile[`${k}_comment`] === `${WATCH}.app in Copy Files`) {
+        delete objects.PBXBuildFile[k];
+        delete objects.PBXBuildFile[`${k}_comment`];
+      }
+    }
+
+    // Embed it in the iPhone app (Watch/) and build it first.
+    const embedId = proj.generateUuid();
+    const embedFile = proj.generateUuid();
+    objects.PBXBuildFile[embedFile] = {
+      isa: "PBXBuildFile",
+      fileRef: target.pbxNativeTarget.productReference,
+      fileRef_comment: `${WATCH}.app`,
+      settings: { ATTRIBUTES: ["RemoveHeadersOnCopy"] },
+    };
+    objects.PBXBuildFile[`${embedFile}_comment`] = `${WATCH}.app in Embed Watch Content`;
+    objects.PBXCopyFilesBuildPhase[embedId] = {
+      isa: "PBXCopyFilesBuildPhase",
+      buildActionMask: 2147483647,
+      dstPath: q("$(CONTENTS_FOLDER_PATH)/Watch"),
+      dstSubfolderSpec: 16,
+      files: [{ value: embedFile, comment: `${WATCH}.app in Embed Watch Content` }],
+      name: q("Embed Watch Content"),
+      runOnlyForDeploymentPostprocessing: 0,
+    };
+    objects.PBXCopyFilesBuildPhase[`${embedId}_comment`] = "Embed Watch Content";
+    app.buildPhases.push({ value: embedId, comment: "Embed Watch Content" });
+    const deps = app.dependencies ?? [];
+    if (!deps.some((d) => objects.PBXTargetDependency?.[d.value]?.target === target.uuid)) proj.addTargetDependency(appEntry[0], [target.uuid]);
+  }
+}
+
 // Keep Xcode's own spelling of these (the library drops the leading zero).
 const attrs = proj.getFirstProject().firstProject.attributes;
 attrs.LastSwiftUpdateCheck = "0920";

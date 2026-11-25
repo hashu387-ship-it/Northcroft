@@ -25,6 +25,7 @@ so every change to the website reaches the app straight away. The shell adds wha
   (Settings > iPhone app).
 - **Liquid Glass:** the iOS 26 look, with springy animations and haptics; the default in the iPhone
   app, and a choice in Settings > Appearance everywhere else.
+- **Apple Watch:** today's check-in and tasks due, and a Check in button that finishes on the iPhone.
 
 Only the native parts (the folders `ios/` and `native/`) need a new version through Apple. Everything
 else updates the moment it's deployed.
@@ -65,7 +66,7 @@ Then, in Xcode:
 1. In the left column, click the blue **App** project at the top.
 2. Under **TARGETS**, click **App**, then the **Signing & Capabilities** tab.
 3. Make sure **Automatically manage signing** is ticked, and pick your name under **Team**.
-4. Do the same for the other two targets, **ShareExtension** and **NorthcroftWidget**.
+4. Do the same for the other targets, **ShareExtension**, **NorthcroftWidget** and **NorthcroftWatch**.
 5. If Xcode shows a red message under **App Groups** or **Push Notifications**, click
    **Try Again**. Xcode registers them with Apple for you.
 
@@ -130,8 +131,8 @@ Send a test notification** checks that it works.
 4. After 15 to 30 minutes the build appears in App Store Connect under **TestFlight**.
 
 Before each new upload, raise the **Build** number (and the **Version** for a new release) on the
-**General** tab. Do it for all three targets, **App**, **ShareExtension** and **NorthcroftWidget**;
-they must match.
+**General** tab. Do it for all four targets, **App**, **ShareExtension**, **NorthcroftWidget** and
+**NorthcroftWatch**; they must match.
 
 ## 8. Test with TestFlight
 
@@ -201,6 +202,9 @@ automatically.
   `ios/App/Shared/NorthcroftActionIntents.swift` (built into both the app and the widget).
 - **Spotlight and Calendar:** `Spotlight.swift` and `CalendarSync.swift`, fed by `src/native/sync.ts`.
 - **Liquid Glass look:** `src/styles/liquidglass.css` and `src/lib/liquidglass.ts`.
+- **Apple Watch:** `ios/App/NorthcroftWatch` (SwiftUI, watchOS 10 and later), embedded in the iPhone
+  app. `WatchBridge.swift` sends it the widget's copy and takes its Check in. Xcode needs its watchOS
+  part (Xcode > Settings > Components) to build the project.
 - **App group:** named once by the `NC_APP_GROUP` build setting, used by the entitlements and the
   `NCAppGroup` key in each Info.plist, so a test build can use its own group.
 - The new iPhone features need both a new iPhone build and the website update; an older iPhone
