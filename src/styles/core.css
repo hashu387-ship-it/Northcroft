@@ -1314,7 +1314,8 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
   justify-content: center;
   padding: 24px;
   opacity: 0;
-  will-change: opacity;
+  /* No will-change: opacity here: it would cut the sheet's blur off from the page behind
+     (Chrome treats it as a backdrop root), so text would show through the sheet sharp. */
 }
 .sheet {
   width: 100%;

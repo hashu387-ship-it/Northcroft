@@ -9,6 +9,7 @@ import { Sheet } from "@/components/Sheet";
 import { openContextMenu } from "@/components/ContextMenu";
 import { Pill, SearchField, Segmented, StatusRing, Switch, useToast } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
+import { readPreviewLook, savePreviewLook } from "@/lib/appearance";
 import "@/styles/appearance.css";
 
 const SWATCHES = [
@@ -35,11 +36,31 @@ export default function DesignPreview() {
   const [on, setOn] = useState(true);
   const [q, setQ] = useState("");
   const [sheet, setSheet] = useState(false);
+  const [look, setLook] = useState(readPreviewLook);
   if (!isManager) return <Navigate to="/" replace />;
 
   return (
     <div className="page design-preview">
       <PageHead title="Design gallery" sub="The new look with made-up sample data. Only managers see this page." />
+
+      <div className="group-title">Try a new look</div>
+      <div className="group">
+        <div className="dp-pad row" style={{ justifyContent: "space-between", gap: 12 }}>
+          <span>
+            Thick glass
+            <small className="dp-note">Bars, menus and sheets get a bevelled glass rim, like an iPhone folder.</small>
+          </span>
+          <Switch checked={look.thick} onChange={(v) => setLook(savePreviewLook({ thick: v }))} label="Thick glass" />
+        </div>
+        <div className="dp-pad row" style={{ justifyContent: "space-between", gap: 12, borderTop: "0.5px solid var(--separator)" }}>
+          <span>
+            Colour background
+            <small className="dp-note">A soft wash of colour behind the page, so the glass shows its depth.</small>
+          </span>
+          <Switch checked={look.wash} onChange={(v) => setLook(savePreviewLook({ wash: v }))} label="Colour background" />
+        </div>
+      </div>
+      <div className="group-foot">Only on this device, across the whole app, until you switch them off here.</div>
 
       <div className="group-title">Colours</div>
       <div className="group dp-pad">

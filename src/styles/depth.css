@@ -1,0 +1,120 @@
+/* Thick Liquid Glass and the colour wash: a preview, switched on in the Design gallery.
+ *
+ *   data-depth="thick" on <html>: the floating glass (bars, menus, sheets, toasts, floating
+ *     buttons) looks like an iOS 26 folder: a bright bevelled rim, lit at the top-left and
+ *     bottom-right corners, light gathering along the lower edge, and a deeper, richer blur.
+ *     Cards and lists stay solid, so reading is unchanged.
+ *   data-wash="on": a soft colour background behind everything, so the glass has colour to bend.
+ *
+ * "Reduce transparency" in Settings still turns all of it solid. */
+
+:root[data-depth="thick"] {
+  --glass-blur: blur(30px) saturate(210%) brightness(1.06);
+  --rim-lit: rgba(255, 255, 255, 1);
+  --rim-low: rgba(255, 255, 255, 0.85);
+  --rim: rgba(255, 255, 255, 0.8);
+  --rim-bend: rgba(60, 60, 80, 0.07);
+  --rim-glow: rgba(255, 255, 255, 0.35);
+  --rim-pool: rgba(255, 255, 255, 0.6);
+  --rim-under: rgba(0, 0, 0, 0.05);
+  --rim-hairline: rgba(0, 0, 0, 0.1);
+  --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.05) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.14));
+  --depth-shadow: 0 22px 48px -14px rgba(0, 0, 0, 0.26), 0 3px 8px -2px rgba(0, 0, 0, 0.1);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-depth="thick"]:not([data-theme="light"]) {
+    --glass-blur: blur(30px) saturate(190%) brightness(1.1);
+    --rim-lit: rgba(255, 255, 255, 0.6);
+    --rim-low: rgba(255, 255, 255, 0.35);
+    --rim: rgba(255, 255, 255, 0.24);
+    --rim-bend: rgba(0, 0, 0, 0.35);
+    --rim-glow: rgba(255, 255, 255, 0.06);
+    --rim-pool: rgba(255, 255, 255, 0.14);
+    --rim-under: rgba(0, 0, 0, 0.35);
+    --rim-hairline: rgba(0, 0, 0, 0.55);
+    --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.05));
+    --depth-shadow: 0 24px 56px -12px rgba(0, 0, 0, 0.7), 0 3px 10px rgba(0, 0, 0, 0.4);
+  }
+}
+:root[data-depth="thick"][data-theme="dark"] {
+  --glass-blur: blur(30px) saturate(190%) brightness(1.1);
+  --rim-lit: rgba(255, 255, 255, 0.6);
+  --rim-low: rgba(255, 255, 255, 0.35);
+  --rim: rgba(255, 255, 255, 0.24);
+  --rim-bend: rgba(0, 0, 0, 0.35);
+  --rim-glow: rgba(255, 255, 255, 0.06);
+  --rim-pool: rgba(255, 255, 255, 0.14);
+  --rim-under: rgba(0, 0, 0, 0.35);
+  --rim-hairline: rgba(0, 0, 0, 0.55);
+  --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.05));
+  --depth-shadow: 0 24px 56px -12px rgba(0, 0, 0, 0.7), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* The slab, from the edge inwards: a bright rim all round (brightest along the top and left,
+   softer along the bottom and right), then a faint darker band where the glass bends, a glow
+   inside the thickness, light pooling along the bottom and a soft shadow under the top edge. */
+:root[data-depth="thick"]:not([data-solid="true"]) :is(.lg, .sidebar, .topbar-glass, .tabbar, .tab-search, .sheet, .toast, .update-bar, .fab, .ctx-menu, .mention-menu, .search-panel, .btn.glassy, .icon-btn.glassy) {
+  background-image: var(--depth-sheen);
+  border-color: var(--rim-hairline);
+  box-shadow:
+    inset 2px 2px 1px -1px var(--rim-lit),
+    inset -2px -2px 1px -1px var(--rim-low),
+    inset 0 0 0 1.5px var(--rim),
+    inset 0 0 3px 3px var(--rim-bend),
+    inset 0 0 14px 2px var(--rim-glow),
+    inset 0 -18px 24px -20px var(--rim-pool),
+    inset 0 16px 20px -20px var(--rim-under),
+    var(--depth-shadow);
+}
+
+/* The selected tab is a small lens of the same glass. */
+:root[data-depth="thick"]:not([data-solid="true"]) .tabbar a.active {
+  box-shadow:
+    inset 1px 1px 0.5px -0.5px var(--rim-lit),
+    inset -1px -1px 0.5px -0.5px var(--rim-low),
+    inset 0 0 0 0.5px var(--rim),
+    0 4px 12px -5px rgba(0, 0, 0, 0.28);
+}
+
+/* ---- the colour wash: soft light behind the page, blue at the top, warm on the right, teal
+   and pink lower down. The plain grey (or black) shows through where it fades. */
+:root[data-wash="on"] .wallpaper {
+  background:
+    radial-gradient(70% 42% at 8% 0%, rgba(10, 132, 255, 0.3), transparent 70%),
+    radial-gradient(60% 40% at 100% 16%, rgba(255, 159, 10, 0.26), transparent 70%),
+    radial-gradient(65% 45% at 0% 72%, rgba(48, 176, 199, 0.26), transparent 70%),
+    radial-gradient(65% 45% at 92% 96%, rgba(255, 55, 95, 0.2), transparent 70%),
+    var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-wash="on"]:not([data-theme="light"]) .wallpaper {
+    background:
+      radial-gradient(70% 42% at 8% 0%, rgba(10, 132, 255, 0.34), transparent 70%),
+      radial-gradient(60% 40% at 100% 16%, rgba(255, 159, 10, 0.2), transparent 70%),
+      radial-gradient(65% 45% at 0% 72%, rgba(48, 176, 199, 0.24), transparent 70%),
+      radial-gradient(65% 45% at 92% 96%, rgba(191, 90, 242, 0.24), transparent 70%),
+      var(--bg);
+  }
+}
+:root[data-wash="on"][data-theme="dark"] .wallpaper {
+  background:
+    radial-gradient(70% 42% at 8% 0%, rgba(10, 132, 255, 0.34), transparent 70%),
+    radial-gradient(60% 40% at 100% 16%, rgba(255, 159, 10, 0.2), transparent 70%),
+    radial-gradient(65% 45% at 0% 72%, rgba(48, 176, 199, 0.24), transparent 70%),
+    radial-gradient(65% 45% at 92% 96%, rgba(191, 90, 242, 0.24), transparent 70%),
+    var(--bg);
+}
+/* The page itself lets the wash through (body was painted plain grey over it). */
+:root[data-wash="on"] body { background: transparent; }
+
+/* With colour behind, the soft edges where the page scrolls under the bars only blur and tint
+   lightly, instead of fading to a plain grey band. */
+:root[data-wash="on"] .topbar::before {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 55%, transparent) 0%, color-mix(in srgb, var(--bg) 30%, transparent) 60%, transparent 100%);
+}
+:root[data-wash="on"] .tabbar-wrap::before {
+  background: linear-gradient(to top, color-mix(in srgb, var(--bg) 45%, transparent) 30%, transparent);
+}
+
+/* Reduce transparency: no wash either, just the plain background. */
+:root[data-solid="true"][data-wash="on"] .wallpaper { background: var(--bg); }

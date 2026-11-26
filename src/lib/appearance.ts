@@ -72,7 +72,35 @@ export function applyAppearance(a: Appearance = readAppearance()) {
   else root.dataset.density = a.density;
   if (a.solid) root.dataset.solid = "true";
   else delete root.dataset.solid;
+  const look = readPreviewLook();
+  if (look.thick) root.dataset.depth = "thick";
+  else delete root.dataset.depth;
+  if (look.wash) root.dataset.wash = "on";
+  else delete root.dataset.wash;
   window.dispatchEvent(new Event("nc-appearance"));
+}
+
+/**
+ * Looks being tried out before they're part of Settings, switched on in the Design gallery and
+ * kept on this device so they can be judged across the whole app (styles/depth.css):
+ *   thick  folder-style thick Liquid Glass on the bars, menus and sheets   data-depth="thick"
+ *   wash   a soft colour background behind the glass                        data-wash="on"
+ */
+export interface PreviewLook {
+  thick: boolean;
+  wash: boolean;
+}
+
+export function readPreviewLook(): PreviewLook {
+  return { thick: get("nc-preview-thick") === "1", wash: get("nc-preview-wash") === "1" };
+}
+
+export function savePreviewLook(patch: Partial<PreviewLook>): PreviewLook {
+  const next = { ...readPreviewLook(), ...patch };
+  put("nc-preview-thick", next.thick ? "1" : null);
+  put("nc-preview-wash", next.wash ? "1" : null);
+  applyAppearance();
+  return next;
 }
 
 export function saveAppearance(patch: Partial<Appearance>) {

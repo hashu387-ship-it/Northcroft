@@ -213,3 +213,4 @@
 .dp-swatch i { width: 44px; height: 44px; border-radius: 50%; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1); }
 .dp-type { display: flex; flex-direction: column; gap: 6px; }
 .design-preview .group-foot + .group { margin-top: 22px; }
+.dp-note { display: block; margin-top: 2px; font-size: var(--t-foot); color: var(--text-2); }

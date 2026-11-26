@@ -13,6 +13,7 @@ import "./styles/index.css";
 import "./styles/polish.css";
 import "./styles/feel.css";
 import "./styles/motion.css";
+import "./styles/depth.css";
 
 // Appearance (Settings > Appearance) is per device: Automatic, Light or Dark, how see-through the
 // glass is, text size and list density. The new Apple-standard design replaced the eight older
