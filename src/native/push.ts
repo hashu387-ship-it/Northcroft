@@ -1,6 +1,8 @@
-// Notifications in the iPhone app come through Apple's push service (APNs), not Web Push. The
-// phone gives the app a device token; the app saves it with register_native_push and the send-push
-// function sends each notification to it, with Approve/Decline or Reply buttons where they fit.
+// Notifications in the apps come through the phone maker's push service, not Web Push: Apple's
+// (APNs) on iPhone, Google's (Firebase Cloud Messaging) on Android. The phone gives the app a
+// device token; the app saves it with register_native_push and the send-push function sends each
+// notification to it, with Approve/Decline or Reply buttons where they fit (iPhone).
+import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { supabase } from "@/lib/supabase";
 import type { PushState } from "@/lib/push";
@@ -53,8 +55,8 @@ export async function saveNativeToken(token: string) {
   }
   const { error } = await supabase.rpc("register_native_push", {
     p_token: token,
-    p_platform: "ios",
-    p_device_name: navigator.userAgent.includes("iPad") ? "iPad" : "iPhone",
+    p_platform: Capacitor.getPlatform() === "android" ? "android" : "ios",
+    p_device_name: Capacitor.getPlatform() === "android" ? "Android" : navigator.userAgent.includes("iPad") ? "iPad" : "iPhone",
     p_app_version: null,
   });
   if (error) throw error;

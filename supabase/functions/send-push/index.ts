@@ -4,6 +4,7 @@ import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { type Actor, compose, initials, isChat, type NotificationRow, tagFor } from "./compose.ts";
 import { apnsConfigured, type ApnsEnv, categoryFor, levelFor, sendApns } from "./apns.ts";
+import { fcmConfigured, sendFcm } from "./fcm.ts";
 
 type PushConfig = {
   vapid_public_key: string;
@@ -95,10 +96,10 @@ Deno.serve(async (req) => {
       ? supabase.from("projects").select("name").eq("id", n.project_id).maybeSingle<{ name: string }>()
       : Promise.resolve({ data: null }),
     sameConversation(),
-    // The Northcroft iPhone app (Apple's push service).
-    apnsConfigured()
-      ? supabase.from("native_push_devices").select("id, token, apns_env").eq("user_id", n.user_id)
-      : Promise.resolve({ data: [] as { id: string; token: string; apns_env: ApnsEnv | null }[] }),
+    // The Northcroft apps: iPhones through Apple's push service, Android phones through Google's.
+    apnsConfigured() || fcmConfigured()
+      ? supabase.from("native_push_devices").select("id, token, apns_env, platform").eq("user_id", n.user_id)
+      : Promise.resolve({ data: [] as { id: string; token: string; apns_env: ApnsEnv | null; platform: string }[] }),
   ]);
   // Group and one-to-one chats: the group's name, or nothing for a one-to-one chat.
   const convId = isChat(n) && n.link?.startsWith("/chats/") ? n.link.slice(7) : null;
@@ -197,10 +198,42 @@ Deno.serve(async (req) => {
     }),
   );
 
+  // Android phones with the app (Firebase Cloud Messaging).
+  const androids = fcmConfigured() ? (phones ?? []).filter((d) => d.platform === "android") : [];
+  await Promise.all(
+    androids.map(async (d) => {
+      try {
+        const res = await sendFcm(d.token, {
+          title: shown.title,
+          body: shown.body,
+          url: path,
+          id: n.id,
+          type: n.type,
+          tag,
+          badge: count ?? 0,
+          quiet: level === "passive",
+          photo: person?.photo ?? null,
+        });
+        if (res.ok) sent++;
+        else if (res.gone) {
+          await supabase.from("native_push_devices").delete().eq("id", d.id);
+          removed++;
+        } else {
+          failed++;
+          console.error("FCM failed", res.status, res.reason);
+        }
+      } catch (e) {
+        failed++;
+        console.error("FCM error", String(e));
+      }
+    }),
+  );
+
   // iPhones with the app. A token's service (production, or test for builds run from Xcode) is
   // learnt on the first send and kept.
+  const iphones = apnsConfigured() ? (phones ?? []).filter((d) => (d.platform ?? "ios") === "ios") : [];
   await Promise.all(
-    (phones ?? []).map(async (d) => {
+    iphones.map(async (d) => {
       try {
         const first: ApnsEnv = d.apns_env ?? "production";
         let res = await sendApns(d.token, first, apnsPayload, { collapseId: tag });

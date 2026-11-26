@@ -41,11 +41,12 @@ import { PersonCardHost } from "@/components/People";
 import { CallHost } from "@/calls/CallScreen";
 import { CelebrationHost } from "@/components/Celebration";
 import { AppPopups } from "@/components/AppPopups";
-import { isNativeApp } from "@/native/platform";
+import { isAndroidApp, isNativeApp } from "@/native/platform";
 import { FaceIdLock } from "@/native/FaceIdLock";
 
 // The iPhone app's own parts (notification buttons, check-in at the office, share sheet); never loaded in a browser.
 const NativeBridge = lazy(() => import("@/native/NativeBridge"));
+const AndroidBridge = lazy(() => import("@/native/AndroidBridge"));
 import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
 import { openSearch } from "@/lib/search";
 import { OfflineBar, OutboxRunner } from "@/components/Offline";
@@ -363,6 +364,11 @@ export default function AppShell() {
       {isNativeApp() && (
         <Suspense fallback={null}>
           <NativeBridge />
+        </Suspense>
+      )}
+      {isAndroidApp() && (
+        <Suspense fallback={null}>
+          <AndroidBridge />
         </Suspense>
       )}
       <FaceIdLock />

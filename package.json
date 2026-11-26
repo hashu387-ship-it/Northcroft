@@ -11,6 +11,7 @@
     "ios": "cap sync ios && cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.3",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.6.2",
     "@capacitor/geolocation": "^8.2.5",

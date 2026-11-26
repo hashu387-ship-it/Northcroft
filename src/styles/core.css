@@ -124,8 +124,9 @@
   --topbar-h: 52px;
   --pad: 16px;
   --row-y: 11px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* iPhone: env(). Android: Capacitor also sends --safe-area-inset-* (SystemBars), whichever is set. */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);

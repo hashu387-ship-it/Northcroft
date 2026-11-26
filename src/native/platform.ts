@@ -1,11 +1,20 @@
-// Is this the Northcroft iPhone app (the native shell around the website) rather than a browser?
-// Inside the app, iOS adds the Capacitor bridge to the page; in a browser this is always false.
+// Which shell is this page running in?
+//   isNativeApp()   the Northcroft iPhone app: has Northcroft's own iPhone code (widget, Siri, Live
+//                   Activities, Face ID, Wallet...). Most native checks in the app mean this one.
+//   isAndroidApp()  the Northcroft Android app: native notifications, location and the system bars;
+//                   everything else works as on the website.
+//   isAppShell()    either app (anything that only needs Capacitor's own plugins).
+// In a browser all three are false.
 import { Capacitor } from "@capacitor/core";
 
-export const isNativeApp = (): boolean => {
+const platform = (): string => {
   try {
-    return Capacitor.isNativePlatform();
+    return Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "web";
   } catch {
-    return false;
+    return "web";
   }
 };
+
+export const isNativeApp = (): boolean => platform() === "ios";
+export const isAndroidApp = (): boolean => platform() === "android";
+export const isAppShell = (): boolean => platform() !== "web";

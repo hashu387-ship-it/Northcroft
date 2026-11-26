@@ -1,12 +1,12 @@
 // Location for check-in / check-out.
-import { isNativeApp } from "@/native/platform";
+import { isAndroidApp, isAppShell } from "@/native/platform";
 export interface Fix {
   lat: number;
   lng: number;
   accuracy: number;
 }
 
-/** Location in the iPhone app: the app's own location permission (no "website wants your location" asks). */
+/** Location in the apps: the app's own location permission (no "website wants your location" asks). */
 async function nativePosition(timeoutMs: number): Promise<Fix> {
   const { Geolocation } = await import("@capacitor/geolocation");
   try {
@@ -14,14 +14,19 @@ async function nativePosition(timeoutMs: number): Promise<Fix> {
     return { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy) };
   } catch (e) {
     const msg = String((e as { message?: string })?.message ?? e);
-    if (/denied|permission/i.test(msg)) throw new Error("Location is off for Northcroft. Turn it on in iPhone Settings > Northcroft > Location.");
+    if (/denied|permission/i.test(msg))
+      throw new Error(
+        isAndroidApp()
+          ? "Location is off for Northcroft. Turn it on in Settings > Apps > Northcroft > Permissions > Location."
+          : "Location is off for Northcroft. Turn it on in iPhone Settings > Northcroft > Location.",
+      );
     if (/timeout|timed out/i.test(msg)) throw new Error("Couldn't get your location in time. Try again outdoors or near a window.");
     throw new Error("Couldn't get your location.");
   }
 }
 
 export function getPosition(timeoutMs = 15000): Promise<Fix> {
-  if (isNativeApp()) return nativePosition(timeoutMs);
+  if (isAppShell()) return nativePosition(timeoutMs);
   return new Promise((resolve, reject) => {
     if (!("geolocation" in navigator)) {
       reject(new Error("This device can't share its location."));
