@@ -5,11 +5,14 @@
 //   text      text size: Small, Default, Large, Larger                       data-text
 //   density   list rows: Compact, Standard, Roomy                            data-density
 //   solid     Reduce transparency: the glass turns solid                      data-solid
+//   accent    Northcroft navy (standard) or Apple blue                          data-accent="apple"
+//   wash      the soft Northcroft colour background (standard) or plain        data-wash="off"
 // The styles that read these are in styles/core.css.
 export type ThemePref = "system" | "light" | "dark";
 export type GlassPref = "clear" | "default" | "tinted";
 export type TextPref = "s" | "m" | "l" | "xl";
 export type DensityPref = "compact" | "standard" | "roomy";
+export type AccentPref = "northcroft" | "apple";
 
 export interface Appearance {
   theme: ThemePref;
@@ -17,6 +20,8 @@ export interface Appearance {
   text: TextPref;
   density: DensityPref;
   solid: boolean;
+  accent: AccentPref;
+  wash: boolean;
 }
 
 const KEYS = {
@@ -25,6 +30,8 @@ const KEYS = {
   text: "nc-text",
   density: "nc-density",
   solid: "nc-solid-v2",
+  accent: "nc-accent",
+  wash: "nc-wash",
 } as const;
 
 function get(key: string): string | null {
@@ -56,6 +63,8 @@ export function readAppearance(): Appearance {
     text: x === "s" || x === "l" || x === "xl" ? x : "m",
     density: d === "compact" || d === "roomy" ? d : "standard",
     solid: get(KEYS.solid) === "true",
+    accent: get(KEYS.accent) === "apple" ? "apple" : "northcroft",
+    wash: get(KEYS.wash) !== "off",
   };
 }
 
@@ -72,35 +81,11 @@ export function applyAppearance(a: Appearance = readAppearance()) {
   else root.dataset.density = a.density;
   if (a.solid) root.dataset.solid = "true";
   else delete root.dataset.solid;
-  const look = readPreviewLook();
-  if (look.thick) root.dataset.depth = "thick";
-  else delete root.dataset.depth;
-  if (look.wash) root.dataset.wash = "on";
-  else delete root.dataset.wash;
+  if (a.accent === "apple") root.dataset.accent = "apple";
+  else delete root.dataset.accent;
+  if (a.wash) delete root.dataset.wash;
+  else root.dataset.wash = "off";
   window.dispatchEvent(new Event("nc-appearance"));
-}
-
-/**
- * Looks being tried out before they're part of Settings, switched on in the Design gallery and
- * kept on this device so they can be judged across the whole app (styles/depth.css):
- *   thick  folder-style thick Liquid Glass on the bars, menus and sheets   data-depth="thick"
- *   wash   a soft colour background behind the glass                        data-wash="on"
- */
-export interface PreviewLook {
-  thick: boolean;
-  wash: boolean;
-}
-
-export function readPreviewLook(): PreviewLook {
-  return { thick: get("nc-preview-thick") === "1", wash: get("nc-preview-wash") === "1" };
-}
-
-export function savePreviewLook(patch: Partial<PreviewLook>): PreviewLook {
-  const next = { ...readPreviewLook(), ...patch };
-  put("nc-preview-thick", next.thick ? "1" : null);
-  put("nc-preview-wash", next.wash ? "1" : null);
-  applyAppearance();
-  return next;
 }
 
 export function saveAppearance(patch: Partial<Appearance>) {
@@ -110,6 +95,8 @@ export function saveAppearance(patch: Partial<Appearance>) {
   put(KEYS.text, next.text === "m" ? null : next.text);
   put(KEYS.density, next.density === "standard" ? null : next.density);
   put(KEYS.solid, next.solid ? "true" : null);
+  put(KEYS.accent, next.accent === "apple" ? "apple" : null);
+  put(KEYS.wash, next.wash ? null : "off");
   applyAppearance(next);
   return next;
 }

@@ -1,6 +1,8 @@
 // Settings > Appearance, laid out like iOS Settings > Display & Brightness:
 //   Light, Dark or Automatic, with a little phone for each
-//   Glass: how see-through the floating bars are (Clear to Tinted, like iOS 27's slider)
+//   Colour: Northcroft navy (standard) or Apple blue
+//   Glass: how see-through the bars and cards are (Clear to Tinted, like iOS 27's slider)
+//   Colour background: the soft Northcroft wash behind the glass
 //   Text size and list spacing
 //   Reduce transparency
 //   App icon style (in the iPhone app)
@@ -12,7 +14,7 @@ import { Link } from "react-router-dom";
 import { Check, ChevronRight, Palette } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { chime, extrasOn, setExtrasOn } from "@/lib/celebrate";
-import { readAppearance, saveAppearance, type Appearance, type DensityPref, type GlassPref, type TextPref, type ThemePref } from "@/lib/appearance";
+import { readAppearance, saveAppearance, type AccentPref, type Appearance, type DensityPref, type GlassPref, type TextPref, type ThemePref } from "@/lib/appearance";
 import { Segmented, Switch, useToast } from "@/components/ui";
 import { isNativeApp } from "@/native/platform";
 import { NorthcroftNative } from "@/native/plugin";
@@ -29,6 +31,11 @@ const GLASS: { value: GlassPref; label: string }[] = [
   { value: "clear", label: "Clear" },
   { value: "default", label: "Default" },
   { value: "tinted", label: "Tinted" },
+];
+
+const ACCENTS: { value: AccentPref; label: string }[] = [
+  { value: "northcroft", label: "Northcroft" },
+  { value: "apple", label: "Apple blue" },
 ];
 
 const TEXT: TextPref[] = ["s", "m", "l", "xl"];
@@ -113,6 +120,15 @@ export function AppearanceSection() {
       </div>
       <div className="group-foot">Automatic follows your phone or computer, so the app turns dark at night if you've set it up that way.</div>
 
+      <div className="group-title">Colour</div>
+      <div className="group">
+        <div className="group-row no-tile static">
+          <span className="label">Buttons and links</span>
+          <Segmented<AccentPref> value={a.accent} onChange={(v) => set({ accent: v })} options={ACCENTS} />
+        </div>
+      </div>
+      <div className="group-foot">Northcroft uses the navy from the Northcroft logo.</div>
+
       <div className="group-title">Liquid Glass</div>
       <div className="group">
         <div className="ap-glass-preview" aria-hidden>
@@ -130,13 +146,20 @@ export function AppearanceSection() {
         </div>
         <div className="group-row no-tile static">
           <span className="label">
+            Colour background
+            <small>A soft wash of Northcroft navy and red behind the glass.</small>
+          </span>
+          <Switch checked={a.wash} onChange={(v) => set({ wash: v })} label="Colour background" />
+        </div>
+        <div className="group-row no-tile static">
+          <span className="label">
             Reduce transparency
-            <small>The tab bar, menus and panels turn solid.</small>
+            <small>The bars, menus, panels and cards turn solid.</small>
           </span>
           <Switch checked={a.solid} onChange={(v) => set({ solid: v })} label="Reduce transparency" />
         </div>
       </div>
-      <div className="group-foot">Clear lets more of the page show through the bars and menus; Tinted makes them frostier and easier to read.</div>
+      <div className="group-foot">Clear lets more colour show through the bars, menus and cards; Tinted makes them frostier and easier to read.</div>
 
       <div className="group-title">Text and lists</div>
       <div className="group">

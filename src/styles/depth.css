@@ -1,59 +1,113 @@
-/* Thick Liquid Glass and the colour wash: a preview, switched on in the Design gallery.
+/* The Northcroft look: Northcroft navy, a soft navy-and-red colour background, and thick, clear
+ * Liquid Glass on the floating layer and on every card.
  *
- *   data-depth="thick" on <html>: the floating glass (bars, menus, sheets, toasts, floating
- *     buttons) looks like an iOS 26 folder: a bright bevelled rim, lit at the top-left and
- *     bottom-right corners, light gathering along the lower edge, and a deeper, richer blur.
- *     Cards and lists stay solid, so reading is unchanged.
- *   data-wash="on": a soft colour background behind everything, so the glass has colour to bend.
+ *   Colour      Northcroft navy for buttons and links (standard); data-accent="apple" brings
+ *               back Apple blue (Settings > Appearance > Colour)
+ *   Background  the colour wash (standard); data-wash="off" is the plain system background
+ *   Glass       bars, menus, sheets, toasts and floating buttons are thick glass slabs like an
+ *               iOS 26 folder or notification: a bright rim, a darker band where the glass
+ *               bends, light pooling along the bottom and a deep blur. Cards are the same glass,
+ *               a little frostier, so long text stays easy to read.
  *
- * "Reduce transparency" in Settings still turns all of it solid. */
+ * Reduce transparency (Settings, or the phone's own setting) turns all of it solid and plain. */
 
-:root[data-depth="thick"] {
-  --glass-blur: blur(30px) saturate(210%) brightness(1.06);
-  --rim-lit: rgba(255, 255, 255, 1);
-  --rim-low: rgba(255, 255, 255, 0.85);
-  --rim: rgba(255, 255, 255, 0.8);
-  --rim-bend: rgba(60, 60, 80, 0.07);
-  --rim-glow: rgba(255, 255, 255, 0.35);
-  --rim-pool: rgba(255, 255, 255, 0.6);
-  --rim-under: rgba(0, 0, 0, 0.05);
-  --rim-hairline: rgba(0, 0, 0, 0.1);
-  --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.05) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.14));
-  --depth-shadow: 0 22px 48px -14px rgba(0, 0, 0, 0.26), 0 3px 8px -2px rgba(0, 0, 0, 0.1);
+/* ================================================================ colour */
+:root:not([data-accent="apple"]) {
+  --accent: #0b3a9e;
+  --accent-press: #012061;
+  --accent-soft: rgba(11, 58, 158, 0.12);
+  --accent-fill: #012061;
+  --accent-fill-press: #00174a;
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-depth="thick"]:not([data-theme="light"]) {
-    --glass-blur: blur(30px) saturate(190%) brightness(1.1);
-    --rim-lit: rgba(255, 255, 255, 0.6);
-    --rim-low: rgba(255, 255, 255, 0.35);
-    --rim: rgba(255, 255, 255, 0.24);
-    --rim-bend: rgba(0, 0, 0, 0.35);
-    --rim-glow: rgba(255, 255, 255, 0.06);
-    --rim-pool: rgba(255, 255, 255, 0.14);
-    --rim-under: rgba(0, 0, 0, 0.35);
-    --rim-hairline: rgba(0, 0, 0, 0.55);
-    --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.05));
-    --depth-shadow: 0 24px 56px -12px rgba(0, 0, 0, 0.7), 0 3px 10px rgba(0, 0, 0, 0.4);
+  :root:not([data-accent="apple"]):not([data-theme="light"]) {
+    --accent: #6189f0;
+    --accent-press: #8aa8f5;
+    --accent-soft: rgba(97, 137, 240, 0.22);
+    --accent-fill: #2856d6;
+    --accent-fill-press: #3a66e0;
   }
 }
-:root[data-depth="thick"][data-theme="dark"] {
-  --glass-blur: blur(30px) saturate(190%) brightness(1.1);
-  --rim-lit: rgba(255, 255, 255, 0.6);
-  --rim-low: rgba(255, 255, 255, 0.35);
-  --rim: rgba(255, 255, 255, 0.24);
-  --rim-bend: rgba(0, 0, 0, 0.35);
-  --rim-glow: rgba(255, 255, 255, 0.06);
-  --rim-pool: rgba(255, 255, 255, 0.14);
-  --rim-under: rgba(0, 0, 0, 0.35);
-  --rim-hairline: rgba(0, 0, 0, 0.55);
-  --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.05));
-  --depth-shadow: 0 24px 56px -12px rgba(0, 0, 0, 0.7), 0 3px 10px rgba(0, 0, 0, 0.4);
+:root:not([data-accent="apple"])[data-theme="dark"] {
+  --accent: #6189f0;
+  --accent-press: #8aa8f5;
+  --accent-soft: rgba(97, 137, 240, 0.22);
+  --accent-fill: #2856d6;
+  --accent-fill-press: #3a66e0;
 }
+
+/* ================================================================ glass: clearer */
+:root { --glass-alpha: 0.42; }
+:root[data-glass="clear"] { --glass-alpha: 0.26; }
+:root[data-glass="tinted"] { --glass-alpha: 0.74; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --glass-alpha: 0.4; }
+  :root[data-glass="clear"]:not([data-theme="light"]) { --glass-alpha: 0.24; }
+  :root[data-glass="tinted"]:not([data-theme="light"]) { --glass-alpha: 0.72; }
+}
+:root[data-theme="dark"] { --glass-alpha: 0.4; }
+:root[data-theme="dark"][data-glass="clear"] { --glass-alpha: 0.24; }
+:root[data-theme="dark"][data-glass="tinted"] { --glass-alpha: 0.72; }
+
+/* ================================================================ glass: thicker */
+:root {
+  --glass-blur: blur(34px) saturate(230%) brightness(1.06);
+  --rim-lit: rgba(255, 255, 255, 1);
+  --rim-low: rgba(255, 255, 255, 0.85);
+  --rim: rgba(255, 255, 255, 0.85);
+  --rim-bend: rgba(20, 30, 70, 0.08);
+  --rim-glow: rgba(255, 255, 255, 0.38);
+  --rim-pool: rgba(255, 255, 255, 0.65);
+  --rim-under: rgba(0, 0, 0, 0.05);
+  --rim-hairline: rgba(1, 32, 97, 0.12);
+  --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.06) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.16));
+  --depth-shadow: 0 22px 48px -14px rgba(1, 32, 97, 0.26), 0 3px 8px -2px rgba(1, 32, 97, 0.1);
+  /* Cards: the same glass, a little frostier */
+  --card-rgb: 255, 255, 255;
+  --card-alpha: calc(var(--glass-alpha) + 0.2);
+  --card-shadow: 0 12px 30px -16px rgba(1, 32, 97, 0.28), 0 1px 3px rgba(1, 32, 97, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --glass-blur: blur(34px) saturate(200%) brightness(1.12);
+    --rim-lit: rgba(255, 255, 255, 0.62);
+    --rim-low: rgba(255, 255, 255, 0.36);
+    --rim: rgba(255, 255, 255, 0.26);
+    --rim-bend: rgba(0, 0, 0, 0.38);
+    --rim-glow: rgba(255, 255, 255, 0.07);
+    --rim-pool: rgba(255, 255, 255, 0.16);
+    --rim-under: rgba(0, 0, 0, 0.38);
+    --rim-hairline: rgba(0, 0, 0, 0.55);
+    --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.06));
+    --depth-shadow: 0 24px 56px -12px rgba(0, 0, 0, 0.7), 0 3px 10px rgba(0, 0, 0, 0.4);
+    --card-rgb: 44, 46, 56;
+    --card-alpha: calc(var(--glass-alpha) + 0.14);
+    --card-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+}
+:root[data-theme="dark"] {
+  --glass-blur: blur(34px) saturate(200%) brightness(1.12);
+  --rim-lit: rgba(255, 255, 255, 0.62);
+  --rim-low: rgba(255, 255, 255, 0.36);
+  --rim: rgba(255, 255, 255, 0.26);
+  --rim-bend: rgba(0, 0, 0, 0.38);
+  --rim-glow: rgba(255, 255, 255, 0.07);
+  --rim-pool: rgba(255, 255, 255, 0.16);
+  --rim-under: rgba(0, 0, 0, 0.38);
+  --rim-hairline: rgba(0, 0, 0, 0.55);
+  --depth-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.06));
+  --depth-shadow: 0 24px 56px -12px rgba(0, 0, 0, 0.7), 0 3px 10px rgba(0, 0, 0, 0.4);
+  --card-rgb: 44, 46, 56;
+  --card-alpha: calc(var(--glass-alpha) + 0.14);
+  --card-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+/* On the plain background the cards are almost solid, so they still stand out from it. */
+:root[data-wash="off"] { --card-alpha: 0.9; }
 
 /* The slab, from the edge inwards: a bright rim all round (brightest along the top and left,
    softer along the bottom and right), then a faint darker band where the glass bends, a glow
    inside the thickness, light pooling along the bottom and a soft shadow under the top edge. */
-:root[data-depth="thick"]:not([data-solid="true"]) :is(.lg, .sidebar, .topbar-glass, .tabbar, .tab-search, .sheet, .toast, .update-bar, .fab, .ctx-menu, .mention-menu, .search-panel, .btn.glassy, .icon-btn.glassy) {
+:root:not([data-solid="true"]) :is(.lg, .sidebar, .topbar-glass, .tabbar, .tab-search, .sheet, .toast, .update-bar, .fab, .ctx-menu, .mention-menu, .search-panel, .btn.glassy, .icon-btn.glassy) {
   background-image: var(--depth-sheen);
   border-color: var(--rim-hairline);
   box-shadow:
@@ -68,7 +122,7 @@
 }
 
 /* The selected tab is a small lens of the same glass. */
-:root[data-depth="thick"]:not([data-solid="true"]) .tabbar a.active {
+:root:not([data-solid="true"]) .tabbar a.active {
   box-shadow:
     inset 1px 1px 0.5px -0.5px var(--rim-lit),
     inset -1px -1px 0.5px -0.5px var(--rim-low),
@@ -76,45 +130,78 @@
     0 4px 12px -5px rgba(0, 0, 0, 0.28);
 }
 
-/* ---- the colour wash: soft light behind the page, blue at the top, warm on the right, teal
-   and pink lower down. The plain grey (or black) shows through where it fades. */
-:root[data-wash="on"] .wallpaper {
+/* ---- cards: every card is glass. They sit on the soft background rather than over other
+   content, so they skip the costly live blur (it would look the same) and stay smooth to scroll
+   on any phone. Chat panes and tables keep their solid backgrounds. */
+:root:not([data-solid="true"]) :is(.solid, .glass, .glass-strong, .group, .banner, .board-card, .files, .file, .dl-card, .hs-tile, .vo-card, .boq-card, .du-task, .trk-home-link, .reg-cat, .tb-card):not(.chat-pane, .table-wrap, .lg, .sheet, .ctx-menu) {
+  background-color: rgba(var(--card-rgb), var(--card-alpha));
+  background-image: var(--depth-sheen);
+  box-shadow:
+    inset 1.5px 1.5px 1px -1px var(--rim-lit),
+    inset -1.5px -1.5px 1px -1px var(--rim-low),
+    inset 0 0 0 1px var(--rim),
+    inset 0 0 2px 2.5px var(--rim-bend),
+    inset 0 -16px 22px -20px var(--rim-pool),
+    var(--card-shadow);
+}
+/* A card inside a card (a group in a sheet, a tile in a group) is a lighter pane of glass. */
+:root:not([data-solid="true"]) :is(.group, .glass, .solid, .sheet) :is(.group, .glass, .solid, .banner):not(.chat-pane, .table-wrap) {
+  background-color: rgba(var(--card-rgb), calc(var(--card-alpha) * 0.55));
+  box-shadow:
+    inset 1px 1px 0.5px -0.5px var(--rim-lit),
+    inset 0 0 0 0.5px var(--rim);
+}
+
+/* ================================================================ the colour background */
+/* Northcroft navy from the top left, a lighter navy-blue on the right, a touch of the red from
+   the logo at the bottom right. The plain background shows through where it fades. */
+:root:not([data-wash="off"]) .wallpaper {
   background:
-    radial-gradient(70% 42% at 8% 0%, rgba(10, 132, 255, 0.3), transparent 70%),
-    radial-gradient(60% 40% at 100% 16%, rgba(255, 159, 10, 0.26), transparent 70%),
-    radial-gradient(65% 45% at 0% 72%, rgba(48, 176, 199, 0.26), transparent 70%),
-    radial-gradient(65% 45% at 92% 96%, rgba(255, 55, 95, 0.2), transparent 70%),
+    radial-gradient(80% 46% at 6% 0%, rgba(1, 32, 97, 0.3), transparent 70%),
+    radial-gradient(60% 40% at 100% 18%, rgba(40, 86, 214, 0.22), transparent 70%),
+    radial-gradient(65% 45% at 0% 74%, rgba(11, 58, 158, 0.16), transparent 70%),
+    radial-gradient(60% 42% at 96% 96%, rgba(241, 62, 68, 0.2), transparent 70%),
     var(--bg);
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-wash="on"]:not([data-theme="light"]) .wallpaper {
+  :root:not([data-wash="off"]):not([data-theme="light"]) .wallpaper {
     background:
-      radial-gradient(70% 42% at 8% 0%, rgba(10, 132, 255, 0.34), transparent 70%),
-      radial-gradient(60% 40% at 100% 16%, rgba(255, 159, 10, 0.2), transparent 70%),
-      radial-gradient(65% 45% at 0% 72%, rgba(48, 176, 199, 0.24), transparent 70%),
-      radial-gradient(65% 45% at 92% 96%, rgba(191, 90, 242, 0.24), transparent 70%),
+      radial-gradient(85% 50% at 6% 0%, rgba(40, 86, 214, 0.5), transparent 70%),
+      radial-gradient(60% 42% at 100% 22%, rgba(1, 32, 97, 0.85), transparent 70%),
+      radial-gradient(65% 45% at 0% 76%, rgba(11, 58, 158, 0.42), transparent 70%),
+      radial-gradient(60% 42% at 96% 98%, rgba(241, 62, 68, 0.24), transparent 70%),
       var(--bg);
   }
 }
-:root[data-wash="on"][data-theme="dark"] .wallpaper {
+:root:not([data-wash="off"])[data-theme="dark"] .wallpaper {
   background:
-    radial-gradient(70% 42% at 8% 0%, rgba(10, 132, 255, 0.34), transparent 70%),
-    radial-gradient(60% 40% at 100% 16%, rgba(255, 159, 10, 0.2), transparent 70%),
-    radial-gradient(65% 45% at 0% 72%, rgba(48, 176, 199, 0.24), transparent 70%),
-    radial-gradient(65% 45% at 92% 96%, rgba(191, 90, 242, 0.24), transparent 70%),
+    radial-gradient(85% 50% at 6% 0%, rgba(40, 86, 214, 0.5), transparent 70%),
+    radial-gradient(60% 42% at 100% 22%, rgba(1, 32, 97, 0.85), transparent 70%),
+    radial-gradient(65% 45% at 0% 76%, rgba(11, 58, 158, 0.42), transparent 70%),
+    radial-gradient(60% 42% at 96% 98%, rgba(241, 62, 68, 0.24), transparent 70%),
     var(--bg);
 }
-/* The page itself lets the wash through (body was painted plain grey over it). */
-:root[data-wash="on"] body { background: transparent; }
+/* The page itself lets the colour through (body was painted plain over it). */
+:root:not([data-wash="off"]) body { background: transparent; }
 
 /* With colour behind, the soft edges where the page scrolls under the bars only blur and tint
    lightly, instead of fading to a plain grey band. */
-:root[data-wash="on"] .topbar::before {
+:root:not([data-wash="off"]) .topbar::before {
   background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 55%, transparent) 0%, color-mix(in srgb, var(--bg) 30%, transparent) 60%, transparent 100%);
 }
-:root[data-wash="on"] .tabbar-wrap::before {
+:root:not([data-wash="off"]) .tabbar-wrap::before {
   background: linear-gradient(to top, color-mix(in srgb, var(--bg) 45%, transparent) 30%, transparent);
 }
 
-/* Reduce transparency: no wash either, just the plain background. */
-:root[data-solid="true"][data-wash="on"] .wallpaper { background: var(--bg); }
+/* ================================================================ Reduce transparency */
+:root[data-solid="true"] .wallpaper { background: var(--bg); }
+:root[data-solid="true"] body { background: var(--bg); }
+@media (prefers-reduced-transparency: reduce) {
+  :root { --glass-alpha: 0.92 !important; --card-alpha: 1 !important; }
+  :root .wallpaper { background: var(--bg) !important; }
+  :root body { background: var(--bg) !important; }
+}
+
+/* The little phones in Settings > Appearance show the chosen colour. */
+:root:not([data-accent="apple"]) .ap-bar b:first-child { background: #0b3a9e; }
+:root:not([data-accent="apple"]) :is(.ap-phone.dark, .dark-half) .ap-bar b:first-child { background: #6189f0; }

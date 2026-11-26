@@ -38,7 +38,8 @@
   --fill-2: rgba(120, 120, 128, 0.2);
   --fill-3: rgba(120, 120, 128, 0.28);
 
-  /* The accent: Apple blue, for everything you can tap */
+  /* The accent: Apple blue, for everything you can tap. The Northcroft navy that's standard now
+     (and the Apple blue choice) is set in styles/depth.css. */
   --accent: #007aff;
   --accent-press: #0062cc;
   --accent-soft: rgba(0, 122, 255, 0.12);
@@ -47,7 +48,7 @@
   --brand-ink: var(--accent);
   --brand-soft: var(--accent-soft);
   --nav-active: var(--accent);
-  /* Northcroft's own colours, for the logo and nothing else */
+  /* Northcroft's own colours: the logo, the Northcroft accent and the colour background */
   --navy: #012061;
   --northcroft-red: #e8343e;
   /* Dark glass bars over photos and files (the file viewer's header), in every appearance */
@@ -864,12 +865,12 @@ p {
 .btn[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
 .btn.primary,
 .btn.brand {
-  background: var(--accent);
+  background: var(--accent-fill, var(--accent));
   color: var(--on-accent);
   box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.35);
 }
 .btn.primary:hover,
-.btn.brand:hover { background: var(--accent-press); }
+.btn.brand:hover { background: var(--accent-fill-press, var(--accent-press)); }
 .btn.success { background: var(--green-fill); color: #fff; }
 .btn.danger { background: var(--red-soft); color: var(--red); }
 .btn.warn { background: var(--orange-soft); color: var(--orange); }
@@ -1561,7 +1562,7 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 }
 :root[data-theme="dark"] .bubble { background: #262629; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .bubble { background: #262629; } }
-.msg.mine .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 6px; }
+.msg.mine .bubble { background: var(--accent-fill, var(--accent)); color: #fff; border-bottom-right-radius: 6px; }
 .msg:not(.mine) .bubble { border-bottom-left-radius: 6px; }
 .bubble .who { font-size: var(--t-cap); font-weight: 600; margin-bottom: 1px; color: var(--text-2); }
 .bubble .when { font-size: var(--t-cap2); opacity: 0.62; margin-top: 2px; }
