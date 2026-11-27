@@ -239,25 +239,22 @@
     linear-gradient(180deg, rgba(1, 32, 97, 0.15) 0%, rgba(1, 32, 97, 0.45) 100%);
 }
 .auth-brand { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 4px; }
-.auth-brand .logo-tile { border-radius: 18px; box-shadow: 0 12px 30px rgba(1, 32, 97, 0.35); }
-/* The full Northcroft QS Team logo: white lettering on its own soft dark glow. On the light looks
-   it sits on a black glass plate so the lettering always shows; on the dark looks, in the side menu
-   and on the start screen the plate is clear. Never cropped or stretched. */
-.qs-logo { display: inline-block; flex-shrink: 0; line-height: 0; border-radius: 20px; padding: 6px 12px; background: rgba(6, 6, 7, 0.94); user-select: none; }
-.qs-logo img { display: block; max-width: 100%; height: auto; }
-/* The navy version for light looks needs no dark plate behind it. */
-.qs-logo.tone-ink { background: transparent !important; padding: 0 !important; box-shadow: none !important; }
-:root[data-theme="dark"] .qs-logo,
-.sidebar .qs-logo,
-.boot .qs-logo { background: transparent; padding: 0; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .qs-logo { background: transparent; padding: 0; } }
-.boot .boot-logo img { width: min(360px, 84vw); }
-.auth-brand .auth-logo { max-width: 100%; }
-/* The square QS Team mark: the building, crane and red sweep on black. */
-.qs-mark { display: block; flex-shrink: 0; border-radius: 22%; object-fit: cover; background: #041234; user-select: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 4px 12px rgba(0, 0, 0, 0.28); }
-/* More and Settings > About: the logo on its own. */
-.logo-card { display: flex; justify-content: center; padding: 18px 16px; margin-bottom: 14px; }
-.about-logo { display: flex; justify-content: center; padding: 2px 0 6px; }
+/* "QS Team" in plain text where the logo used to be (components/Brand.tsx). */
+.qs-title {
+  display: block;
+  font-family: "Saira Semi Condensed", var(--font-display);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: inherit;
+  user-select: none;
+}
+.boot .qs-title { color: #fff; }
+.auth-brand .auth-title { color: var(--text); padding: 6px 0 2px; }
+.faceid-lock .qs-title { color: #fff; margin-bottom: 6px; }
+/* Settings > About: the name on its own. */
+.about-logo { display: flex; justify-content: center; padding: 10px 0 12px; color: var(--text); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .brand-word { color: var(--text); }
 .auth-card .lead { margin-top: 2px; }

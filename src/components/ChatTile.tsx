@@ -1,4 +1,4 @@
-// The round picture for a chat: the logo for Team chat, the project, the person, or the group's initials.
+// The round picture for a chat: "QS" for Team chat, the project, the person, or the group's initials.
 import clsx from "clsx";
 import { FolderKanban, Users } from "lucide-react";
 import { PERSON_COLORS } from "@/lib/constants";
@@ -6,7 +6,6 @@ import { initials } from "@/lib/format";
 import type { ChatItem } from "@/lib/chats";
 import type { Profile, Project } from "@/lib/types";
 import { Avatar } from "./ui";
-import { QsMark } from "./Brand";
 
 function colorFor(id: string) {
   let h = 0;
@@ -15,7 +14,13 @@ function colorFor(id: string) {
 }
 
 export function ChatTile({ item, project, person, small }: { item: Pick<ChatItem, "kind" | "conversation_id" | "title">; project?: Project; person?: Profile; small?: boolean }) {
-  if (item.kind === "team") return <QsMark size={small ? 38 : 46} className="chat-tile-logo" />;
+  if (item.kind === "team") {
+    return (
+      <span className={clsx("chat-tile team", small && "sm")} aria-label="Team chat">
+        QS
+      </span>
+    );
+  }
   if (item.kind === "direct") return <Avatar person={person} size={small ? 38 : 46} />;
   if (item.kind === "project") {
     return (

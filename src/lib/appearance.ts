@@ -6,7 +6,6 @@
 //   density   list rows: Compact, Standard, Roomy                            data-density
 //   solid     Reduce transparency: the glass turns solid                      data-solid
 //   accent    Northcroft navy (standard) or Apple blue                          data-accent="apple"
-//   wash      the soft Northcroft colour background (standard) or plain        data-wash="off"
 // The styles that read these are in styles/core.css.
 export type ThemePref = "system" | "light" | "dark";
 export type GlassPref = "clear" | "default" | "tinted";
@@ -21,7 +20,6 @@ export interface Appearance {
   density: DensityPref;
   solid: boolean;
   accent: AccentPref;
-  wash: boolean;
 }
 
 const KEYS = {
@@ -31,7 +29,6 @@ const KEYS = {
   density: "nc-density",
   solid: "nc-solid-v2",
   accent: "nc-accent",
-  wash: "nc-wash",
 } as const;
 
 function get(key: string): string | null {
@@ -64,7 +61,6 @@ export function readAppearance(): Appearance {
     density: d === "compact" || d === "roomy" ? d : "standard",
     solid: get(KEYS.solid) === "true",
     accent: get(KEYS.accent) === "apple" ? "apple" : "northcroft",
-    wash: get(KEYS.wash) !== "off",
   };
 }
 
@@ -83,8 +79,8 @@ export function applyAppearance(a: Appearance = readAppearance()) {
   else delete root.dataset.solid;
   if (a.accent === "apple") root.dataset.accent = "apple";
   else delete root.dataset.accent;
-  if (a.wash) delete root.dataset.wash;
-  else root.dataset.wash = "off";
+  // The colour background is gone: nothing left over from a phone that had it switched off.
+  delete root.dataset.wash;
   window.dispatchEvent(new Event("nc-appearance"));
 }
 
@@ -96,7 +92,7 @@ export function saveAppearance(patch: Partial<Appearance>) {
   put(KEYS.density, next.density === "standard" ? null : next.density);
   put(KEYS.solid, next.solid ? "true" : null);
   put(KEYS.accent, next.accent === "apple" ? "apple" : null);
-  put(KEYS.wash, next.wash ? null : "off");
+  put("nc-wash", null);
   applyAppearance(next);
   return next;
 }

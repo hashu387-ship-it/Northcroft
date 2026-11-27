@@ -1,5 +1,5 @@
 // The look of the weekly update report, on screen, printed and as a PDF: Northcroft's colours and
-// fonts (the app's own), with the Northcroft logo at the top.
+// fonts (the app's own).
 export const REPORT_BRAND = {
   /** In the file name. */
   name: "Northcroft",

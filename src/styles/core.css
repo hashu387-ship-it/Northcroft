@@ -48,7 +48,7 @@
   --brand-ink: var(--accent);
   --brand-soft: var(--accent-soft);
   --nav-active: var(--accent);
-  /* Northcroft's own colours: the logo, the Northcroft accent and the colour background */
+  /* Northcroft's own colours, for the Northcroft accent */
   --navy: #012061;
   --northcroft-red: #e8343e;
   /* Dark glass bars over photos and files (the file viewer's header), in every appearance */
@@ -1743,7 +1743,6 @@ button.list-item { background: none; border-left: 0; border-right: 0; border-top
 .group-row.profile .label b { display: block; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
 .topbar .bar-btn { position: relative; }
 .topbar .bar-dot { position: absolute; top: 4px; right: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--brand-red); border: 2px solid var(--bg); }
-.brand .logo-mark { flex: none; border-radius: 9px; }
 
 /* ================================================================== Catch up (components/CatchUp.tsx) */
 .cu-title { display: inline-flex; align-items: center; gap: 8px; }

@@ -4,7 +4,7 @@ import { useAuth, useMe } from "@/lib/auth";
 import { signOutWarning } from "@/lib/outbox";
 import { isStandalone } from "@/lib/push";
 import { useConfirm } from "@/components/ui";
-import { QsLogo } from "@/components/Brand";
+import { QsTitle } from "@/components/Brand";
 import { Section } from "./common";
 
 export function AboutSection() {
@@ -45,7 +45,7 @@ export function AboutSection() {
       </Section>
       <Section title="About">
         <div className="about-logo">
-          <QsLogo size={110} />
+          <QsTitle size={34} />
         </div>
         <div className="setting-row">
           <div className="grow">

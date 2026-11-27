@@ -37,7 +37,6 @@ import { Avatar, Loading } from "@/components/ui";
 import ChangePassword from "@/pages/ChangePassword";
 import ProfileSetup from "@/pages/ProfileSetup";
 import { ContextMenuHost } from "@/components/ContextMenu";
-import { LogoMark } from "@/components/Brand";
 import { PersonCardHost } from "@/components/People";
 import { CallHost } from "@/calls/CallScreen";
 import { CelebrationHost } from "@/components/Celebration";
@@ -263,7 +262,6 @@ export default function AppShell() {
 
       <aside className="sidebar glass">
         <Link to="/" className="brand" aria-label="Northcroft home">
-          <LogoMark size={34} className="logo-mark" />
           <span>
             <span className="brand-word">Northcroft</span>
             <small>QS Team</small>

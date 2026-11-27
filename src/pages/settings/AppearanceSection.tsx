@@ -2,7 +2,6 @@
 //   Light, Dark or Automatic, with a little phone for each
 //   Colour: Northcroft navy (standard) or Apple blue
 //   Glass: how see-through the bars and cards are (Clear to Tinted, like iOS 27's slider)
-//   Colour background: the soft Northcroft wash behind the glass
 //   Text size and list spacing
 //   Reduce transparency
 //   App icon style (in the iPhone app)
@@ -127,7 +126,7 @@ export function AppearanceSection() {
           <Segmented<AccentPref> value={a.accent} onChange={(v) => set({ accent: v })} options={ACCENTS} />
         </div>
       </div>
-      <div className="group-foot">Northcroft uses the navy from the Northcroft logo.</div>
+      <div className="group-foot">Northcroft is the company navy. Apple blue is the iPhone's standard blue.</div>
 
       <div className="group-title">Liquid Glass</div>
       <div className="group">
@@ -143,13 +142,6 @@ export function AppearanceSection() {
         <div className="group-row no-tile static">
           <span className="label">Glass</span>
           <Segmented<GlassPref> value={a.glass} onChange={(v) => set({ glass: v })} options={GLASS} />
-        </div>
-        <div className="group-row no-tile static">
-          <span className="label">
-            Colour background
-            <small>A soft wash of Northcroft navy and red behind the glass.</small>
-          </span>
-          <Switch checked={a.wash} onChange={(v) => set({ wash: v })} label="Colour background" />
         </div>
         <div className="group-row no-tile static">
           <span className="label">

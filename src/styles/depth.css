@@ -1,9 +1,8 @@
-/* The Northcroft look: Northcroft navy, a soft navy-and-red colour background, and thick, clear
- * Liquid Glass on the floating layer and on every card.
+/* The Northcroft look: Northcroft navy and thick, clear Liquid Glass on the floating layer and on
+ * every card, over the plain system background.
  *
  *   Colour      Northcroft navy for buttons and links (standard); data-accent="apple" brings
  *               back Apple blue (Settings > Appearance > Colour)
- *   Background  the colour wash (standard); data-wash="off" is the plain system background
  *   Glass       bars, menus, sheets, toasts and floating buttons are thick glass slabs like an
  *               iOS 26 folder or notification: a bright rim, a darker band where the glass
  *               bends, light pooling along the bottom and a deep blur. Cards are the same glass,
@@ -102,7 +101,7 @@
   --card-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 /* On the plain background the cards are almost solid, so they still stand out from it. */
-:root[data-wash="off"] { --card-alpha: 0.9; }
+:root:not([data-solid="true"]) { --card-alpha: 0.9; }
 
 /* The slab, from the edge inwards: a bright rim all round (brightest along the top and left,
    softer along the bottom and right), then a faint darker band where the glass bends, a glow
@@ -150,47 +149,6 @@
   box-shadow:
     inset 1px 1px 0.5px -0.5px var(--rim-lit),
     inset 0 0 0 0.5px var(--rim);
-}
-
-/* ================================================================ the colour background */
-/* Northcroft navy from the top left, a lighter navy-blue on the right, a touch of the red from
-   the logo at the bottom right. The plain background shows through where it fades. */
-:root:not([data-wash="off"]) .wallpaper {
-  background:
-    radial-gradient(80% 46% at 6% 0%, rgba(1, 32, 97, 0.3), transparent 70%),
-    radial-gradient(60% 40% at 100% 18%, rgba(40, 86, 214, 0.22), transparent 70%),
-    radial-gradient(65% 45% at 0% 74%, rgba(11, 58, 158, 0.16), transparent 70%),
-    radial-gradient(60% 42% at 96% 96%, rgba(241, 62, 68, 0.2), transparent 70%),
-    var(--bg);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-wash="off"]):not([data-theme="light"]) .wallpaper {
-    background:
-      radial-gradient(85% 50% at 6% 0%, rgba(40, 86, 214, 0.5), transparent 70%),
-      radial-gradient(60% 42% at 100% 22%, rgba(1, 32, 97, 0.85), transparent 70%),
-      radial-gradient(65% 45% at 0% 76%, rgba(11, 58, 158, 0.42), transparent 70%),
-      radial-gradient(60% 42% at 96% 98%, rgba(241, 62, 68, 0.24), transparent 70%),
-      var(--bg);
-  }
-}
-:root:not([data-wash="off"])[data-theme="dark"] .wallpaper {
-  background:
-    radial-gradient(85% 50% at 6% 0%, rgba(40, 86, 214, 0.5), transparent 70%),
-    radial-gradient(60% 42% at 100% 22%, rgba(1, 32, 97, 0.85), transparent 70%),
-    radial-gradient(65% 45% at 0% 76%, rgba(11, 58, 158, 0.42), transparent 70%),
-    radial-gradient(60% 42% at 96% 98%, rgba(241, 62, 68, 0.24), transparent 70%),
-    var(--bg);
-}
-/* The page itself lets the colour through (body was painted plain over it). */
-:root:not([data-wash="off"]) body { background: transparent; }
-
-/* With colour behind, the soft edges where the page scrolls under the bars only blur and tint
-   lightly, instead of fading to a plain grey band. */
-:root:not([data-wash="off"]) .topbar::before {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 55%, transparent) 0%, color-mix(in srgb, var(--bg) 30%, transparent) 60%, transparent 100%);
-}
-:root:not([data-wash="off"]) .tabbar-wrap::before {
-  background: linear-gradient(to top, color-mix(in srgb, var(--bg) 45%, transparent) 30%, transparent);
 }
 
 /* ================================================================ Reduce transparency */

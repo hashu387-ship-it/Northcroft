@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { App } from "@capacitor/app";
 import { ScanFace } from "lucide-react";
-import { QsLogo } from "@/components/Brand";
+import { QsTitle } from "@/components/Brand";
 import { isNativeApp } from "./platform";
 import { NorthcroftNative } from "./plugin";
 import { getPref, PREF, usePref } from "./prefs";
@@ -56,7 +56,7 @@ export function FaceIdLock() {
   if (!on || !locked) return null;
   return (
     <div className="faceid-lock" role="dialog" aria-modal="true" aria-label="Northcroft is locked">
-      <QsLogo size={120} onDark />
+      <QsTitle size={44} />
       <p>Northcroft is locked</p>
       {failed && <p className="faceid-why">{failed}</p>}
       <button type="button" className="btn primary large" onClick={() => void unlock()}>

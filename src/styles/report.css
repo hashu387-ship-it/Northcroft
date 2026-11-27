@@ -1,5 +1,5 @@
-/* The weekly update report: a white A4-like document in Northcroft's colours and fonts, with the
-   Northcroft logo at the top; the same on screen and on paper. Colours come from
+/* The weekly update report: a white A4-like document in Northcroft's colours and fonts; the
+   same on screen and on paper. Colours come from
    REPORT_BRAND as CSS variables on .rp-doc; fonts are bundled in /fonts/report. This file is also
    put, as it is, into the page that prints. */
 @font-face { font-family: "RP Heading"; src: url("/fonts/report/SairaSemiCondensed-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
@@ -35,23 +35,8 @@
 /* Stronger than the app's own heading rule, so the report keeps its own headings. */
 :root:root .rp-doc :is(h1, h2, h3) { font-family: "RP Heading", "Saira Semi Condensed", sans-serif; font-weight: 700; color: var(--rp-primary); margin: 0; letter-spacing: 0; }
 
-/* ---- heading band: the Northcroft logo on a white tile, the title beside it (or under it when
-   there isn't room for both on one line) */
+/* ---- heading band: the title, the period and who prepared it, on Northcroft navy */
 .rp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; padding: 22px 28px 18px; background: var(--rp-primary); color: #fff; }
-.rp-logos { flex: none; display: flex; align-items: center; gap: 12px; }
-.rp-nc { display: flex; align-items: center; gap: 8px; color: var(--rp-primary); }
-.rp-nc svg { display: block; }
-/* The full QS Team logo (the blue version) has white lettering, so on the white page it sits on a
-   navy plate (also when printed: browsers skip background colours unless told to keep them). */
-.rp-nc .qs-logo {
-  display: block;
-  padding: 4px 10px;
-  border-radius: 14px;
-  background: #071733;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-.rp-nc .qs-logo img { display: block; width: auto; height: 84px; max-width: none; }
 .rp-head-text { min-width: 0; flex: 1 1 250px; }
 :root:root .rp-head h1 { color: #fff; font-size: 24px; line-height: 1.2; }
 .rp-period { font-weight: 600; font-size: 14px; margin-top: 2px; color: #fff; }
@@ -120,7 +105,6 @@
 @media (max-width: 560px) {
   .rp-doc:not(.rp-paper) { border-radius: 12px; font-size: 13px; }
   .rp-doc:not(.rp-paper) .rp-head { padding: 16px 16px 14px; gap: 12px; align-items: flex-start; }
-  .rp-doc:not(.rp-paper) .rp-nc .qs-logo img { height: 64px; }
   :root:root .rp-doc:not(.rp-paper) .rp-head h1 { font-size: 19px; }
   .rp-doc:not(.rp-paper) .rp-body { padding: 16px 16px 20px; }
   .rp-doc:not(.rp-paper) .rp-foot { padding: 10px 16px 14px; }

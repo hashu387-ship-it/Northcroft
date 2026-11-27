@@ -17,7 +17,7 @@ export async function printReport(el: HTMLElement, css: string, title: string): 
   });
   const win = frame.contentWindow!;
   const doc = frame.contentDocument!;
-  // Wait for the fonts and the logo, so the printout looks like the screen.
+  // Wait for the fonts and any pictures, so the printout looks like the screen.
   try {
     await doc.fonts?.ready;
     await Promise.all([...doc.images].map((img) => (img.complete ? null : img.decode().catch(() => null))));
