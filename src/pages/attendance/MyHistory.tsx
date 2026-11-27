@@ -9,20 +9,37 @@ import { PlacePill } from "./shared";
 import { SentLater } from "./SentLater";
 import { LunchLine, lunchBadges, lunchRules, useMyLunchHistory } from "./lunch";
 
-export function MyHistory({ rows, loading }: { rows: Attendance[]; loading: boolean }) {
-  const past = rows.filter((r) => r.work_date !== todayISO()).slice(0, 30);
+/** Check-in and out for each earlier day: yours on the Attendance page, or someone's on their profile. */
+export function MyHistory({
+  rows,
+  loading,
+  userId,
+  title = "My history",
+  from,
+  emptyText = "Your check-ins from the last 30 days will show up here.",
+}: {
+  rows: Attendance[];
+  loading: boolean;
+  /** Whose days these are (you, unless given). */
+  userId?: string;
+  title?: string;
+  /** The first day shown, for the lunch breaks (45 days ago unless given). */
+  from?: string;
+  emptyText?: string;
+}) {
+  const past = rows.filter((r) => r.work_date !== todayISO()).slice(0, from ? 31 : 30);
   const late = past.filter((r) => r.late_minutes > 0).length;
   // Lunch breaks and office checks for the same days.
   const me = useMe();
   const { data: settings } = useSettings();
-  const lunch = useMyLunchHistory(me.id, addDays(todayISO(), -45));
+  const lunch = useMyLunchHistory(userId ?? me.id, from ?? addDays(todayISO(), -45));
   const lunchByDay = useMemo(() => new Map((lunch.data ?? []).map((b) => [b.work_date, b])), [lunch.data]);
   const rules = lunchRules(settings);
   return (
     <div className="glass card">
       <div className="card-head">
         <h2>
-          <CalendarClock /> My history
+          <CalendarClock /> {title}
         </h2>
         {past.length > 0 && (
           <span className="muted small">
@@ -35,7 +52,7 @@ export function MyHistory({ rows, loading }: { rows: Attendance[]; loading: bool
         <Loading />
       ) : past.length === 0 ? (
         <Empty icon={<CalendarClock />} title="No earlier days yet">
-          Your check-ins from the last 30 days will show up here.
+          {emptyText}
         </Empty>
       ) : (
         <div className="list">

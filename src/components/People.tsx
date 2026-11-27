@@ -1,18 +1,16 @@
-// People helpers: the WhatsApp button, the +966 mobile number box, and the profile card
-// that opens when you tap someone's photo anywhere in the app.
+// People helpers: the WhatsApp button, the +966 mobile number box, and opening someone's profile
+// page (/people/:id) when you tap their photo or name anywhere in the app.
 import "@/styles/people.css";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import { Mail, MessageCircle, Phone, PhoneCall, UserPen } from "lucide-react";
-import { usePeople } from "@/lib/api";
 import { startDirectChat } from "@/lib/chats";
 import { errorMessage } from "@/lib/supabase";
 import { useMe } from "@/lib/auth";
 import { COUNTRY_CODE, formatPhone, localDigits, whatsappLink } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
-import { Avatar, Pill, Sheet, useToast } from "./ui";
-import { showsManagerLabel } from "@/lib/people";
+import { Avatar, useToast } from "./ui";
 import { useOnlineLine } from "@/lib/online";
 import { useStartCall } from "@/calls/CallScreen";
 
@@ -91,7 +89,7 @@ export function PhoneInput({
   );
 }
 
-/* ---------------------------------------------------------------- profile card */
+/* ---------------------------------------------------------------- profile page */
 let openId: string | null = null;
 const listeners = new Set<() => void>();
 const subscribe = (fn: () => void) => {
@@ -103,12 +101,12 @@ const setOpenId = (id: string | null) => {
   listeners.forEach((fn) => fn());
 };
 
-/** Show someone's profile card: photo, title, and WhatsApp, call and email buttons. */
+/** Open someone's profile page: their work, projects, attendance and contact buttons. */
 export function openPersonCard(id: string) {
   setOpenId(id);
 }
 
-/** A person's photo that opens their profile card when tapped. */
+/** A person's photo that opens their profile when tapped. */
 export function PersonAvatar({ person, size = 32 }: { person: Profile | null | undefined; size?: number }) {
   if (!person) return <Avatar person={person} size={size} />;
   return (
@@ -126,7 +124,7 @@ export function PersonAvatar({ person, size = 32 }: { person: Profile | null | u
   );
 }
 
-/** Photo and name together, opening the profile card. */
+/** Photo and name together, opening the profile. */
 export function PersonLink({ person, size = 22 }: { person: Profile | null | undefined; size?: number }) {
   if (!person) {
     return (
@@ -144,25 +142,32 @@ export function PersonLink({ person, size = 22 }: { person: Profile | null | und
   );
 }
 
-/** Rendered once in the app shell. */
+/** Rendered once in the app shell: turns openPersonCard(id) into a visit to /people/:id. */
 export function PersonCardHost() {
   const id = useSyncExternalStore(subscribe, () => openId);
-  const people = usePeople();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!id) return;
+    setOpenId(null);
+    navigate(`/people/${id}`);
+  }, [id, navigate]);
+  return null;
+}
+
+/** Message, voice call, WhatsApp, mobile and email for someone else; "Edit your profile" for you. */
+export function PersonContact({ person }: { person: Profile }) {
   const me = useMe();
-  const p = id ? people.get(id) : undefined;
-  const close = () => setOpenId(null);
-  const isMe = p?.id === me.id;
   const navigate = useNavigate();
   const toast = useToast();
   const [opening, setOpening] = useState(false);
   const startCall = useStartCall();
+  const isMe = person.id === me.id;
 
   async function message() {
-    if (!p || opening) return;
+    if (opening) return;
     setOpening(true);
     try {
-      const id = await startDirectChat(p.id);
-      close();
+      const id = await startDirectChat(person.id);
       navigate(`/chats/${id}`);
     } catch (e) {
       toast(errorMessage(e), "error");
@@ -171,73 +176,42 @@ export function PersonCardHost() {
     }
   }
 
+  if (isMe) {
+    return (
+      <div className="pc-actions">
+        <Link className="btn" to="/settings/profile">
+          <UserPen /> Edit your profile
+        </Link>
+      </div>
+    );
+  }
   return (
-    <Sheet open={!!p} onClose={close} title={p ? p.short_name : ""}>
-      {p && (
-        <div className="person-card">
-          <Avatar person={p} size={104} />
-          <div className="pc-name">{p.full_name}</div>
-          <div className="pc-title">
-            {p.title}
-            {showsManagerLabel(p) ? <Pill tone="blue">Manager</Pill> : p.role !== "manager" && p.can_assign ? <Pill tone="purple">Can assign</Pill> : null}
-          </div>
-          {!isMe && <OnlineLine id={p.id} />}
-
-          {!isMe && (
-            <div className="pc-actions">
-              <button className="btn primary" type="button" onClick={message} disabled={opening}>
-                <MessageCircle /> Message
-              </button>
-              {p.active && (
-                <button
-                  className="btn"
-                  type="button"
-                  onClick={() => {
-                    close();
-                    void startCall(p.id);
-                  }}
-                >
-                  <PhoneCall /> Voice call
-                </button>
-              )}
-              {p.phone ? (
-                <>
-                  <WhatsAppButton person={p} variant="button" />
-                  <a className="btn" href={`tel:${p.phone}`}>
-                    <Phone /> Mobile
-                  </a>
-                </>
-              ) : null}
-              <a className="btn" href={`mailto:${p.email}`}>
-                <Mail /> Email
-              </a>
-            </div>
-          )}
-
-          <div className="pc-details solid">
-            <div>
-              <span>Mobile</span>
-              <b className="num">{p.phone ? formatPhone(p.phone) : <span className="faint">Not added yet</span>}</b>
-            </div>
-            <div>
-              <span>Email</span>
-              <b className="ellipsis">{p.email}</b>
-            </div>
-          </div>
-
-          {isMe && (
-            <Link className="btn" to="/settings/profile" onClick={close}>
-              <UserPen /> Edit your profile
-            </Link>
-          )}
-        </div>
+    <div className="pc-actions">
+      <button className="btn primary" type="button" onClick={message} disabled={opening}>
+        <MessageCircle /> Message
+      </button>
+      {person.active && (
+        <button className="btn" type="button" onClick={() => void startCall(person.id)}>
+          <PhoneCall /> Call
+        </button>
       )}
-    </Sheet>
+      {person.phone ? (
+        <>
+          <WhatsAppButton person={person} variant="button" />
+          <a className="btn" href={`tel:${person.phone}`} aria-label={`Ring ${person.short_name}'s mobile, ${formatPhone(person.phone)}`}>
+            <Phone /> Mobile
+          </a>
+        </>
+      ) : null}
+      <a className="btn" href={`mailto:${person.email}`} aria-label={`Email ${person.email}`}>
+        <Mail /> Email
+      </a>
+    </div>
   );
 }
 
 /** "Online" in green, or when they were last on. Nothing while there's no time yet. */
-function OnlineLine({ id }: { id: string }) {
+export function OnlineLine({ id }: { id: string }) {
   const { online, text } = useOnlineLine(id);
   if (!text) return null;
   return <div className={online ? "pc-online on" : "pc-online"}>{text}</div>;

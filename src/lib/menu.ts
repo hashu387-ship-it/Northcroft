@@ -14,6 +14,7 @@ export const MENU_COLOR = {
   calendar: "#5856D6",
   inbox: "#007AFF",
   attendance: "#00C7BE",
+  team: "#5AC8FA",
   workload: "#FFCC00",
   time: "#32ADE6",
   settings: "#8E8E93",

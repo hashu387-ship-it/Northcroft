@@ -19,6 +19,7 @@ import {
   Settings,
   Sparkles,
   Timer,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
@@ -99,6 +100,7 @@ export default function More() {
     ...(canAssign ? [{ to: "/workload", label: "Workload", icon: BarChart3, color: MENU_COLOR.workload }] : []),
   ];
   const team: Row[] = [
+    { to: "/team", label: "Team", hint: "Everyone's work, projects and attendance", icon: Users, color: MENU_COLOR.team },
     ...(!me.attendance_exempt
       ? [{ to: "/attendance", label: "Check in", icon: MapPin, color: MENU_COLOR.attendance }]
       : canAssign

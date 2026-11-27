@@ -30,6 +30,8 @@ const Submissions = lazy(() => import("@/pages/Submissions"));
 const TimeReport = lazy(() => import("@/pages/TimeReport"));
 const WeeklyCheck = lazy(() => import("@/pages/WeeklyCheck"));
 const Calls = lazy(() => import("@/pages/Calls"));
+const Person = lazy(() => import("@/pages/Person"));
+const Team = lazy(() => import("@/pages/Team"));
 
 function Gate() {
   const { session, profile, loading } = useAuth();
@@ -62,6 +64,9 @@ export default function App() {
           <Route path="chats/project/:projectId" element={<Chats />} />
           <Route path="chats/:id" element={<Chats />} />
           <Route path="attendance" element={<Attendance />} />
+          <Route path="team" element={<Team />} />
+          <Route path="people/:id" element={<Person />} />
+          <Route path="people/:id/:tab" element={<Person />} />
           <Route path="workload" element={<Workload />} />
           <Route path="settings" element={<Settings />} />
           <Route path="settings/:section" element={<Settings />} />

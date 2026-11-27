@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Search,
   Settings,
+  Users,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePeople, useUnreadCount } from "@/lib/api";
@@ -217,6 +218,7 @@ export default function AppShell() {
     {
       label: "Team",
       items: [
+        { to: "/team", label: "Team", icon: Users },
         { to: "/chats", label: "Chats", icon: MessageCircle, count: chatUnread },
         { to: "/calls", label: "Calls", icon: Phone },
         { to: "/announcements", label: "Announcements", icon: Megaphone, count: unacked },
