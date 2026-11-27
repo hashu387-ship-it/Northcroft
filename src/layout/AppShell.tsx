@@ -187,7 +187,7 @@ export default function AppShell() {
   pathRef.current = location.pathname;
   const canGoBack = useCallback(() => !TAB_ROOTS.includes(pathRef.current) && ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0, []);
   const goBack = useCallback(() => navigate(-1), [navigate]);
-  useEdgeSwipeBack(mainRef, layerRef, canGoBack, goBack, shellShown);
+  useEdgeSwipeBack(mainRef, layerRef, canGoBack, goBack, shellShown, location.key);
   const qc = useQueryClient();
   const refresh = useCallback(() => qc.refetchQueries({ type: "active" }), [qc]);
   usePullToRefresh(mainRef, layerRef, ptrRef, refresh, shellShown);
