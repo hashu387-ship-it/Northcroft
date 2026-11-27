@@ -50,6 +50,7 @@ import { PageHead } from "@/components/PageHead";
 import { CommentThread, chatKeyOf, type Scope } from "@/components/CommentThread";
 import { Avatar, AvatarStack, Empty, Field, Loading, Pill, SearchField, Sheet, useConfirm, useToast } from "@/components/ui";
 import { openPersonCard } from "@/components/People";
+import { QsMark } from "@/components/Brand";
 import { ChatTile } from "@/components/ChatTile";
 import { SwipeRow } from "@/components/Swipe";
 import { useContextMenu } from "@/components/ContextMenu";
@@ -261,7 +262,7 @@ function ChatPane({ sel, projects }: { sel: NonNullable<Selection>; projects: Ma
     scope = { kind: "team" };
     head = (
       <>
-        <ChatTile item={{ kind: "team", conversation_id: null, title: "Team chat" }} small />
+        <QsMark size={38} />
         <span className="grow">
           <b>Team chat</b>
           <TypingOr chat="team" fallback={`Everyone · ${people.active.length} people`} />

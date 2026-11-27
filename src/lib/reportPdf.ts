@@ -1,5 +1,5 @@
 // The weekly update report as a PDF: an exact copy of the report page in the app (Northcroft's
-// colours and fonts), the same layout, laid out like the printout (the team on the first page, then each person on
+// colours, fonts and logo), the same layout, laid out like the printout (the team on the first page, then each person on
 // their own page; a long part carries on to the next page between lines, never through one). Job
 // titles are only shown in the app, so they're left out here. Each page is a sharp picture of the
 // page, with "Prepared by Northcroft QS team" and the page number underneath.

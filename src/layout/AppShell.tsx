@@ -51,6 +51,7 @@ import { SEARCH_SHORTCUT, SearchHost } from "@/components/Search";
 import { openSearch } from "@/lib/search";
 import { OfflineBar, OutboxRunner } from "@/components/Offline";
 import { blockStrayDrops } from "@/components/DropZone";
+import { QsMark } from "@/components/Brand";
 import { useEdgeSwipeBack, usePullToRefresh } from "@/lib/gestures";
 
 function useUnackedCount(userId: string) {
@@ -262,6 +263,7 @@ export default function AppShell() {
 
       <aside className="sidebar glass">
         <Link to="/" className="brand" aria-label="Northcroft home">
+          <QsMark size={34} className="logo-mark" />
           <span>
             <span className="brand-word">Northcroft</span>
             <small>QS Team</small>

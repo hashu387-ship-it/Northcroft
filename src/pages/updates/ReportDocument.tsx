@@ -1,8 +1,9 @@
-// The weekly update as a document in Northcroft's colours and fonts, with the Northcroft logo at
+// The weekly update as a document in Northcroft's colours and fonts, with the QS Team logo at
 // the top: the same on screen, on paper and in the PDF (a copy of this page). The team's
 // part first when there is one, then each person: what they did, each project with every task's %
 // at the start and end, other work and blockers.
 import { Fragment, type CSSProperties } from "react";
+import { QsLogo } from "@/components/Brand";
 import { REPORT_BRAND } from "@/lib/reportBrand";
 import { dateOf } from "@/lib/time";
 import {
@@ -83,6 +84,11 @@ export function ReportDocument({
   return (
     <article className={`rp-doc${team ? " rp-with-team" : ""}`} style={reportVars()}>
       <header className="rp-head">
+        <div className="rp-logos">
+          <span className="rp-nc">
+            <QsLogo size={62} print tone="blue" />
+          </span>
+        </div>
         <div className="rp-head-text">
           <h1>{reportTitle(kind, !!team, single)}</h1>
           <p className="rp-period">
